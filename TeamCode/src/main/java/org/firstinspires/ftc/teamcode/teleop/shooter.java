@@ -34,7 +34,7 @@ public class shooter extends OpMode {
     public static double FEED_SERVO_POWER = 0.5;
 
     // Duration of the shot sequence after the trigger is pulled
-    public static final double SHOOT_DURATION_SECONDS = 2.0;
+    public static final double SHOOT_DURATION_SECONDS = 3.0;
     /*
      * FTC OpMode for real-time control of a dual-motor shooter with two continuous rotation (CR) feeder servos.
      * Shooter motors engage for a fixed duration when the X button is pressed.
@@ -64,6 +64,8 @@ public class shooter extends OpMode {
     private DcMotorEx shooterMotorRight;
     private CRServo feederServoLeft;
     private CRServo feederServoRight;
+    private CRServo midServoLeft;
+    private CRServo midServoRight;
 
     private DcMotor frontLeftMotor;
     private DcMotor backLeftMotor;
@@ -91,11 +93,16 @@ public class shooter extends OpMode {
             shooterMotorLeft = hardwareMap.get(DcMotorEx.class, "left_front_drive");
             shooterMotorRight = hardwareMap.get(DcMotorEx.class, "right_front_drive");
 
-            shooterMotorRight.setDirection(DcMotorEx.Direction.REVERSE);
+            shooterMotorLeft.setDirection(DcMotorEx.Direction.REVERSE);
 
             // Initialize CR servos
             feederServoLeft = hardwareMap.get(CRServo.class, "servo_left");
             feederServoRight = hardwareMap.get(CRServo.class, "servo_right");
+            midServoLeft = hardwareMap.get(CRServo.class, "mid_left");
+            midServoRight = hardwareMap.get(CRServo.class, "mid_right");
+
+            feederServoLeft.setDirection(CRServo.Direction.REVERSE);
+            midServoLeft.setDirection(CRServo.Direction.REVERSE);
 
             // Motors start off
             shooterMotorLeft.setPower(0.0);
@@ -122,10 +129,6 @@ public class shooter extends OpMode {
 
     @Override
     public void loop() {
-        // --- 1. Set Feeder Servos (Only when shooting) ---
-        // Servos are set to power only during the shooting sequence.
-
-        feederServoLeft.setPower(FEED_SERVO_POWER);
         // A Button handles mode toggle (Auto vs. Manual power source)
         boolean aButtonCurrentState = gamepad1.a;
         if (aButtonCurrentState && !aButtonPrevState) {
@@ -191,6 +194,8 @@ public class shooter extends OpMode {
                 // Turn on feeder servos during shooting
                 feederServoLeft.setPower(FEED_SERVO_POWER);
                 feederServoRight.setPower(FEED_SERVO_POWER);
+                midServoLeft.setPower(FEED_SERVO_POWER);
+                midServoRight.setPower(FEED_SERVO_POWER);
                 finalPower = calculatedPower;
             } else {
                 // STOP motors: Timer expired
@@ -198,13 +203,17 @@ public class shooter extends OpMode {
                 // Turn off feeder servos
                 feederServoLeft.setPower(0);
                 feederServoRight.setPower(0);
+                midServoLeft.setPower(0);
+                midServoRight.setPower(0);
                 finalPower = 0.0;
             }
         } else {
             // Ensure servos are off when not shooting
             feederServoLeft.setPower(0);
             feederServoRight.setPower(0);
-            }
+            midServoLeft.setPower(0);
+            midServoRight.setPower(0);
+        }
 
 
         // Apply final power to motors
@@ -216,7 +225,7 @@ public class shooter extends OpMode {
 
         // Telemetry using the custom manager (for panel display)
         telemetryM.addData("Mode", isManualControl ? "MANUAL (Gamepad)" : "AUTOMATIC (Model)");
-        telemetryM.addData("Shooting", isShooting ? "ACTIVE (" + String.format(java.util.Locale.US, "%.1f", shooterTimer.seconds()) + "s / 2.0s)" : "IDLE");
+        telemetryM.addData("Shooting", isShooting ? "ACTIVE (" + String.format(java.util.Locale.US, "%.1f", shooterTimer.seconds()) + "s / 3.0s)" : "IDLE");
         telemetryM.addData("Target Distance (R)", currentTargetR);
         telemetryM.addData("Base Power Source", calculatedPower);
 
