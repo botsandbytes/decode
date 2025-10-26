@@ -17,233 +17,155 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @Configurable
 public class shooter extends OpMode {
 
-    // --- 1. Configurable Model Parameters (Tunable via the @Configurable System) ---
-
-    // Model coefficients for the Inverse function: Power (P) = A*R^2 + B*R + C
+    // Configurable Parameters
     public static double INV_COEFF_A = 0.001;
     public static double INV_COEFF_B = 0.02;
     public static double INV_COEFF_C = 0.1;
-
-    // The desired target distance (R)
     public static double TARGET_DISTANCE_R = 20.0;
-
-    // Multiplier applied to the left motor power for differential spin control (Default 1.0 = equal power)
     public static double LEFT_MOTOR_MULTIPLIER = 1.0;
-
-    // Power/Velocity for the CR feeder servos. Positive/Negative determines direction.
-    public static double FEED_SERVO_POWER = 0.5;
-
-    // Duration of the shot sequence after the trigger is pulled
+    public static double RIGHT_MOTOR_MULTIPLIER = 1.0;
+    public static double FEED_SERVO_POWER = 1.0;
+    public static final double MAX_SHOOTER_VELOCITY = 2250.0;
     public static final double SHOOT_DURATION_SECONDS = 3.0;
-    /*
-     * FTC OpMode for real-time control of a dual-motor shooter with two continuous rotation (CR) feeder servos.
-     * Shooter motors engage for a fixed duration when the X button is pressed.
-     */
 
-    // --- 2. Core Model Function ---
+    private static double calculatedPower = 0;
 
-    /**
-     * Calculates the base motor Power (P) from the Distance (R) using the configurable model.
-     */
-    private double calculateRequiredPower(double R) {
-        final double a = INV_COEFF_A;
-        final double b = INV_COEFF_B;
-        final double c = INV_COEFF_C;
+    private static boolean compControl = false;
 
-        // --- YOUR SIMPLE FORMULA GOES HERE (Currently P = A*R^2 + B*R + C) ---
-        double power = a * Math.pow(R, 2) + b * R + c;
+    // Hardware
+    private DcMotorEx shooterMotorLeft, shooterMotorRight;
+    private CRServo feederServoLeft, feederServoRight, midServoLeft, midServoRight;
+    private DcMotor frontLeftMotor, backLeftMotor, frontRightMotor, backRightMotor;
 
-        // Clamp the result to the valid motor power range [0.0, 1.0]
-        return Math.max(0.0, Math.min(1.0, power));
-    }
-
-
-    // --- 3. Hardware and Telemetry Setup ---
-
-    private DcMotorEx shooterMotorLeft;
-    private DcMotorEx shooterMotorRight;
-    private CRServo feederServoLeft;
-    private CRServo feederServoRight;
-    private CRServo midServoLeft;
-    private CRServo midServoRight;
-
-    private DcMotor frontLeftMotor;
-    private DcMotor backLeftMotor;
-    private DcMotor frontRightMotor;
-    private DcMotor backRightMotor;
-
-    // Correct initialization using the custom static managers
+    // Telemetry
     private final TelemetryManager telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
     private final GraphManager graphManager = PanelsGraph.INSTANCE.getManager();
 
+    // State
     private final ElapsedTime shooterTimer = new ElapsedTime();
-
     private double manualPower = 0.0;
-    private boolean isManualControl = false;
-    private boolean isShooting = false;
+    private boolean isManualControl = true, isShooting = false;
+    private boolean shooterToggleActive = false, servoToggleActive = false, reverseServoToggleActive = true;
+    private boolean aPrev = false, xPrev = false, yPrev = false, bPrev = false, lbPrev = false;
 
-    private boolean aButtonPrevState = false;
-    private boolean xButtonPrevState = false;
-
+    private double calculateRequiredPower(double R) {
+        double power = INV_COEFF_A * R * R + INV_COEFF_B * R + INV_COEFF_C;
+        return Math.max(0.0, Math.min(1.0, power));
+    }
 
     @Override
     public void init() {
-        // Initialize dual shooter motors
         try {
-            shooterMotorLeft = hardwareMap.get(DcMotorEx.class, "left_front_drive");
-            shooterMotorRight = hardwareMap.get(DcMotorEx.class, "right_front_drive");
-
+            shooterMotorLeft = hardwareMap.get(DcMotorEx.class, "shooter1");
+            shooterMotorRight = hardwareMap.get(DcMotorEx.class, "shooter2");
             shooterMotorLeft.setDirection(DcMotorEx.Direction.REVERSE);
 
-            // Initialize CR servos
             feederServoLeft = hardwareMap.get(CRServo.class, "servo_left");
             feederServoRight = hardwareMap.get(CRServo.class, "servo_right");
             midServoLeft = hardwareMap.get(CRServo.class, "mid_left");
             midServoRight = hardwareMap.get(CRServo.class, "mid_right");
-
             feederServoLeft.setDirection(CRServo.Direction.REVERSE);
             midServoLeft.setDirection(CRServo.Direction.REVERSE);
 
-            // Motors start off
-            shooterMotorLeft.setPower(0.0);
-            shooterMotorRight.setPower(0.0);
+            frontLeftMotor = hardwareMap.dcMotor.get("leftFront");
+            backLeftMotor = hardwareMap.dcMotor.get("leftBack");
+            frontRightMotor = hardwareMap.dcMotor.get("rightFront");
+            backRightMotor = hardwareMap.dcMotor.get("rightBack");
+            frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            backRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         } catch (Exception e) {
             telemetry.addData("Error", "Check motor/servo configuration names!");
             telemetry.update();
         }
-
-        // Declare our motors
-        // Make sure your ID's match your configuration
-        frontLeftMotor = hardwareMap.dcMotor.get("leftFront");
-        backLeftMotor = hardwareMap.dcMotor.get("leftBack");
-        frontRightMotor = hardwareMap.dcMotor.get("rightFront");
-        backRightMotor = hardwareMap.dcMotor.get("rightBack");
-
-        // Reverse the right side motors. This may be wrong for your setup.
-        // If your robot moves backwards when commanded to go forwards,
-        // reverse the left side instead.
-        // See the note about this earlier on this page.
-        frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
     }
 
     @Override
     public void loop() {
-        // A Button handles mode toggle (Auto vs. Manual power source)
-        boolean aButtonCurrentState = gamepad1.a;
-        if (aButtonCurrentState && !aButtonPrevState) {
-            isManualControl = !isManualControl;
-            if (isManualControl) {
-                // When switching to manual, start from the current right motor power
-                manualPower = shooterMotorRight.getPower();
-            }
-        }
-        aButtonPrevState = aButtonCurrentState;
-
-        final double currentTargetR = TARGET_DISTANCE_R;
-
-        double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
-        double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
-        double rx = gamepad1.right_stick_x;
-
-        // Denominator is the largest motor power (absolute value) or 1
-        // This ensures all the powers maintain the same ratio,
-        // but only if at least one is out of the range [-1, 1]
-        double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-        double frontLeftPower = (y + x + rx) / denominator;
-        double backLeftPower = (y - x + rx) / denominator;
-        double frontRightPower = (y - x - rx) / denominator;
-        double backRightPower = (y + x - rx) / denominator;
-
-        frontLeftMotor.setPower(frontLeftPower);
-        backLeftMotor.setPower(backLeftPower);
-        frontRightMotor.setPower(frontRightPower);
-        backRightMotor.setPower(backRightPower);
-
-
-        // Determine the calculated power based on the current mode
-        // --- State Variables ---
-        double calculatedPower = 0.0;
-        if (isManualControl) {
-            // Manual Control: Use right joystick Y-axis for power adjustment
-            manualPower -= gamepad1.right_stick_y * 0.02;
-            manualPower = Math.max(0.0, Math.min(1.0, manualPower));
-            calculatedPower = manualPower;
-        } else {
-            // Automatic Control: Use model output
-            calculatedPower = calculateRequiredPower(currentTargetR);
+        // Button toggles
+//        if (gamepad1.left_bumper && !lbPrev) {
+//            isManualControl = !isManualControl;
+//            if (isManualControl) manualPower = shooterMotorRight.getPower();
+//        }
+        if (isManualControl) manualPower = shooterMotorRight.getPower();
+        if (gamepad1.a && !aPrev) servoToggleActive = !servoToggleActive;
+        if (gamepad1.y && !yPrev) shooterToggleActive = !shooterToggleActive;
+        if (gamepad1.b && !bPrev) reverseServoToggleActive = !reverseServoToggleActive;
+        if (gamepad1.x && !xPrev && !isShooting) {
+            isShooting = true;
+            shooterTimer.reset();
         }
 
-        // --- 3. Timed Shooting Logic (X Button) ---
+        // Update button states
+        aPrev = gamepad1.a;
+        xPrev = gamepad1.x;
+        yPrev = gamepad1.y;
+        bPrev = gamepad1.b;
+        lbPrev = gamepad1.left_bumper;
 
-        // X Button press starts the 2.0 second shot sequence
-        boolean xButtonCurrentState = gamepad1.x;
-        if (xButtonCurrentState && !xButtonPrevState) {
-            if (!isShooting) {
-                isShooting = true;
-                shooterTimer.reset();
-            }
+        // Mecanum drive
+             double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
+            double x = gamepad1.left_stick_x * 1; // Counteract imperfect strafing
+            double rx = gamepad1.right_stick_x;
+
+            // Calculate motor powers
+            double denominator = Math.max(Math.pow(Math.abs(y) + Math.abs(x) + Math.abs(rx), 3), 1);
+
+            // Set motor powers
+            frontLeftMotor.setPower(Math.pow(y + x + rx, 3) / denominator);
+            backLeftMotor.setPower(Math.pow(y - x + rx, 3) / denominator);
+            frontRightMotor.setPower(Math.pow(y - x - rx, 3) / denominator);
+            backRightMotor.setPower(Math.pow(y + x - rx,3) / denominator);
+
+        // Calculate shooter power
+        if (!compControl) {
+            calculatedPower = isManualControl ?
+                    Math.max(0.0, Math.min(1.0, manualPower -= gamepad1.right_stick_y * 0.02)) :
+                    calculateRequiredPower(TARGET_DISTANCE_R);
         }
-        xButtonPrevState = xButtonCurrentState;
+        // Check timed shooting
+        boolean shootingActive = isShooting && shooterTimer.seconds() < SHOOT_DURATION_SECONDS;
+        if (isShooting && !shootingActive) isShooting = false;
 
-        double finalPower = 0.0;
+        // Apply shooter motor power
+        boolean motorsShouldRun = shooterToggleActive || shootingActive;
+        double finalPower = motorsShouldRun ? calculatedPower : 0.0;
+        shooterMotorRight.setVelocity(0.9 * MAX_SHOOTER_VELOCITY * finalPower * RIGHT_MOTOR_MULTIPLIER);
+        shooterMotorLeft.setVelocity(0.9 * MAX_SHOOTER_VELOCITY * finalPower * LEFT_MOTOR_MULTIPLIER);
 
-        if (isShooting) {
-            if (shooterTimer.seconds() < SHOOT_DURATION_SECONDS) {
-                // RUN motors: Apply the calculated power source
-                // Turn on feeder servos during shooting
-                feederServoLeft.setPower(FEED_SERVO_POWER);
-                feederServoRight.setPower(FEED_SERVO_POWER);
-                midServoLeft.setPower(FEED_SERVO_POWER);
-                midServoRight.setPower(FEED_SERVO_POWER);
-                finalPower = calculatedPower;
-            } else {
-                // STOP motors: Timer expired
-                isShooting = false;
-                // Turn off feeder servos
-                feederServoLeft.setPower(0);
-                feederServoRight.setPower(0);
-                midServoLeft.setPower(0);
-                midServoRight.setPower(0);
-                finalPower = 0.0;
-            }
-        } else {
-            // Ensure servos are off when not shooting
-            feederServoLeft.setPower(0);
-            feederServoRight.setPower(0);
-            midServoLeft.setPower(0);
-            midServoRight.setPower(0);
-        }
+        // Apply servo power
+        double midServoPower = motorsShouldRun ? FEED_SERVO_POWER : 0.0;
+        double lowerLeftServoPower =  (servoToggleActive || shootingActive) ? -FEED_SERVO_POWER : 0.0;
+        double lowerRightServoPower = motorsShouldRun ? -FEED_SERVO_POWER : !reverseServoToggleActive ? FEED_SERVO_POWER: lowerLeftServoPower;
+        feederServoLeft.setPower(lowerLeftServoPower);
+        feederServoRight.setPower(lowerRightServoPower);
+        midServoLeft.setPower(midServoPower);
+        midServoRight.setPower(midServoPower);
 
-
-        // Apply final power to motors
-        shooterMotorRight.setPower(finalPower);
-        shooterMotorLeft.setPower(finalPower * LEFT_MOTOR_MULTIPLIER);
-
-
-        // --- 4. Telemetry and Graphing ---
-
-        // Telemetry using the custom manager (for panel display)
-        telemetryM.addData("Mode", isManualControl ? "MANUAL (Gamepad)" : "AUTOMATIC (Model)");
-        telemetryM.addData("Shooting", isShooting ? "ACTIVE (" + String.format(java.util.Locale.US, "%.1f", shooterTimer.seconds()) + "s / 3.0s)" : "IDLE");
-        telemetryM.addData("Target Distance (R)", currentTargetR);
-        telemetryM.addData("Base Power Source", calculatedPower);
-
-        telemetryM.addData("Right Motor Power", shooterMotorRight.getPower());
-        telemetryM.addData("Left Motor Power", shooterMotorLeft.getPower());
-        telemetryM.addData("Feeder Power (CR)", FEED_SERVO_POWER);
-
-        // Telemetry for debugging the formula's inputs
+        // Telemetry
+        double targetVelocity = 0.9 * MAX_SHOOTER_VELOCITY * finalPower;
+        telemetryM.addData("Mode (LB)", isManualControl ? "MANUAL" : "AUTOMATIC");
+        telemetryM.addData("Shooting (X)", shootingActive ?
+            String.format(java.util.Locale.US, "ACTIVE (%.1fs / 3.0s)", shooterTimer.seconds()) : "IDLE");
+        telemetryM.addData("Shooter Toggle (Y)", shooterToggleActive ? "ON" : "OFF");
+        telemetryM.addData("Lower Servos FWD (B)", servoToggleActive ? "ON" : "OFF");
+        telemetryM.addData("Lower Servos REV (A)", reverseServoToggleActive ? "ON" : "OFF");
+        telemetryM.addData("Target Distance (R)", TARGET_DISTANCE_R);
+        telemetryM.addData("Base Power", calculatedPower);
+        telemetryM.addData("Right Motor Power", shooterMotorRight.getVelocity());
+        telemetryM.addData("Right Motor Target", targetVelocity * LEFT_MOTOR_MULTIPLIER);
+        telemetryM.addData("Left Motor Power", shooterMotorLeft.getVelocity());
+        telemetryM.addData("Left Motor Target", targetVelocity * LEFT_MOTOR_MULTIPLIER);
+        telemetryM.addData("Lower Left Servos Power", lowerLeftServoPower);
+        telemetryM.addData("Lower Right Servos Power", lowerRightServoPower);
+        telemetryM.addData("Mid Servos Power", midServoPower);
         telemetryM.debug("MODEL PARAMS");
         telemetryM.debug("INV_A (R^2 Coeff) " + INV_COEFF_A);
         telemetryM.debug("LEFT_MOTOR_MULT " + LEFT_MOTOR_MULTIPLIER);
+        telemetryM.debug("RIGHT_MOTOR_MULT " + RIGHT_MOTOR_MULTIPLIER);
 
-        // Graphing data updates
-        graphManager.addData("Right Motor Power", shooterMotorRight.getPower());
-        graphManager.addData("Left Motor Power", shooterMotorLeft.getPower());
-
-        // Update both graph and telemetry views
+        graphManager.addData("Right Motor Vel", shooterMotorRight.getVelocity());
+        graphManager.addData("Left Motor Vel", shooterMotorLeft.getVelocity());
         graphManager.update();
-        telemetryM.update(telemetry); // Passes FTC telemetry object to update both displays
+        telemetryM.update(telemetry);
     }
 }
