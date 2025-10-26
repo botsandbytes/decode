@@ -30,7 +30,7 @@ public class shooter extends OpMode {
 
     private static double calculatedPower = 0;
 
-    private static boolean compControl = false;
+    private static boolean compControl;
 
     // Hardware
     private DcMotorEx shooterMotorLeft, shooterMotorRight;
@@ -55,6 +55,7 @@ public class shooter extends OpMode {
 
     @Override
     public void init() {
+        compControl = false;
         try {
             shooterMotorLeft = hardwareMap.get(DcMotorEx.class, "shooter1");
             shooterMotorRight = hardwareMap.get(DcMotorEx.class, "shooter2");
@@ -86,7 +87,6 @@ public class shooter extends OpMode {
 //            isManualControl = !isManualControl;
 //            if (isManualControl) manualPower = shooterMotorRight.getPower();
 //        }
-        if (isManualControl) manualPower = shooterMotorRight.getPower();
         if (gamepad1.a && !aPrev) servoToggleActive = !servoToggleActive;
         if (gamepad1.y && !yPrev) shooterToggleActive = !shooterToggleActive;
         if (gamepad1.b && !bPrev) reverseServoToggleActive = !reverseServoToggleActive;
