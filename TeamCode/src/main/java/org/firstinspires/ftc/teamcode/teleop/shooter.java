@@ -43,7 +43,7 @@ public class shooter extends OpMode {
 
     // State
     private final ElapsedTime shooterTimer = new ElapsedTime();
-    private double manualPower = 0.0;
+    private double manualPower = 0.75;
     private boolean isManualControl = true, isShooting = false;
     private boolean shooterToggleActive = false, servoToggleActive = false, reverseServoToggleActive = true;
     private boolean aPrev = false, xPrev = false, yPrev = false, bPrev = false, lbPrev = false;
@@ -87,23 +87,25 @@ public class shooter extends OpMode {
 //            isManualControl = !isManualControl;
 //            if (isManualControl) manualPower = shooterMotorRight.getPower();
 //        }
-        if (gamepad1.a && !aPrev) servoToggleActive = !servoToggleActive;
-        if (gamepad1.y && !yPrev) shooterToggleActive = !shooterToggleActive;
-        if (gamepad1.b && !bPrev) reverseServoToggleActive = !reverseServoToggleActive;
-        if (gamepad1.x && !xPrev && !isShooting) {
+        if (gamepad2.a && !aPrev) servoToggleActive = !servoToggleActive;
+        if (gamepad2.y && !yPrev) shooterToggleActive = !shooterToggleActive;
+        if (gamepad2.b && !bPrev) reverseServoToggleActive = !reverseServoToggleActive;
+        if (gamepad2.x && !xPrev && !isShooting) {
             isShooting = true;
             shooterTimer.reset();
         }
+        if (gamepad2.dpad_up) manualPower=0.87;
+        if (gamepad2.dpad_down) manualPower=0.75;
 
         // Update button states
-        aPrev = gamepad1.a;
-        xPrev = gamepad1.x;
-        yPrev = gamepad1.y;
-        bPrev = gamepad1.b;
-        lbPrev = gamepad1.left_bumper;
+        aPrev = gamepad2.a;
+        xPrev = gamepad2.x;
+        yPrev = gamepad2.y;
+        bPrev = gamepad2.b;
+        lbPrev = gamepad2.left_bumper;
 
         // Mecanum drive
-             double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
+            double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
             double x = gamepad1.left_stick_x * 1; // Counteract imperfect strafing
             double rx = gamepad1.right_stick_x;
 
@@ -119,7 +121,7 @@ public class shooter extends OpMode {
         // Calculate shooter power
         if (!compControl) {
             calculatedPower = isManualControl ?
-                    Math.max(0.0, Math.min(1.0, manualPower -= gamepad1.right_stick_y * 0.02)) :
+                    Math.max(0.0, Math.min(1.0, manualPower -= gamepad2.right_stick_y * 0.02)) :
                     calculateRequiredPower(TARGET_DISTANCE_R);
         }
         // Check timed shooting
@@ -144,13 +146,13 @@ public class shooter extends OpMode {
         // Telemetry
         double targetVelocity = 0.9 * MAX_SHOOTER_VELOCITY * finalPower;
         telemetryM.addData("Mode (LB)", isManualControl ? "MANUAL" : "AUTOMATIC");
+        telemetryM.addData("Power", calculatedPower * 100 + "%");
         telemetryM.addData("Shooting (X)", shootingActive ?
             String.format(java.util.Locale.US, "ACTIVE (%.1fs / 3.0s)", shooterTimer.seconds()) : "IDLE");
         telemetryM.addData("Shooter Toggle (Y)", shooterToggleActive ? "ON" : "OFF");
         telemetryM.addData("Lower Servos FWD (B)", servoToggleActive ? "ON" : "OFF");
         telemetryM.addData("Lower Servos REV (A)", reverseServoToggleActive ? "ON" : "OFF");
         telemetryM.addData("Target Distance (R)", TARGET_DISTANCE_R);
-        telemetryM.addData("Base Power", calculatedPower);
         telemetryM.addData("Right Motor Power", shooterMotorRight.getVelocity());
         telemetryM.addData("Right Motor Target", targetVelocity * LEFT_MOTOR_MULTIPLIER);
         telemetryM.addData("Left Motor Power", shooterMotorLeft.getVelocity());
