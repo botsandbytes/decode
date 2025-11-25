@@ -15,7 +15,6 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -38,7 +37,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "Shooter Training (No RR - Direct Pinpoint)")
+@TeleOp(name = "Shooter Training")
 @Configurable
 public class train extends OpMode {
 
@@ -51,9 +50,6 @@ public class train extends OpMode {
     public static double TRAIN_RPM_PERCENT = 0.5;
     public static int MAX_RPM = 1560;
 
-    // --- Turret Servo (y = mx + b) ---
-    public static double TURRET_M = 0.003;
-    public static double TURRET_B = 0.5;
 
     // --- Motor Powers ---
     public static double INTAKE_L_POWER = 1.0;
@@ -80,7 +76,7 @@ public class train extends OpMode {
     // Mechanisms
     private DcMotorEx shooterMotor;
     private DcMotor intakeM, intakeL;
-    private Servo turretServo, hoodServo;
+    private Servo hoodServo;
 
     // Vision
     private static final boolean USE_WEBCAM = true;
@@ -133,7 +129,6 @@ public class train extends OpMode {
             intakeL = hardwareMap.dcMotor.get("intakel");
             shooterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-            turretServo = hardwareMap.get(Servo.class, "turret");
             hoodServo = hardwareMap.get(Servo.class, "hood");
 
         } catch (Exception e) {
@@ -201,6 +196,9 @@ public class train extends OpMode {
         telemetryM.addData("Turret Ang", relativeAngleDeg);
         telemetryM.addData("Pose", String.format("%.1f, %.1f, %.1f°",
             curX, curY, Math.toDegrees(curH_Rad)));
+        telemetryM.addData("shooter V", Math.abs(shooterMotor.getVelocity()));
+        telemetryM.addData("Shooter Target", MAX_RPM * 0.9 * TRAIN_RPM_PERCENT);
+        telemetryM.addData("Shooter Minimum", MAX_RPM * 0.85 * TRAIN_RPM_PERCENT);
         telemetryM.update(telemetry);
     }
 
@@ -271,10 +269,10 @@ public class train extends OpMode {
     }
 
     private void handleIntakeShooter() {
-        if (gamepad2.a) { // INTAKE
+        if (gamepad1.a) { // INTAKE
             isIntaking = true;
             isShooting = false;
-        } else if (gamepad2.x) { // SHOOT
+        } else if (gamepad1.x) { // SHOOT
             isShooting = true;
             isIntaking = false;
             shooterTimer.reset();
@@ -297,13 +295,13 @@ public class train extends OpMode {
             double targetVel = MAX_RPM * 0.9 * TRAIN_RPM_PERCENT;
             shooterMotor.setVelocity(targetVel);
 
-            if (shooterTimer.seconds() > 0.5) {
+            if (Math.abs(shooterMotor.getVelocity()) > MAX_RPM * 0.85 * TRAIN_RPM_PERCENT) {
                 intakeM.setPower(INTAKE_M_POWER);
             } else {
                 intakeM.setPower(0);
             }
 
-            if (shooterTimer.seconds() > 3.0) {
+            if (gamepad1.y) {
                 isShooting = false;
             }
         }
