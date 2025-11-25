@@ -6,6 +6,11 @@ import android.util.Size;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
+
+// --- FIELD IMPORTS ---
+import com.bylazar.field.PanelsField;
+import com.bylazar.field.FieldManager; // We must import the Manager class directly
+
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -94,9 +99,20 @@ public class train extends OpMode {
     // Telemetry
     private final TelemetryManager telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
 
+    // --- FIELD VISUALIZER ---
+    // We declare the Manager variable here so we can reuse it
+    private FieldManager field;
+
     @Override
     public void init() {
         try {
+            // --- FIELD SETUP ---
+            // 1. Get the single instance of the Field Manager
+            field = PanelsField.INSTANCE.getField();
+
+            // 2. Configure it
+            field.setOffsets(PanelsField.INSTANCE.getPresets().getDEFAULT_FTC());
+
             // --- 1. INIT DRIVE MOTORS ---
             leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
             leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
@@ -206,7 +222,10 @@ public class train extends OpMode {
 
         hoodServo.setPosition(TRAIN_HOOD_ANGLE);
 
-        // 4. MECHANISMS
+        // 4. DRAW FIELD
+        drawRobotOnField(curX, curY, curH_Rad);
+
+        // 5. MECHANISMS & TELEMETRY
         handleIntakeShooter();
 
         // 5. TELEMETRY
@@ -218,6 +237,55 @@ public class train extends OpMode {
             curX, curY, Math.toDegrees(curH_Rad)));
 
         telemetryM.update(telemetry);
+    }
+
+    /**
+     * Draws the robot, heading, and goal line on the Panels dashboard.
+     * Uses the cached 'field' object to prevent memory leaks/crashes.
+     */
+    private void drawRobotOnField(double x, double y, double h) {
+        // --- 1. Draw Line to Goal (Cyan) ---
+        field.setStyle("none", "cyan", 2.0);
+        field.moveCursor(x, y);
+        field.line(GOAL_X, GOAL_Y);
+
+        // --- 2. Calculate Robot Corners (18x18 inches) ---
+        // Half size = 9 inches
+        double cosA = Math.cos(h);
+        double sinA = Math.sin(h);
+
+        // FL (9, 9)
+        double x1 = x + (9 * cosA - 9 * sinA);
+        double y1 = y + (9 * sinA + 9 * cosA);
+        // FR (9, -9)
+        double x2 = x + (9 * cosA - (-9) * sinA);
+        double y2 = y + (9 * sinA + (-9) * cosA);
+        // BR (-9, -9)
+        double x3 = x + (-9 * cosA - (-9) * sinA);
+        double y3 = y + (-9 * sinA + (-9) * cosA);
+        // BL (-9, 9)
+        double x4 = x + (-9 * cosA - 9 * sinA);
+        double y4 = y + (-9 * sinA + 9 * cosA);
+
+        // --- 3. Draw Robot Body (Red Box) ---
+        field.setStyle("none", "red", 2.0);
+        field.moveCursor(x1, y1);
+        field.line(x2, y2);
+        field.line(x3, y3);
+        field.line(x4, y4);
+        field.line(x1, y1); // Close loop
+
+        // --- 4. Draw Heading Line (Yellow) ---
+        // From center to front-middle edge (9, 0)
+        double frontX = x + (9 * cosA);
+        double frontY = y + (9 * sinA);
+
+        field.setStyle("none", "yellow", 2.0);
+        field.moveCursor(x, y);
+        field.line(frontX, frontY);
+
+        // --- 5. Push Update ---
+        field.update();
     }
 
     private void handleIntakeShooter() {
