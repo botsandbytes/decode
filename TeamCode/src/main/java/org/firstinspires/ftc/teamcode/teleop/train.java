@@ -9,7 +9,7 @@ import com.bylazar.telemetry.TelemetryManager;
 
 // --- FIELD IMPORTS ---
 import com.bylazar.field.PanelsField;
-import com.bylazar.field.FieldManager; // We must import the Manager class directly
+import com.bylazar.field.FieldManager;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -22,12 +22,12 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 // IMPORT THE PINPOINT DRIVER DIRECTLY
 import org.firstinspires.ftc.teamcode.GoBildaPinpointDriver;
 
-// FTC SDK NAVIGATION IMPORTS (No RoadRunner)
+// FTC SDK NAVIGATION IMPORTS
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D; // Standard SDK Pose
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
@@ -49,14 +49,14 @@ public class train extends OpMode {
     // --- Training Params ---
     public static double TRAIN_HOOD_ANGLE = 0.5;
     public static double TRAIN_RPM_PERCENT = 0.5;
-    public static int MAX_RPM = 3000;
+    public static int MAX_RPM = 1560;
 
     // --- Turret Servo (y = mx + b) ---
     public static double TURRET_M = 0.003;
     public static double TURRET_B = 0.5;
 
     // --- Motor Powers ---
-    public static double INTAKE_L_POWER = 0.8;
+    public static double INTAKE_L_POWER = 1.0;
     public static double INTAKE_M_POWER = 1.0;
 
     // --- Pinpoint Config ---
@@ -100,17 +100,13 @@ public class train extends OpMode {
     private final TelemetryManager telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
 
     // --- FIELD VISUALIZER ---
-    // We declare the Manager variable here so we can reuse it
     private FieldManager field;
 
     @Override
     public void init() {
         try {
             // --- FIELD SETUP ---
-            // 1. Get the single instance of the Field Manager
             field = PanelsField.INSTANCE.getField();
-
-            // 2. Configure it
             field.setOffsets(PanelsField.INSTANCE.getPresets().getDEFAULT_FTC());
 
             // --- 1. INIT DRIVE MOTORS ---
@@ -124,24 +120,11 @@ public class train extends OpMode {
             rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-            // TODO: Verify your motor directions here
-            leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
-            leftBack.setDirection(DcMotorSimple.Direction.REVERSE);
-
             // --- 2. INIT PINPOINT ---
-            // Ensure your config name matches "odo" or change this string
             odo = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-
-            // Apply offsets (using MM as native unit for accuracy)
             odo.setOffsets(PINPOINT_X_OFFSET_MM, PINPOINT_Y_OFFSET_MM, DistanceUnit.MM);
-
-            // Set Encoder resolution (Example: 4-Bar Pods)
             odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-
-            // Set Directions
             odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
-
-            // Reset
             odo.resetPosAndIMU();
 
             // --- 3. INIT MECHANISMS ---
@@ -164,20 +147,14 @@ public class train extends OpMode {
     @Override
     public void init_loop() {
         updateAprilTagPose();
-
         telemetry.addData("Tag Found", tagFound ? "YES" : "NO");
-        telemetry.addData("Start X", "%.2f", startPose.getX(DistanceUnit.INCH));
-        telemetry.addData("Start Y", "%.2f", startPose.getY(DistanceUnit.INCH));
-        telemetry.addData("Start H", "%.2f", startPose.getHeading(AngleUnit.DEGREES));
+        telemetry.addData("Start Pose", startPose.toString());
         telemetry.update();
     }
 
     @Override
     public void start() {
-        // --- SYNC POSE ---
-        // Push the vision pose into the Pinpoint computer
         odo.setPosition(startPose);
-
         if (visionPortal != null) visionPortal.stopStreaming();
     }
 
@@ -188,7 +165,7 @@ public class train extends OpMode {
         odo.update();
         Pose2D currentPose = odo.getPosition();
 
-        // 2. DRIVE CONTROL (Manual Mecanum Math)
+        // 2. DRIVE CONTROL
         double y = -gamepad1.left_stick_y;
         double x = gamepad1.left_stick_x;
         double rx = gamepad1.right_stick_x;
@@ -200,7 +177,6 @@ public class train extends OpMode {
         rightBack.setPower(Math.pow(y + x - rx, 3) / denominator);
 
         // 3. SHOOTER & TURRET
-        // Extract values from SDK Pose2D
         double curX = currentPose.getX(DistanceUnit.INCH);
         double curY = currentPose.getY(DistanceUnit.INCH);
         double curH_Rad = currentPose.getHeading(AngleUnit.RADIANS);
@@ -210,15 +186,8 @@ public class train extends OpMode {
         double angleToGoalRad = Math.atan2(GOAL_Y - curY, GOAL_X - curX);
         double relativeAngleDeg = Math.toDegrees(angleToGoalRad - curH_Rad);
 
-        // Normalize
         while (relativeAngleDeg > 180) relativeAngleDeg -= 360;
         while (relativeAngleDeg <= -180) relativeAngleDeg += 360;
-
-        // Clamp
-
-        // --- TURRET (Commented Out) ---
-        // double servoPos = (clampedAngle * TURRET_M) + TURRET_B;
-        // turretServo.setPosition(Math.max(0, Math.min(1, servoPos)));
 
         hoodServo.setPosition(TRAIN_HOOD_ANGLE);
 
@@ -228,57 +197,70 @@ public class train extends OpMode {
         // 5. MECHANISMS & TELEMETRY
         handleIntakeShooter();
 
-        // 5. TELEMETRY
         telemetryM.addData("Dist", dist);
         telemetryM.addData("Turret Ang", relativeAngleDeg);
-        // telemetryM.addData("Servo", servoPos);
-
         telemetryM.addData("Pose", String.format("%.1f, %.1f, %.1f°",
             curX, curY, Math.toDegrees(curH_Rad)));
-
         telemetryM.update(telemetry);
     }
 
     /**
      * Draws the robot, heading, and goal line on the Panels dashboard.
-     * Uses the cached 'field' object to prevent memory leaks/crashes.
+     * UPDATED: Explicitly moves cursor between line segments to ensure a square is drawn.
      */
     private void drawRobotOnField(double x, double y, double h) {
+        h += Math.PI / 2;
         // --- 1. Draw Line to Goal (Cyan) ---
         field.setStyle("none", "cyan", 2.0);
         field.moveCursor(x, y);
         field.line(GOAL_X, GOAL_Y);
 
-        // --- 2. Calculate Robot Corners (18x18 inches) ---
-        // Half size = 9 inches
+        // --- 2. Calculate Corners (18x18 inches) ---
+        // Formula: x' = x*cos(h) - y*sin(h)
+        //          y' = x*sin(h) + y*cos(h)
+        // FL (9, 9), FR (9, -9), BR (-9, -9), BL (-9, 9)
+
         double cosA = Math.cos(h);
         double sinA = Math.sin(h);
+        double halfSize = 9.0;
 
-        // FL (9, 9)
-        double x1 = x + (9 * cosA - 9 * sinA);
-        double y1 = y + (9 * sinA + 9 * cosA);
-        // FR (9, -9)
-        double x2 = x + (9 * cosA - (-9) * sinA);
-        double y2 = y + (9 * sinA + (-9) * cosA);
-        // BR (-9, -9)
-        double x3 = x + (-9 * cosA - (-9) * sinA);
-        double y3 = y + (-9 * sinA + (-9) * cosA);
-        // BL (-9, 9)
-        double x4 = x + (-9 * cosA - 9 * sinA);
-        double y4 = y + (-9 * sinA + 9 * cosA);
+        // Front Left
+        double xFL = x + (halfSize * cosA - halfSize * sinA);
+        double yFL = y + (halfSize * sinA + halfSize * cosA);
+
+        // Front Right (y is negative)
+        double xFR = x + (halfSize * cosA - (-halfSize) * sinA);
+        double yFR = y + (halfSize * sinA + (-halfSize) * cosA);
+
+        // Back Right (x and y negative)
+        double xBR = x + (-halfSize * cosA - (-halfSize) * sinA);
+        double yBR = y + (-halfSize * sinA + (-halfSize) * cosA);
+
+        // Back Left (x negative)
+        double xBL = x + (-halfSize * cosA - halfSize * sinA);
+        double yBL = y + (-halfSize * sinA + halfSize * cosA);
 
         // --- 3. Draw Robot Body (Red Box) ---
         field.setStyle("none", "red", 2.0);
-        field.moveCursor(x1, y1);
-        field.line(x2, y2);
-        field.line(x3, y3);
-        field.line(x4, y4);
-        field.line(x1, y1); // Close loop
+
+        // We explicit move cursor to the start of each segment to prevent "fan" artifacts
+        field.moveCursor(xFL, yFL);
+        field.line(xFR, yFR);
+
+        field.moveCursor(xFR, yFR);
+        field.line(xBR, yBR);
+
+        field.moveCursor(xBR, yBR);
+        field.line(xBL, yBL);
+
+        field.moveCursor(xBL, yBL);
+        field.line(xFL, yFL); // Close the box
 
         // --- 4. Draw Heading Line (Yellow) ---
-        // From center to front-middle edge (9, 0)
-        double frontX = x + (9 * cosA);
-        double frontY = y + (9 * sinA);
+        // From center (x,y) to the midpoint of the Front Face (9, 0 local)
+        // This ensures the line is exactly perpendicular to the front edge of the box.
+        double frontX = x + (halfSize * cosA);
+        double frontY = y + (halfSize * sinA);
 
         field.setStyle("none", "yellow", 2.0);
         field.moveCursor(x, y);
@@ -312,7 +294,7 @@ public class train extends OpMode {
         }
 
         if (isShooting) {
-            double targetVel = MAX_RPM * TRAIN_RPM_PERCENT;
+            double targetVel = MAX_RPM * 0.9 * TRAIN_RPM_PERCENT;
             shooterMotor.setVelocity(targetVel);
 
             if (shooterTimer.seconds() > 0.5) {
@@ -349,12 +331,9 @@ public class train extends OpMode {
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && !detection.metadata.name.contains("Obelisk")) {
                 tagFound = true;
-
-                // Convert Vision Pose to SDK Pose2D
                 double x = detection.robotPose.getPosition().x;
                 double y = detection.robotPose.getPosition().y;
                 double h_deg = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
-
                 startPose = new Pose2D(DistanceUnit.INCH, x, y, AngleUnit.DEGREES, h_deg);
                 break;
             }
