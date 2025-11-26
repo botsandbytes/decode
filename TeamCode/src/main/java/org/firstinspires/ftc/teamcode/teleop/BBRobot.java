@@ -36,10 +36,10 @@ public class BBRobot {
         telemetry.update();
 
         // Drive Motors
-        Motor_FL = hardwareMap.get(DcMotorEx.class, "left_front_drive");
-        Motor_FR = hardwareMap.get(DcMotorEx.class, "right_front_drive");
-        Motor_BR = hardwareMap.get(DcMotorEx.class, "motor_br");
-        Motor_BL = hardwareMap.get(DcMotorEx.class, "motor_bl");
+        Motor_FL = hardwareMap.get(DcMotorEx.class, "leftFront");
+        Motor_FR = hardwareMap.get(DcMotorEx.class, "rightFront");
+        Motor_BR = hardwareMap.get(DcMotorEx.class, "rightBack");
+        Motor_BL = hardwareMap.get(DcMotorEx.class, "leftBack");
         // Continuous Rotation Servos (names must match the RC configuration!)
         Servo_Left  = hardwareMap.get(CRServo.class, "servo_left");
         Servo_Right = hardwareMap.get(CRServo.class, "servo_right");
