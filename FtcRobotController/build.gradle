@@ -1,9 +1,13 @@
+plugins {
+    id 'com.android.library'
+}
+
 import java.text.SimpleDateFormat
 
 //
 // build.gradle in FtcRobotController
 //
-apply plugin: 'com.android.library'
+// apply plugin: 'com.android.library'
 
 android {
 
@@ -17,13 +21,20 @@ android {
     buildFeatures {
         buildConfig = true
     }
-    compileSdk 34
 
+    compileSdkVersion 36
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
     namespace = 'com.qualcomm.ftcrobotcontroller'
 }
 
