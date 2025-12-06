@@ -67,7 +67,7 @@ public class train extends OpMode {
     public void init() {
         try {
             field = PanelsField.INSTANCE.getField();
-            field.setOffsets(PanelsField.INSTANCE.getPresets().getDEFAULT_FTC());
+            field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
 
             robot = new Robot(hardwareMap);
 
@@ -104,9 +104,9 @@ public class train extends OpMode {
         follower.update();
         Pose pose = follower.getPose();
 
-        double yInput = Math.pow(-gamepad1.left_stick_y, 3);
-        double xInput = Math.pow(gamepad1.left_stick_x, 3);
-        double rInput = Math.pow(gamepad1.right_stick_x, 3);
+        double yInput = -gamepad1.left_stick_y;
+        double xInput = -gamepad1.left_stick_x;
+        double rInput = gamepad1.right_stick_x;
 
         double velX = robot.odo.getVelX(DistanceUnit.INCH);
         double velY = robot.odo.getVelY(DistanceUnit.INCH);
