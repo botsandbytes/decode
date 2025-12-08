@@ -4,7 +4,6 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
@@ -127,13 +126,11 @@ public class redBasketAuto extends OpMode {
                 setPathState(1);
                 break;
             case 1:
-//
 //            /* You could check for
 //            - Follower State: "if(!follower.isBusy()) {}"
 //            - Time: "if(pathTimer.getElapsedTimeSeconds() > 1) {}"
 //            - Robot Position: "if(follower.getPose().getX() > 36) {}"
 //            */
-//
 //                /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
 //                    /* Score Preload */
@@ -150,9 +147,6 @@ public class redBasketAuto extends OpMode {
                 if (!follower.isBusy()) {
                     /* Grab Sample */
                     intakeL.runIntake(1, .15);
-
-//                    intakeL.stopIntake();
-//                    follower.followPath(grabPickup1, true);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup1, true);
                     intakeL.powerOnLauncher(.65);
@@ -205,10 +199,6 @@ public class redBasketAuto extends OpMode {
                     follower.followPath(scorePickup3, true);
                     intakeL.powerOnLauncher(.68);
                     setPathState(7);
-
-//                    /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
-//                    follower.followPath(scorePickup3, true);
-//                    setPathState(7);
                 }
                 break;
             case 7:
@@ -218,9 +208,6 @@ public class redBasketAuto extends OpMode {
                     intakeL.stopIntake();
                     intakeL.takeShot(0.68, 3500);
                     intakeL.stopLauncher();
-//                    intakeL.runIntake(1, .15);
-                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-//                    follower.followPath(grabPickup3, true);
                     setPathState(8);
                 }
                 break;
