@@ -67,7 +67,7 @@ public class redBasketAuto extends OpMode {
             scorePickup1 = follower.pathBuilder()
                     .addPath(new BezierLine(pickup1PoseEnd, gateAfterPose1))
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                    .addPath(new BezierLine(gateAfterPose1End, gateAfterPose1End))
+                    .addPath(new BezierLine(gateAfterPose1, gateAfterPose1End))
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                     .addPath(new BezierLine(gateAfterPose1End, scorePose2))
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
@@ -88,12 +88,26 @@ public class redBasketAuto extends OpMode {
                 .build();
 
         /* This is our scorePickup2 PathChain. We are using a single path with a BezierLine, which is a straight line. */
-        scorePickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup2PoseEnd, pickup2PoseReturn))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                .addPath(new BezierLine(pickup2PoseReturn, scorePose))
-                .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), scorePose.getHeading())
-                .build();
+        if (openGateAfterPickup2) {
+            scorePickup2 = follower.pathBuilder()
+                    .addPath(new BezierLine(pickup2PoseEnd, pickup2PoseReturn))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .addPath(new BezierLine(pickup2PoseReturn, gateAfterPose1))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .addPath(new BezierLine(gateAfterPose1, gateAfterPose1End))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .addPath(new BezierLine(gateAfterPose1End, scorePose))
+                    .setLinearHeadingInterpolation(gateAfterPose1End.getHeading(), scorePose.getHeading())
+                    .build();
+
+        } else {
+            scorePickup2 = follower.pathBuilder()
+                    .addPath(new BezierLine(pickup2PoseEnd, pickup2PoseReturn))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .addPath(new BezierLine(pickup2PoseReturn, scorePose))
+                    .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), scorePose.getHeading())
+                    .build();
+        }
 
         /* This is our grabPickup3 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         grabPickup3 = follower.pathBuilder()
