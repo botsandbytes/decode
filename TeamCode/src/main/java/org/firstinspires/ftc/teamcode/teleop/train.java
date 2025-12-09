@@ -49,8 +49,7 @@ public class train extends OpMode {
     private final TelemetryManager telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
     private final ElapsedTime shooterTimer = new ElapsedTime();
 
-    private Pose2D startPose =
-            new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0);
+    private Pose2D startPose = new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0);
 
     private boolean shooting = false;
     private double shooterTargetVelocity;
@@ -67,7 +66,7 @@ public class train extends OpMode {
     public void init() {
         try {
             field = PanelsField.INSTANCE.getField();
-            field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
+            field.setOffsets(PanelsField.INSTANCE.getPresets().getDEFAULT_FTC());
 
             robot = new Robot(hardwareMap);
 
