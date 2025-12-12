@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.auto;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
@@ -10,36 +9,38 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.intakeLaunch;
+import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous(name = "Red Basket Auto", group = "BB Auto")
 public class redBasketAuto extends OpMode {
 
-    boolean openGateAfterPickup1 = true;
-    boolean openGateAfterPickup2 = false;
+    boolean openGateAfterPickup1 = false;
+    boolean openGateAfterPickup2 = true;
     intakeLaunch intakeL ;
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
 
     private int pathState;
+    double launchPower = .68;
+    double transferPower = .12;
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45)); // Start Pose of our robot.
     private final Pose scorePose = new Pose(90, 90, Math.toRadians(45));
 
     private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0));
-    private final Pose pickup1PoseEnd = new Pose(128.5, 84, Math.toRadians(0));// Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose pickup1PoseEnd = new Pose(124, 84, Math.toRadians(0));// 128.5Highest (First Set) of Artifacts from the Spike Mark.
     private final Pose gateAfterPose1 = new Pose(115,76, Math.toRadians(0));
     private final Pose gateAfterPose1End = new Pose(120,76, Math.toRadians(0));
     private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
     private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0)); // Middle (Second Set) of Artifacts from the Spike Mark.
 
-    private final Pose pickup2PoseEnd = new Pose(136, 60, Math.toRadians(0));
+    private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
     private final Pose pickup2PoseReturn = new Pose(125,60, Math.toRadians(0));
 //94,36
     private final Pose pickup3Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
 
-    private final Pose pickup3PoseEnd = new Pose(137, 36, Math.toRadians(0));
+    private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
     private final Pose pickup3PoseReturn = new Pose(125,36, Math.toRadians(0));
     private Path scorePreload;
     private PathChain grabPickup1, grabPickup1Start, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
@@ -132,7 +133,7 @@ public class redBasketAuto extends OpMode {
         switch (pathState) {
             case 0:
                 follower.followPath(scorePreload);
-                intakeL.powerOnLauncher(0.67);
+                intakeL.powerOnLauncher(launchPower);
                 setPathState(1);
                 break;
             case 1:
@@ -144,9 +145,9 @@ public class redBasketAuto extends OpMode {
 //                /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
 //                    /* Score Preload */
-                    intakeL.takeShot(0.67, 3000);
+                    intakeL.takeShot(launchPower, 2500);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
 //                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
                     follower.followPath(grabPickup1);
                     setPathState(2);
@@ -156,7 +157,7 @@ public class redBasketAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup1Pose's position */
                 if (!follower.isBusy()) {
                     /* Grab Sample */
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup1, true);
                     intakeL.powerOnLauncher(.65);
@@ -170,7 +171,7 @@ public class redBasketAuto extends OpMode {
                     intakeL.stopIntake();
                     intakeL.takeShot(0.65, 2800);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
                     follower.followPath(grabPickup2, true);
                     setPathState(4);
@@ -180,10 +181,10 @@ public class redBasketAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup2Pose's position */
                 if (!follower.isBusy()) {
                     /* Grab Sample */
-                    intakeL.runIntake(1, .1);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup2, true);
-                    intakeL.powerOnLauncher(.68);
+                    intakeL.powerOnLauncher(launchPower);
                     setPathState(5);
                 }
                 break;
@@ -192,11 +193,11 @@ public class redBasketAuto extends OpMode {
                 if (!follower.isBusy()) {
                     /* Score Sample */
                     intakeL.stopIntake();
-                    intakeL.takeShot(0.68, 3400);
+                    intakeL.takeShot(launchPower, 3400);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                    follower.followPath(grabPickup3, true);
+                    follower.followPath(grabPickup3,true);
                     setPathState(6);
                 }
                 break;
@@ -204,10 +205,10 @@ public class redBasketAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup3Pose's position */
                 if (!follower.isBusy()) {
                     /* Grab Sample */
-                    intakeL.runIntake(1, .1);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup3, true);
-                    intakeL.powerOnLauncher(.68);
+                    intakeL.powerOnLauncher(launchPower);
                     setPathState(7);
                 }
                 break;
@@ -216,7 +217,7 @@ public class redBasketAuto extends OpMode {
                 if (!follower.isBusy()) {
                     /* Score Sample */
                     intakeL.stopIntake();
-                    intakeL.takeShot(0.68, 3500);
+                    intakeL.takeShot(launchPower, 3500);
                     intakeL.stopLauncher();
                     setPathState(8);
                 }

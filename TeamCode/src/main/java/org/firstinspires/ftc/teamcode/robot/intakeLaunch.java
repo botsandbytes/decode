@@ -1,26 +1,30 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.robot;
 
 import static java.lang.Thread.sleep;
 
-import androidx.annotation.NonNull;
-
-import com.bylazar.telemetry.TelemetryManager;
+import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class intakeLaunch {
 
+    private final Pose goalTargetPose = new Pose(138.0, 132.0, Math.PI / 4.0);
     private DcMotorEx intakeF, intakeM, shooter;
+    private Servo hood;
+    private Servo turn;
     private final Telemetry telemetry;
     public static double TRAIN_RPM_PERCENT = 1;
     public static double LAUNCH_VELOCITY = .7;
     public static int MAX_RPM = 1500;
     public static double INTAkE_TRANSFER_POWER = 1;
+    double long_position = .35;
 
     public intakeLaunch(HardwareMap hardwareMap, Telemetry tel) {
         telemetry = tel;
@@ -28,6 +32,8 @@ public class intakeLaunch {
         //Intake Motors
         intakeF = hardwareMap.get(DcMotorEx.class, "intakeFront");
         intakeM = hardwareMap.get(DcMotorEx.class, "intakeMid");
+        hood = hardwareMap.get(Servo.class, "hood");
+        turn = hardwareMap.get(Servo.class, "turn");
 
         intakeF.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intakeM.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -42,6 +48,9 @@ public class intakeLaunch {
         shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         // TODO: reverse motor directions if needed
         shooter.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        setHoodPosition(0);
+        setTurnPosition(0.5);
 
     }
     public void runIntake(double intakePower, double transferPower) {
@@ -101,6 +110,36 @@ public class intakeLaunch {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public double getPoseDistance(Pose CurrentPose) {
+        telemetry.addData("calculating distance for ", CurrentPose.getX() + ", " + CurrentPose.getY());
+        telemetry.update();
+        double distanceToGoal = Math.hypot(goalTargetPose.getX() - CurrentPose.getX(), goalTargetPose.getY() - CurrentPose.getY());
+        telemetry.addData("Distance is ", distanceToGoal);
+        telemetry.update();
+        return distanceToGoal;
+    }
+
+    public double getAngeleToGoal(Pose CurrentPose) {
+        telemetry.addData("calculating angle for ", CurrentPose.getX() + ", " + CurrentPose.getY());
+        telemetry.update();
+        double angleToGoal = Math.atan2(goalTargetPose.getY() - CurrentPose.getY(), goalTargetPose.getX() - CurrentPose.getX());
+        telemetry.addData("Distance is ", angleToGoal);
+        telemetry.update();
+        return angleToGoal;
+    }
+
+    public void setHoodPosition(double position) {
+        hood.setPosition(position);
+    }
+
+    public void setHoodLongShotPosition() {
+        hood.setPosition(long_position);
+    }
+
+    public void setTurnPosition(double position) {
+        turn.setPosition(position);
     }
 
 }
