@@ -18,6 +18,7 @@ public class redOppositeAuto extends OpMode {
 
     double shootPower = 0.90;
     int waitTimeForLaunch = 5000;
+    double transferPower = .12;
     intakeLaunch intakeL ;
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
@@ -25,7 +26,7 @@ public class redOppositeAuto extends OpMode {
     private int pathState;
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90)); // Start Pose of our robot.
-    private final Pose scorePose = new Pose(87, 21.5, Math.toRadians(71));
+    private final Pose scorePose = new Pose(87, 21, Math.toRadians(71));
     private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
     private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0));
     private final Pose pickup2Pose = new Pose(127.5, 11, Math.toRadians(320));
@@ -127,7 +128,7 @@ public class redOppositeAuto extends OpMode {
 //                    /* Score Preload */
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
 //                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
                     follower.followPath(grabPickup1);
                     setPathState(2);
@@ -137,7 +138,7 @@ public class redOppositeAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup1Pose's position */
                 if (!follower.isBusy()) {
                     /* Grab Sample */
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup1, true);
                     intakeL.powerOnLauncher(shootPower);
@@ -151,7 +152,7 @@ public class redOppositeAuto extends OpMode {
                     intakeL.stopIntake();
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
                     follower.followPath(grabPickup2, .7, true);
                     setPathState(4);
@@ -161,7 +162,7 @@ public class redOppositeAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup2Pose's position */
                 if (!follower.isBusy()) {
                     /* Grab Sample */
-                    intakeL.runIntake(1, .1);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup2, true);
                     intakeL.powerOnLauncher(shootPower);
@@ -175,7 +176,7 @@ public class redOppositeAuto extends OpMode {
                     intakeL.stopIntake();
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .1);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
                     follower.followPath(grabPickup3, true);
                     setPathState(6);
@@ -185,7 +186,7 @@ public class redOppositeAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup3Pose's position */
                 if (!follower.isBusy()) {
                     /* Grab Sample */
-                    intakeL.runIntake(1, .1);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup3, true);
                     intakeL.powerOnLauncher(shootPower);

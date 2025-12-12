@@ -5,8 +5,8 @@ import java.util.Scanner;
 public class CoordinateCalculator {
 
     // Define the fixed goal coordinates
-    private static final double GOAL_X = 130.0;
-    private static final double GOAL_Y = 130.0;
+    private static final double GOAL_X = 129.0;
+    private static final double GOAL_Y = 132.0;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);

@@ -18,6 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.robot.intakeLaunch.LaunchParameters;
 import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 import org.firstinspires.ftc.teamcode.utilities.VisionUtil;
 
@@ -30,14 +31,14 @@ public class PedroTeleOp extends OpMode {
     private VisionUtil vision;
     private FieldManager field;
     public static Pose startingPose; //See ExampleAuto to understand how to use this
-    private Pose2D startPose = new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0);
+    private Pose2D startPose = new Pose2D(DistanceUnit.INCH, 135, 9, AngleUnit.DEGREES, 0);
     private boolean automatedDrive;
     private Supplier<PathChain> pathChain;
     private TelemetryManager telemetryM;
     private boolean slowMode = false;
     private double slowModeMultiplier = 0.5;
     intakeLaunch intakeL;
-    private final Pose scorePose = new Pose(87, 21.5, Math.toRadians(71));
+//    private final Pose scorePose = new Pose(87, 21.5, Math.toRadians(71));
 
     @Override
     public void init() {
@@ -52,7 +53,7 @@ public class PedroTeleOp extends OpMode {
         vision.initAprilTag(hardwareMap, true);
 
         pathChain = () -> follower.pathBuilder() //Lazy Curve Generation
-                .addPath(new Path(new BezierLine(follower::getPose, new Pose(45, 98))))
+                .addPath(new Path(new BezierLine(follower::getPose, new Pose(72, 72))))
                 .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), 0.8))
                 .build();
     }
@@ -73,11 +74,12 @@ public class PedroTeleOp extends OpMode {
         //In order to use float mode, add .useBrakeModeInTeleOp(true); to your Drivetrain Constants in Constant.java (for Mecanum)
         //If you don't pass anything in, it uses the default (false)
         follower.startTeleopDrive();
-        intakeL.getAngeleToGoal(scorePose);
+//        intakeL.getAngeleToGoal(scorePose);
     }
 
     @Override
     public void loop() {
+        LaunchParameters lp;
         //Call this once per loop
         follower.update();
         telemetryM.update();
@@ -103,7 +105,7 @@ public class PedroTeleOp extends OpMode {
             );
         }
 
-        //Automated PathFollowing
+        //Automated PathFollowing - A for automated drive, b for manual drive
         if (gamepad1.aWasPressed()) {
             follower.followPath(pathChain.get());
             automatedDrive = true;
@@ -115,40 +117,48 @@ public class PedroTeleOp extends OpMode {
             automatedDrive = false;
         }
 
-        //Slow Mode
-        if (gamepad1.rightBumperWasPressed()) {
+        //Slow Mode controls on gamepad 2
+        if (gamepad2.rightBumperWasPressed()) {
             slowMode = !slowMode;
         }
 
         //Optional way to change slow mode strength
-        if (gamepad1.xWasPressed()) {
-            slowModeMultiplier += 0.25;
+        if (gamepad2.xWasPressed()) {
+            slowModeMultiplier += 0.2;
         }
 
         //Optional way to change slow mode strength
         if (gamepad2.yWasPressed()) {
-            slowModeMultiplier -= 0.25;
+            slowModeMultiplier -= 0.2;
         }
 
-        if (gamepad1.dpadDownWasPressed()){
-            intakeL.runIntake(1, .1);
+        // Gamepad 1 (should be moved to Gamepad 2 later) - intake A - Run ; B-STOP
+        if (gamepad1.aWasPressed()){
+            intakeL.runIntake(1, .12);
         }
-        if (gamepad1.dpadUpWasPressed()){
-            intakeL.takeShot(.7, 3000);
-        }
-        if (gamepad1.dpadLeftWasPressed()){
+        if (gamepad1.bWasPressed()){
             intakeL.stopIntake();
         }
+        if (gamepad1.xWasPressed()){
+            Pose pose = follower.getPose();
+            lp = intakeL.calculateLaunchParameters(pose);
+            Path turnPath = new Path(new BezierLine(follower.getPose(), pose));
+            turnPath.setLinearHeadingInterpolation(pose.getHeading(), lp.LAUNCH_ANGLE);
+            follower.followPath(turnPath);
+            intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);
+        }
+        if (gamepad1.yWasPressed()){
+            intakeL.powerOnLauncher(.65);
+        }
+
         if (gamepad1.dpadRightWasPressed()){
             intakeL.getAngeleToGoal(follower.getPose());
             intakeL.getPoseDistance(follower.getPose());
         }
 
-
-
-
         telemetryM.debug("position", follower.getPose());
         telemetryM.debug("velocity", follower.getVelocity());
         telemetryM.debug("automatedDrive", automatedDrive);
+        telemetryM.addData("Pose in launch area", intakeL.isInside(follower.getPose()));
     }
 }
