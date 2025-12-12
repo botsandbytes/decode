@@ -19,8 +19,8 @@ public class atan extends OpMode {
 
     private Follower follower;
 
-    public static double GOAL_X = 135.0;
-    public static double GOAL_Y = 135.0;
+    public static double GOAL_X = 129.0;
+    public static double GOAL_Y = 132.0;
 
     public static double X = 45;
     public static double Y = 45;
