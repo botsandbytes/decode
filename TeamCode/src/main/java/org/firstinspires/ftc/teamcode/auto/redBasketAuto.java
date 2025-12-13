@@ -17,6 +17,7 @@ public class redBasketAuto extends OpMode {
 
     boolean openGateAfterPickup1 = false;
     boolean openGateAfterPickup2 = true;
+    boolean pickupLine3 = true;
     intakeLaunch intakeL ;
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
@@ -31,7 +32,7 @@ public class redBasketAuto extends OpMode {
     private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0));
     private final Pose pickup1PoseEnd = new Pose(124, 84, Math.toRadians(0));// 128.5Highest (First Set) of Artifacts from the Spike Mark.
     private final Pose gateAfterPose1 = new Pose(115,76, Math.toRadians(0));
-    private final Pose gateAfterPose1End = new Pose(120,76, Math.toRadians(0));
+    private final Pose gateAfterPose1End = new Pose(122,76, Math.toRadians(0));
     private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
     private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0)); // Middle (Second Set) of Artifacts from the Spike Mark.
 
@@ -72,7 +73,9 @@ public class redBasketAuto extends OpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                     .addPath(new BezierLine(gateAfterPose1, gateAfterPose1End))
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                    .addPath(new BezierLine(gateAfterPose1End, scorePose2))
+                    .addPath(new BezierLine(gateAfterPose1End, gateAfterPose1))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .addPath(new BezierLine(gateAfterPose1, scorePose2))
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
                     .build();
         } else {
@@ -99,8 +102,10 @@ public class redBasketAuto extends OpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                     .addPath(new BezierLine(gateAfterPose1, gateAfterPose1End))
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                    .addPath(new BezierLine(gateAfterPose1End, scorePose))
-                    .setLinearHeadingInterpolation(gateAfterPose1End.getHeading(), scorePose.getHeading())
+                    .addPath(new BezierLine(gateAfterPose1End, gateAfterPose1))
+                    .setLinearHeadingInterpolation(gateAfterPose1End.getHeading(), gateAfterPose1.getHeading())
+                    .addPath(new BezierLine(gateAfterPose1, scorePose))
+                    .setLinearHeadingInterpolation(gateAfterPose1.getHeading(), scorePose.getHeading())
                     .build();
 
         } else {
@@ -195,30 +200,39 @@ public class redBasketAuto extends OpMode {
                     intakeL.stopIntake();
                     intakeL.takeShot(launchPower, 3400);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                    follower.followPath(grabPickup3,true);
+                    // pick up 3rd based on flag
+                    if (pickupLine3) {
+                        intakeL.runIntake(1, transferPower);
+                        follower.followPath(grabPickup3, true);
+                    }
                     setPathState(6);
                 }
                 break;
             case 6:
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup3Pose's position */
                 if (!follower.isBusy()) {
-                    /* Grab Sample */
-                    intakeL.runIntake(1, transferPower);
-                    /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
-                    follower.followPath(scorePickup3, true);
-                    intakeL.powerOnLauncher(launchPower);
+                    // pick up 3rd based on flag
+                    if (pickupLine3) {
+                        /* Grab Sample */
+                        intakeL.runIntake(1, transferPower);
+                        /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
+                        follower.followPath(scorePickup3, true);
+                        intakeL.powerOnLauncher(launchPower);
+                    }
                     setPathState(7);
                 }
                 break;
             case 7:
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
-                    /* Score Sample */
-                    intakeL.stopIntake();
-                    intakeL.takeShot(launchPower, 3500);
-                    intakeL.stopLauncher();
+                    // score 3rd based on flag
+                    if (pickupLine3) {
+                        /* Score Sample */
+                        intakeL.stopIntake();
+                        intakeL.takeShot(launchPower, 3500);
+                        intakeL.stopLauncher();
+                    }
                     setPathState(8);
                 }
                 break;
