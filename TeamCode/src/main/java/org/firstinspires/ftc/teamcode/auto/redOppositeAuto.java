@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 @Autonomous(name = "Red Opposite Auto", group = "BB Auto")
 public class redOppositeAuto extends OpMode {
 
-    double shootPower = 0.90;
+    double shootPower = 0.91;
     int waitTimeForLaunch = 5000;
     double transferPower = .12;
     intakeLaunch intakeL ;
@@ -26,12 +26,13 @@ public class redOppositeAuto extends OpMode {
     private int pathState;
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90)); // Start Pose of our robot.
-    private final Pose scorePose = new Pose(87, 21, Math.toRadians(71));
+    private final Pose scorePose = new Pose(87, 21, Math.toRadians(67));
     private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
     private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0));
-    private final Pose pickup2Pose = new Pose(127.5, 11, Math.toRadians(320));
-    private final Pose pickup2PoseEnd = new Pose(131, 10, Math.toRadians(350));
-    private final Pose pickup2PoseEnd2 = new Pose(132.5, 10, Math.toRadians(0));// Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose pickup2Pose = new Pose(125, 11, Math.toRadians(0));
+    private final Pose pickup2PoseEnd = new Pose(132, 11, Math.toRadians(0));
+    private final Pose pickup2PoseEnd2 = new Pose(125, 8.5, Math.toRadians(0));
+    private final Pose pickup2PoseEnd3 = new Pose(132.5, 8.5, Math.toRadians(0));// Highest (First Set) of Artifacts from the Spike Mark.
 
     // alternate curved path for pickup2
     private final Pose CurvePickup2Pose = new Pose(120, 45, Math.toRadians(270));
@@ -73,6 +74,8 @@ public class redOppositeAuto extends OpMode {
                 .setLinearHeadingInterpolation(pickup2Pose.getHeading(), pickup2PoseEnd.getHeading())
                 .addPath(new BezierLine(pickup2PoseEnd,  pickup2PoseEnd2))
                 .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), pickup2PoseEnd2.getHeading())
+                .addPath(new BezierLine(pickup2PoseEnd2,  pickup2PoseEnd3))
+                .setLinearHeadingInterpolation(pickup2PoseEnd2.getHeading(), pickup2PoseEnd3.getHeading())
                 .build();
 
         /* This is our scorePickup2 PathChain. We are using a single path with a BezierLine, which is a straight line. */
@@ -154,7 +157,7 @@ public class redOppositeAuto extends OpMode {
                     intakeL.stopLauncher();
                     intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                    follower.followPath(grabPickup2, .7, true);
+                    follower.followPath(grabPickup2, .6,true);
                     setPathState(4);
                 }
                 break;
@@ -187,7 +190,7 @@ public class redOppositeAuto extends OpMode {
                 if (!follower.isBusy()) {
                     /* Grab Sample */
                     intakeL.runIntake(1, transferPower);
-                    /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
+//                    /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup3, true);
                     intakeL.powerOnLauncher(shootPower);
                     setPathState(7);
