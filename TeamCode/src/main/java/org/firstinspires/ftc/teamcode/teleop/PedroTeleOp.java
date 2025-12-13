@@ -20,6 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.robot.BBPinPointDrive;
 import org.firstinspires.ftc.teamcode.robot.intakeLaunch.LaunchParameters;
 import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
@@ -42,6 +43,7 @@ public class PedroTeleOp extends OpMode {
     private boolean slowMode = false;
     private double slowModeMultiplier = 0.5;
     intakeLaunch intakeL;
+    BBPinPointDrive bbDrive;
     LaunchParameters lp = new LaunchParameters(0,0,0);
 //    private final Pose scorePose = new Pose(87, 21.5, Math.toRadians(71));
 
@@ -56,6 +58,7 @@ public class PedroTeleOp extends OpMode {
         intakeL = new intakeLaunch(hardwareMap, telemetry);
         vision = new VisionUtil();
         vision.initAprilTag(hardwareMap, true);
+        bbDrive = new BBPinPointDrive(hardwareMap, telemetry);
 
         pathChain = () -> follower.pathBuilder() //Lazy Curve Generation
                 .addPath(new Path(new BezierLine(follower::getPose, new Pose(96, 96))))
@@ -147,13 +150,15 @@ public class PedroTeleOp extends OpMode {
         telemetryM.addData("target", lp.LAUNCH_ANGLE);
         telemetryM.addData("current", follower.getHeading());
         telemetryM.addData("ha", follower.getHeadingError());
+
         if (gamepad1.x && !follower.isBusy() && !launchReady){
             if(lp.LAUNCH_POWER > 0.7){
                 intakeL.setHoodLongShotPosition();
             }else{
                 intakeL.setHoodPosition(0);
             }
-            follower.turnTo(lp.LAUNCH_ANGLE);
+//            follower.turnTo(lp.LAUNCH_ANGLE);
+            bbDrive.turn(lp.LAUNCH_ANGLE);
 //            Path path = new Path(new BezierLine(follower.getPose(), new Pose(follower.getPose().getX() + 0.001, follower.getPose().getY() + 0.0001, lp.LAUNCH_ANGLE)));
 //            path.setLinearHeadingInterpolation(follower.getHeading(), lp.LAUNCH_ANGLE);
 //            follower.followPath(path);
@@ -162,11 +167,11 @@ public class PedroTeleOp extends OpMode {
             takeShot = true;
             automatedDrive = true;
         }
-        if (launchReady && !follower.isBusy() && automatedDrive) {
-            follower.startTeleopDrive();
-            automatedDrive = false;
-        }
-        if (gamepad1.dpad_up){
+//        if (launchReady && !follower.isBusy() && automatedDrive) {
+//            follower.startTeleopDrive();
+//            automatedDrive = false;
+//        }
+        if (gamepad1.dpad_up && takeShot){
             intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);
             takeShot = false;
             launchReady = false;

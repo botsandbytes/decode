@@ -175,7 +175,7 @@ public class intakeLaunch {
 //            throw new RuntimeException(e);
 //        }
 
-        LP = new LaunchParameters(launchPower, waitTime, angleToGoal);
+        LP = new LaunchParameters(launchPower, waitTime, Math.toDegrees(angleToGoal));
         return LP;
 
     }
