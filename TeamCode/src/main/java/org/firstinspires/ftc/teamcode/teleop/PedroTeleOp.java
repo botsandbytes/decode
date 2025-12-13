@@ -147,7 +147,6 @@ public class PedroTeleOp extends OpMode {
         telemetryM.addData("target", lp.LAUNCH_ANGLE);
         telemetryM.addData("current", follower.getHeading());
         telemetryM.addData("ha", follower.getHeadingError());
-        follower.update();
         if (gamepad1.x && !follower.isBusy() && !launchReady){
             if(lp.LAUNCH_POWER > 0.7){
                 intakeL.setHoodLongShotPosition();
@@ -155,9 +154,17 @@ public class PedroTeleOp extends OpMode {
                 intakeL.setHoodPosition(0);
             }
             follower.turnTo(lp.LAUNCH_ANGLE);
+//            Path path = new Path(new BezierLine(follower.getPose(), new Pose(follower.getPose().getX() + 0.001, follower.getPose().getY() + 0.0001, lp.LAUNCH_ANGLE)));
+//            path.setLinearHeadingInterpolation(follower.getHeading(), lp.LAUNCH_ANGLE);
+//            follower.followPath(path);
 //            intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);
             launchReady = true;
             takeShot = true;
+            automatedDrive = true;
+        }
+        if (launchReady && !follower.isBusy() && automatedDrive) {
+            follower.startTeleopDrive();
+            automatedDrive = false;
         }
         if (gamepad1.dpad_up){
             intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);

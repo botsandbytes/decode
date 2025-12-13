@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 @Autonomous(name = "Red Opposite Auto", group = "BB Auto")
 public class redOppositeAuto extends OpMode {
 
-    boolean pickupLine3 = true;
+    boolean pickupLine2 = true;
     double shootPower = 0.91;
     int waitTimeForLaunch = 5000;
     double transferPower = .12;
@@ -43,8 +43,8 @@ public class redOppositeAuto extends OpMode {
 //    private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
     private final Pose pickup3Pose = new Pose(94, 60, Math.toRadians(0)); // Middle (Second Set) of Artifacts from the Spike Mark.
     private final Pose pickup3PoseEnd = new Pose(134, 58, Math.toRadians(0));
-    private final Pose pickup4Pose = new Pose(132, 26, Math.toRadians(0));
-    private final Pose pickup5Pose = new Pose(132, 44, Math.toRadians(0));
+    private final Pose pickup4Pose = new Pose(133, 26, Math.toRadians(0));
+    private final Pose pickup5Pose = new Pose(133, 42, Math.toRadians(0));
     //94,36
     private Path scorePreload;
     private PathChain grabPickup1, grabPickup1Start, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3, grabPickup4, scorePickup4, grabPickup5, scorePickup5;
@@ -204,7 +204,7 @@ public class redOppositeAuto extends OpMode {
                     intakeL.stopIntake();
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
                     intakeL.stopLauncher();
-                    if (pickupLine3) {
+                    if (pickupLine2) {
                         intakeL.runIntake(1, transferPower);
                         /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
                         follower.followPath(grabPickup3, true);
@@ -219,7 +219,7 @@ public class redOppositeAuto extends OpMode {
             case 6:
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup3Pose's position */
                 if (!follower.isBusy()) {
-                    if (pickupLine3) {
+                    if (pickupLine2) {
                         /* Grab Sample */
                         intakeL.runIntake(1, transferPower);
 //                    /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
