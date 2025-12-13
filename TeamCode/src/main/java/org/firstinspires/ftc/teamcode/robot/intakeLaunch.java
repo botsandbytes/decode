@@ -15,7 +15,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class intakeLaunch {
 
-    private final Pose goalTargetPose = new Pose(138.0, 132.0, Math.PI / 4.0);
+    private final Pose goalTargetPose = new Pose(129, 132.0, Math.PI / 4.0);
     private DcMotorEx intakeF, intakeM, shooter;
     private Servo hood;
     private Servo turn;
@@ -149,8 +149,18 @@ public class intakeLaunch {
             waitTime = 2400;
         } else {
             launchPower = 0.61 + ((distanceToGoal - 33) / 300);
-            waitTime = distanceToGoal * 50;
+            waitTime = distanceToGoal * 65;
         }
+
+        telemetry.addData("Launch parameters are Power:", launchPower + ", Angle:" + Math.toDegrees(angleToGoal) + ", Distance:" + distanceToGoal + ", wait Time is:" + waitTime);
+        telemetry.addData("launch parameters are ", CurrentPose.getX() + ", " + CurrentPose.getY());
+        telemetry.update();
+
+//        try {
+//            sleep(5000);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
 
         LP = new LaunchParameters(launchPower, waitTime, angleToGoal);
         return LP;

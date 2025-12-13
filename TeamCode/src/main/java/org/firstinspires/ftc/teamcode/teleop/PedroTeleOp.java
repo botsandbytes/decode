@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.teleop;
 
+import static java.lang.Thread.sleep;
+
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.field.FieldManager;
 import com.bylazar.field.PanelsField;
@@ -30,8 +32,8 @@ public class PedroTeleOp extends OpMode {
     private Follower follower;
     private VisionUtil vision;
     private FieldManager field;
-    public static Pose startingPose; //See ExampleAuto to understand how to use this
-    private Pose2D startPose = new Pose2D(DistanceUnit.INCH, 135, 9, AngleUnit.DEGREES, 0);
+    public static Pose startingPose = new Pose(72, 72, Math.toRadians(0)); //See ExampleAuto to understand how to use this
+    private Pose2D startPose = new Pose2D(DistanceUnit.INCH, 72, 72, AngleUnit.DEGREES, 0);
     private boolean automatedDrive;
     private Supplier<PathChain> pathChain;
     private TelemetryManager telemetryM;
@@ -53,7 +55,7 @@ public class PedroTeleOp extends OpMode {
         vision.initAprilTag(hardwareMap, true);
 
         pathChain = () -> follower.pathBuilder() //Lazy Curve Generation
-                .addPath(new Path(new BezierLine(follower::getPose, new Pose(72, 72))))
+                .addPath(new Path(new BezierLine(follower::getPose, new Pose(96, 96))))
                 .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), 0.8))
                 .build();
     }
@@ -106,13 +108,13 @@ public class PedroTeleOp extends OpMode {
         }
 
         //Automated PathFollowing - A for automated drive, b for manual drive
-        if (gamepad1.aWasPressed()) {
+        if (gamepad1.rightBumperWasPressed()) {
             follower.followPath(pathChain.get());
             automatedDrive = true;
         }
 
         //Stop automated following if the follower is done
-        if (automatedDrive && (gamepad1.bWasPressed() || !follower.isBusy())) {
+        if (automatedDrive && (gamepad1.leftBumperWasPressed() || !follower.isBusy())) {
             follower.startTeleopDrive();
             automatedDrive = false;
         }
@@ -134,7 +136,7 @@ public class PedroTeleOp extends OpMode {
 
         // Gamepad 1 (should be moved to Gamepad 2 later) - intake A - Run ; B-STOP
         if (gamepad1.aWasPressed()){
-            intakeL.runIntake(1, .12);
+            intakeL.runIntake(1, .1);
         }
         if (gamepad1.bWasPressed()){
             intakeL.stopIntake();
@@ -142,13 +144,38 @@ public class PedroTeleOp extends OpMode {
         if (gamepad1.xWasPressed()){
             Pose pose = follower.getPose();
             lp = intakeL.calculateLaunchParameters(pose);
-            Path turnPath = new Path(new BezierLine(follower.getPose(), pose));
-            turnPath.setLinearHeadingInterpolation(pose.getHeading(), lp.LAUNCH_ANGLE);
-            follower.followPath(turnPath);
+            if(lp.LAUNCH_POWER > 0.7){
+                intakeL.setHoodLongShotPosition();
+            }else{
+                intakeL.setHoodPosition(0);
+            }
+            Path scorePreload = new Path(new BezierLine(follower.getPose(), follower.getPose().setHeading(lp.LAUNCH_ANGLE)));
+            scorePreload.setLinearHeadingInterpolation(follower.getHeading(), lp.LAUNCH_ANGLE);
+            if (!follower.isBusy()) {
+                follower.followPath(scorePreload, true);
+            }
+
+//            follower.setPose(new Pose(pose.getX(), pose.getY(), lp.LAUNCH_ANGLE));
+//            Path turnPath = new Path(new BezierLine(follower.getPose(), pose));
+//            turnPath.setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45)).build();
+//            turnPath.setLinearHeadingInterpolation(pose.getHeading(), lp.LAUNCH_ANGLE);
+//            if (!follower.isBusy()) {
+//                PathChain turnPath = follower.pathBuilder()
+//                        .addPath(new BezierLine(follower.getPose(), pose))
+//                        .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
+//                        .build();
+//                follower.followPath(turnPath);
+//            }
+//            try {
+//                sleep(1000);
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
             intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);
         }
         if (gamepad1.yWasPressed()){
-            intakeL.powerOnLauncher(.65);
+            intakeL.stopLauncher();
+//            intakeL.powerOnLauncher(.65);
         }
 
         if (gamepad1.dpadRightWasPressed()){
@@ -160,5 +187,6 @@ public class PedroTeleOp extends OpMode {
         telemetryM.debug("velocity", follower.getVelocity());
         telemetryM.debug("automatedDrive", automatedDrive);
         telemetryM.addData("Pose in launch area", intakeL.isInside(follower.getPose()));
+        telemetryM.update();
     }
 }
