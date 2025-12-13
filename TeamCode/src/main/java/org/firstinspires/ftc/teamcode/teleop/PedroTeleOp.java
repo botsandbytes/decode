@@ -22,6 +22,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.intakeLaunch.LaunchParameters;
 import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
+import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 import org.firstinspires.ftc.teamcode.utilities.VisionUtil;
 
 import java.util.function.Supplier;
@@ -35,17 +36,19 @@ public class PedroTeleOp extends OpMode {
     public static Pose startingPose = new Pose(72, 72, Math.toRadians(0)); //See ExampleAuto to understand how to use this
     private Pose2D startPose = new Pose2D(DistanceUnit.INCH, 72, 72, AngleUnit.DEGREES, 0);
     private boolean automatedDrive;
+    private boolean launchReady = false, takeShot = false;
     private Supplier<PathChain> pathChain;
     private TelemetryManager telemetryM;
     private boolean slowMode = false;
     private double slowModeMultiplier = 0.5;
     intakeLaunch intakeL;
+    LaunchParameters lp = new LaunchParameters(0,0,0);
 //    private final Pose scorePose = new Pose(87, 21.5, Math.toRadians(71));
 
     @Override
     public void init() {
         field = PanelsField.INSTANCE.getField();
-        field.setOffsets(PanelsField.INSTANCE.getPresets().getDEFAULT_FTC());
+        field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
@@ -81,11 +84,9 @@ public class PedroTeleOp extends OpMode {
 
     @Override
     public void loop() {
-        LaunchParameters lp;
         //Call this once per loop
         follower.update();
-        telemetryM.update();
-
+//        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading() )
         if (!automatedDrive) {
             //Make the last parameter false for field-centric
             //In case the drivers want to use a "slowMode" you can scale the vectors
@@ -135,45 +136,35 @@ public class PedroTeleOp extends OpMode {
         }
 
         // Gamepad 1 (should be moved to Gamepad 2 later) - intake A - Run ; B-STOP
-        if (gamepad1.aWasPressed()){
+        if (gamepad1.aWasPressed()){ //&& !intakeL.isIntakeFull()
             intakeL.runIntake(1, .1);
         }
         if (gamepad1.bWasPressed()){
             intakeL.stopIntake();
         }
-        if (gamepad1.xWasPressed()){
-            Pose pose = follower.getPose();
-            lp = intakeL.calculateLaunchParameters(pose);
+        Pose pose = follower.getPose();
+        lp = intakeL.calculateLaunchParameters(pose);
+        telemetryM.addData("target", lp.LAUNCH_ANGLE);
+        telemetryM.addData("current", follower.getHeading());
+        telemetryM.addData("ha", follower.getHeadingError());
+        follower.update();
+        if (gamepad1.x && !follower.isBusy() && !launchReady){
             if(lp.LAUNCH_POWER > 0.7){
                 intakeL.setHoodLongShotPosition();
             }else{
                 intakeL.setHoodPosition(0);
             }
-            Path scorePreload = new Path(new BezierLine(follower.getPose(), follower.getPose().setHeading(lp.LAUNCH_ANGLE)));
-            scorePreload.setLinearHeadingInterpolation(follower.getHeading(), lp.LAUNCH_ANGLE);
-            if (!follower.isBusy()) {
-                follower.followPath(scorePreload, true);
-            }
-
-//            follower.setPose(new Pose(pose.getX(), pose.getY(), lp.LAUNCH_ANGLE));
-//            Path turnPath = new Path(new BezierLine(follower.getPose(), pose));
-//            turnPath.setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45)).build();
-//            turnPath.setLinearHeadingInterpolation(pose.getHeading(), lp.LAUNCH_ANGLE);
-//            if (!follower.isBusy()) {
-//                PathChain turnPath = follower.pathBuilder()
-//                        .addPath(new BezierLine(follower.getPose(), pose))
-//                        .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
-//                        .build();
-//                follower.followPath(turnPath);
-//            }
-//            try {
-//                sleep(1000);
-//            } catch (InterruptedException e) {
-//                throw new RuntimeException(e);
-//            }
-            intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);
+            follower.turnTo(lp.LAUNCH_ANGLE);
+//            intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);
+            launchReady = true;
+            takeShot = true;
         }
-        if (gamepad1.yWasPressed()){
+        if (gamepad1.dpad_up){
+            intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);
+            takeShot = false;
+            launchReady = false;
+        }
+        if (gamepad1.y){
             intakeL.stopLauncher();
 //            intakeL.powerOnLauncher(.65);
         }

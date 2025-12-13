@@ -25,12 +25,10 @@ public class atan extends OpMode {
     public static double X = 45;
     public static double Y = 45;
 
-    public double prevx, prevy;
-
     private FieldManager field;
 
 
-    private final Pose initialPose = new Pose(87.0, 8.0, Math.PI / 2.0);
+    private final Pose initialPose = new Pose(72, 72, 0);
 
     @Override
     public void init() {
@@ -49,23 +47,21 @@ public class atan extends OpMode {
     @Override
     public void loop() {
         follower.update();
-        DrawingUtil.drawRobotOnField(field, X, Y, Math.atan2(GOAL_Y - Y, GOAL_X - X), GOAL_X, GOAL_Y);
+        follower.setTeleOpDrive(
+                -gamepad1.left_stick_y,
+                -gamepad1.left_stick_x,
+                -gamepad1.right_stick_x,
+                true // Robot Centric
+        );
+        Pose currentPose = follower.getPose();
 
-        if (prevx != X || prevy != Y) {
-            Pose currentPose = follower.getPose();
+        if (gamepad1.aWasPressed() && !follower.isBusy()) {
 
-            double deltaX = GOAL_X - X;
-            double deltaY = GOAL_Y - Y;
+            double deltaX = GOAL_X - currentPose.getX();
+            double deltaY = GOAL_Y - currentPose.getY();
             double targetHeading = Math.atan2(deltaY, deltaX);
 
-
-            Pose finalTarget = new Pose(X, Y, targetHeading);
-
-            Path scorePreload = new Path(new BezierLine(follower.getPose(), finalTarget));
-            scorePreload.setLinearHeadingInterpolation(follower.getHeading(), targetHeading);
-            follower.followPath(scorePreload, true);
+            follower.turnTo(targetHeading);
         }
-        prevy = Y;
-        prevx = X;
     }
 }

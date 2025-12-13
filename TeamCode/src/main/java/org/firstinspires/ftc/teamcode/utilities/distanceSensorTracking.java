@@ -12,7 +12,7 @@ public class distanceSensorTracking extends LinearOpMode {
 
     private static final int MAX_BALLS = 3;
     private static final double DISTANCE_THRESHOLD = 8.5;
-    private static final double STUCK_TIME = 3.0;
+    private static final double STUCK_TIME = .500;
 
     private int ballCount = 0;
     private double[] ballDistances = new double[MAX_BALLS];
@@ -23,7 +23,7 @@ public class distanceSensorTracking extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        intakeSensor = hardwareMap.get(DistanceSensor.class, "intakeDistance");
+        intakeSensor = hardwareMap.get(DistanceSensor.class, "intakeD");
 
         telemetry.addData("Status", "Ready");
         telemetry.update();

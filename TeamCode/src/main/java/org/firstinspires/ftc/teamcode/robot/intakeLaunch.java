@@ -7,15 +7,17 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class intakeLaunch {
 
-    private final Pose goalTargetPose = new Pose(129, 132.0, Math.PI / 4.0);
+    private final Pose goalTargetPose = new Pose(144, 144, Math.PI / 4.0);
     private DcMotorEx intakeF, intakeM, shooter;
     private Servo hood;
     private Servo turn;
@@ -25,6 +27,17 @@ public class intakeLaunch {
     public static int MAX_RPM = 1500;
     public static double INTAkE_TRANSFER_POWER = 1;
     double long_position = .35;
+    private DistanceSensor intakeSensor;
+
+    private static final int MAX_BALLS = 3;
+    private static final double DISTANCE_THRESHOLD = 8.5;
+    private static final double STUCK_TIME = 500;
+
+    private int ballCount = 0;
+    private double[] ballDistances = new double[MAX_BALLS];
+    private boolean ballDetectedPreviously = false;
+    private double firstTimeBallDetected = -1;
+    private boolean intakeFull = false;
 
     public intakeLaunch(HardwareMap hardwareMap, Telemetry tel) {
         telemetry = tel;
@@ -34,7 +47,7 @@ public class intakeLaunch {
         intakeM = hardwareMap.get(DcMotorEx.class, "intakeMid");
         hood = hardwareMap.get(Servo.class, "hood");
         turn = hardwareMap.get(Servo.class, "turn");
-
+//        intakeSensor = hardwareMap.get(DistanceSensor.class, "intakeD");
         intakeF.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intakeM.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
@@ -227,12 +240,54 @@ public class intakeLaunch {
         /* Check if sum of A1, A2 and A3 is same as A */
         return (A == A1 + A2 + A3) || (STA == STA1 + STA2 + STA3);
     }
-    public class LaunchParameters {
+
+    public boolean isIntakeFull(){
+        double distance = intakeSensor.getDistance(DistanceUnit.CM);
+        ElapsedTime runtime = new ElapsedTime();
+
+        if (distance < DISTANCE_THRESHOLD && !intakeFull) {
+
+            if (firstTimeBallDetected == -1) {
+                firstTimeBallDetected = runtime.milliseconds();
+            }
+
+            if (runtime.milliseconds() - firstTimeBallDetected >= STUCK_TIME) {
+                intakeFull = true;
+                ballCount = MAX_BALLS;
+            }
+
+            if (!ballDetectedPreviously && ballCount < MAX_BALLS) {
+                ballDistances[ballCount] = distance;
+                ballCount++;
+                ballDetectedPreviously = true;
+            }
+
+        } else {
+            ballDetectedPreviously = false;
+            firstTimeBallDetected = -1;
+        }
+
+        telemetry.addData("Distance (cm)", "%.2f", distance);
+        telemetry.addData("Ball Count", ballCount);
+        telemetry.addData("Intake Full", intakeFull);
+        try {
+            sleep(5000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        for (int i = 0; i < ballCount && i < MAX_BALLS; i++) {
+            telemetry.addData("Ball " + (i + 1) + " Distance", "%.2f cm", ballDistances[i]);
+        }
+
+        telemetry.update();
+        return intakeFull;
+    }
+    public static class LaunchParameters {
         public double LAUNCH_POWER = 0;
         public double WAIT_TIME = 0;
         public double LAUNCH_ANGLE = 0;
 
-        LaunchParameters(double launchPower, double waitTime, double launchAngle) {
+        public LaunchParameters(double launchPower, double waitTime, double launchAngle) {
             LAUNCH_POWER = launchPower;
             WAIT_TIME = waitTime;
             LAUNCH_ANGLE = launchAngle;
