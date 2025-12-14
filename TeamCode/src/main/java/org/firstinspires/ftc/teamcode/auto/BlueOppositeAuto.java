@@ -1,5 +1,10 @@
 package org.firstinspires.ftc.teamcode.auto;
 
+import static org.firstinspires.ftc.teamcode.teleop.BlueTeleOp.GOAL_Y;
+import static org.firstinspires.ftc.teamcode.teleop.BlueTeleOp.GOAL_X;
+
+import com.bylazar.field.FieldManager;
+import com.bylazar.field.PanelsField;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -11,6 +16,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
+import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 
 @Autonomous(name = "BLUE Opposite", group = "BB Auto")
 public class BlueOppositeAuto extends OpMode {
@@ -47,6 +53,8 @@ public class BlueOppositeAuto extends OpMode {
     //94,36
     private Path scorePreload;
     private PathChain grabPickup1, grabPickup1Start, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3, grabPickup4, scorePickup4, grabPickup5, scorePickup5;
+
+    private FieldManager field;
 
     public void buildPaths() {
         /* This is our scorePreload path. We are using a BezierLine, which is a straight line. */
@@ -153,12 +161,19 @@ public class BlueOppositeAuto extends OpMode {
 //                /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
 //                    /* Score Preload */
+                    if (!intakeLaunch.shooting) {
+                        intakeLaunch.shooting = true;
+                        intakeLaunch.runtime.reset();
+                    }
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
-                    intakeL.stopLauncher();
-                    intakeL.runIntake(1, transferPower);
+                    if (intakeLaunch.runtime.milliseconds() > waitTimeForLaunch) {
+                        intakeLaunch.shooting = false;
+                        intakeL.stopLauncher();
+                        intakeL.runIntake(1, transferPower);
 //                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                    follower.followPath(grabPickup1);
-                    setPathState(2);
+                        follower.followPath(grabPickup1);
+                        setPathState(2);
+                    }
                 }
                 break;
             case 2:
@@ -176,13 +191,20 @@ public class BlueOppositeAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
                     /* Score pick up1 */
+                    if (!intakeLaunch.shooting) {
+                        intakeLaunch.shooting = true;
+                        intakeLaunch.runtime.reset();
+                    }
                     intakeL.stopIntake();
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
-                    intakeL.stopLauncher();
-                    intakeL.runIntake(1, transferPower);
-                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                    follower.followPath(grabPickup2, .6,true);
-                    setPathState(4);
+                    if (intakeLaunch.runtime.milliseconds() > waitTimeForLaunch) {
+                        intakeLaunch.shooting = false;
+                        intakeL.stopLauncher();
+                        intakeL.runIntake(1, transferPower);
+                        /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
+                        follower.followPath(grabPickup2, .6,true);
+                        setPathState(4);
+                    }
                 }
                 break;
             case 4:
@@ -200,19 +222,26 @@ public class BlueOppositeAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
                     /* Score Sample */
+                    if (!intakeLaunch.shooting) {
+                        intakeLaunch.shooting = true;
+                        intakeLaunch.runtime.reset();
+                    }
                     intakeL.stopIntake();
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
-                    intakeL.stopLauncher();
-                    if (pickupLine2) {
-                        intakeL.runIntake(1, transferPower);
-                        /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                        follower.followPath(grabPickup3, true);
-                    } else {
-                        intakeL.runIntake(1, transferPower);
-                        /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                        follower.followPath(grabPickup4, true);
+                    if (intakeLaunch.runtime.milliseconds() > waitTimeForLaunch) {
+                        intakeLaunch.shooting = false;
+                        intakeL.stopLauncher();
+                        if (pickupLine2) {
+                            intakeL.runIntake(1, transferPower);
+                            /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
+                            follower.followPath(grabPickup3, true);
+                        } else {
+                            intakeL.runIntake(1, transferPower);
+                            /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
+                            follower.followPath(grabPickup4, true);
+                        }
+                        setPathState(6);
                     }
-                    setPathState(6);
                 }
                 break;
             case 6:
@@ -236,13 +265,20 @@ public class BlueOppositeAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
                         /* Score Sample */
+                    if (!intakeLaunch.shooting) {
+                        intakeLaunch.shooting = true;
+                        intakeLaunch.runtime.reset();
+                    }
                     intakeL.stopIntake();
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
-                    intakeL.stopLauncher();
-                    intakeL.runIntake(1, transferPower);
-                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                    follower.followPath(grabPickup5, .6,true);
-                    setPathState(8);
+                    if (intakeLaunch.runtime.milliseconds() > waitTimeForLaunch) {
+                        intakeLaunch.shooting = false;
+                        intakeL.stopLauncher();
+                        intakeL.runIntake(1, transferPower);
+                        /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
+                        follower.followPath(grabPickup5, .6,true);
+                        setPathState(8);
+                    }
                 }
                 break;
             case 8:
@@ -260,10 +296,17 @@ public class BlueOppositeAuto extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
                     /* Score Sample */
+                    if (!intakeLaunch.shooting) {
+                        intakeLaunch.shooting = true;
+                        intakeLaunch.runtime.reset();
+                    }
                     intakeL.stopIntake();
                     intakeL.takeShot(shootPower, waitTimeForLaunch);
-                    intakeL.stopLauncher();
-                    setPathState(10);
+                    if (intakeLaunch.runtime.milliseconds() > waitTimeForLaunch) {
+                        intakeLaunch.shooting = false;
+                        intakeL.stopLauncher();
+                        setPathState(10);
+                    }
                 }
                 break;
             case 10:
@@ -289,10 +332,19 @@ public class BlueOppositeAuto extends OpMode {
      **/
     @Override
     public void loop() {
+        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading(), GOAL_X, GOAL_Y);
+        intakeLaunch.degrees = Math.toDegrees(follower.getHeading());
 
         // These loop the movements of the robot, these must be called continuously in order to work
         follower.update();
         autonomousPathUpdate();
+        intakeL.setTurnPosition();
+
+        // Update blackboard with current pose
+        Pose currentPose = follower.getPose();
+        blackboard.put("POSE_X", currentPose.getX());
+        blackboard.put("POSE_Y", currentPose.getY());
+        blackboard.put("POSE_HEADING", currentPose.getHeading());
 
         // Feedback to Driver Hub for debugging
         telemetry.addData("path state", pathState);
@@ -307,6 +359,8 @@ public class BlueOppositeAuto extends OpMode {
      **/
     @Override
     public void init() {
+        field = PanelsField.INSTANCE.getField();
+        field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
         pathTimer = new Timer();
         opmodeTimer = new Timer();
         opmodeTimer.resetTimer();
@@ -314,6 +368,8 @@ public class BlueOppositeAuto extends OpMode {
 
         follower = Constants.createFollower(hardwareMap);
         intakeL = new intakeLaunch(hardwareMap, telemetry);
+        intakeLaunch.initial = startPose.getHeading();
+        intakeLaunch.shooting = false;
         buildPaths();
         follower.setStartingPose(startPose);
 //        intakeL.setHoodLongShotPosition();

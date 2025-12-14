@@ -1,140 +1,135 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
 import com.bylazar.configurables.annotations.Configurable;
-
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.utilities.Sentinel.Point;
+import org.firstinspires.ftc.teamcode.utilities.Sentinel.RectangularZone;
 
 @Configurable
 public class BorderPatrol {
 
     public enum Alliance { RED, BLUE }
-    public enum Axis { X, Y }
 
+    // --- CONFIGURATION ---
     public static Alliance CURRENT_ALLIANCE = Alliance.RED;
 
-    public static double PREDICTION_HORIZON_SECONDS = 0.35;
-    public static double SAFETY_BUFFER_INCHES = 2.0;
+    // Distance (inches) at which the robot starts slowing down automatically
+    public static double SLOW_DOWN_DISTANCE = 12.0;
 
+    // The closest the robot is allowed to get to the wall (Safety Margin)
+    public static double HARD_STOP_DISTANCE = 2.0;
+
+    // Standard scaling factors
     private static final double VELOCITY_SCALAR = 20.0;
-    private static final double TURN_SCALAR = 2.5;
-    private static final double MIN_VELOCITY = 0.01;
 
+    /**
+     * Main entry point to sanitize drive inputs.
+     */
     public static double[] adjustDriveInput(
             Pose2D pose,
-            double velX,
-            double velY,
+            double currentVelX, // Field Centric X Velocity (measured)
+            double currentVelY, // Field Centric Y Velocity (measured)
             double inputStrafe,
             double inputForward,
             double inputTurn
     ) {
+        // 1. Calculate the robot's bounding box based on current rotation
+        // This handles the "Rotation makes the robot wider" issue
+        Point[] footprint = Sentinel.calculateRobotFootprint(pose);
+        Bounds robotBounds = getProjectedBounds(footprint);
+
+        // 2. Convert joystick inputs to Field-Centric requested velocity
         double heading = pose.getHeading(AngleUnit.RADIANS);
+        Velocity requested = toFieldVelocity(heading, inputStrafe, inputForward);
+        // Scale inputs to physical units (approx inches/sec)
+        requested = new Velocity(requested.x * VELOCITY_SCALAR, requested.y * VELOCITY_SCALAR);
 
-        Velocity fieldRequest = toFieldVelocity(heading, inputStrafe, inputForward);
-        Velocity scaledRequest = fieldRequest.scale();
+        // 3. Apply Wall Limits (The "Virtual Spring")
+        // We calculate a "Speed Limit" (0.0 to 1.0) for Left and Right movement
+        double limitRight = calculateSpeedLimit(robotBounds, Sentinel.RED_PROTECTED_STRIP, true);
+        double limitLeft  = calculateSpeedLimit(robotBounds, Sentinel.BLUE_PROTECTED_STRIP, false);
 
-        Velocity actualVelocity = new Velocity(velX, velY);
-        Velocity dominantX = dominantComponentX(scaledRequest, actualVelocity);
-        Velocity dominantY = dominantComponentY(scaledRequest, actualVelocity);
+        // 4. Clamp the requested velocity
+        // If requesting Positive X (Right), apply Right Limit
+        // If requesting Negative X (Left), apply Left Limit
+        double safeX = requested.x;
 
-        Point[] drift = predictFootprint(pose, actualVelocity, 0);
-        Point[] xProjection = predictFootprint(pose, dominantX, 0);
-        Point[] yProjection = predictFootprint(pose, dominantY, 0);
-        Point[] rotationProjection = predictFootprint(pose, new Velocity(0, 0), inputTurn);
+        if (safeX > 0) {
+            safeX *= limitRight;
+        } else {
+            safeX *= limitLeft;
+        }
 
-        // Check hazards using specific velocities to determine direction
-        boolean blockX = checkHazard(drift, actualVelocity.x(), Axis.X) ||
-                         checkHazard(xProjection, dominantX.x(), Axis.X);
+        // 5. Convert back to Robot-Centric for the drivetrain
+        return toRobotCentric(heading, new Velocity(safeX, requested.y), inputTurn);
+    }
 
-        boolean blockY = checkHazard(drift, actualVelocity.y(), Axis.Y) ||
-                         checkHazard(yProjection, dominantY.y(), Axis.Y);
+    /**
+     * Calculates a speed multiplier (0.0 to 1.0) based on distance to a zone.
+     * @param isRightSideZone: True if the zone is on the positive X side (Red), False if negative (Blue).
+     */
+    private static double calculateSpeedLimit(Bounds robot, RectangularZone zone, boolean isRightSideZone) {
+        // First, check if we are physically lined up with the zone in the Y-axis.
+        // If we are "above" or "below" the zone, we don't need to stop.
+        boolean overlapsY = (robot.maxY >= zone.minY && robot.minY <= zone.maxY);
 
-        boolean blockTurn = rotationHazard(rotationProjection, inputTurn);
+        if (!overlapsY) return 1.0; // Safe to drive full speed
 
-        Velocity safeVelocity = limitVelocity(fieldRequest, blockX, blockY);
-        double safeTurn = blockTurn ? 0.0 : inputTurn;
+        double distanceToWall;
 
-        return toRobotCentric(heading, safeVelocity, safeTurn);
+        if (isRightSideZone) {
+            // Zone is to our Right (High X). Distance = ZoneMinX - RobotMaxX
+            distanceToWall = zone.minX - robot.maxX;
+        } else {
+            // Zone is to our Left (Low X). Distance = RobotMinX - ZoneMaxX
+            distanceToWall = robot.minX - zone.maxX;
+        }
+
+        // --- THE FORCE FIELD LOGIC ---
+
+        // 1. If we are inside the buffer (or the wall itself), STOP (0.0 speed allowed towards wall)
+        if (distanceToWall <= HARD_STOP_DISTANCE) {
+            return 0.0;
+        }
+
+        // 2. If we are far away, GO (1.0 speed allowed)
+        if (distanceToWall > SLOW_DOWN_DISTANCE) {
+            return 1.0;
+        }
+
+        // 3. If in between, scale linearly.
+        // Distance 12 -> 1.0 (100%)
+        // Distance 2 -> 0.0 (0%)
+        double effectiveDist = distanceToWall - HARD_STOP_DISTANCE;
+        double range = SLOW_DOWN_DISTANCE - HARD_STOP_DISTANCE;
+
+        double scale = effectiveDist / range;
+
+        // Clamp result just in case
+        return Math.max(0.0, Math.min(1.0, scale));
+    }
+
+    // --- Helpers ---
+
+    private static Bounds getProjectedBounds(Point[] footprint) {
+        double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
+        double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+
+        for (Point p : footprint) {
+            minX = Math.min(minX, p.x);
+            maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y);
+            maxY = Math.max(maxY, p.y);
+        }
+        return new Bounds(minX, maxX, minY, maxY);
     }
 
     private static Velocity toFieldVelocity(double heading, double strafe, double forward) {
         double strafeAngle = heading - Math.PI / 2.0;
-
         double x = forward * Math.cos(heading) + strafe * Math.cos(strafeAngle);
         double y = forward * Math.sin(heading) + strafe * Math.sin(strafeAngle);
-
-        return new Velocity(x, y);
-    }
-
-    private static Velocity dominantComponentX(Velocity a, Velocity b) {
-        return Math.abs(a.x()) > Math.abs(b.x())
-                ? new Velocity(a.x(), 0)
-                : new Velocity(b.x(), 0);
-    }
-
-    private static Velocity dominantComponentY(Velocity a, Velocity b) {
-        return Math.abs(a.y()) > Math.abs(b.y())
-                ? new Velocity(0, a.y())
-                : new Velocity(0, b.y());
-    }
-
-    private static Point[] predictFootprint(Pose2D pose, Velocity velocity, double turnSpeed) {
-        double x = pose.getX(DistanceUnit.INCH);
-        double y = pose.getY(DistanceUnit.INCH);
-        double heading = pose.getHeading(AngleUnit.RADIANS);
-
-        double projectedX = bufferedPosition(x, velocity.x());
-        double projectedY = bufferedPosition(y, velocity.y());
-        double projectedHeading = heading + turnSpeed * TURN_SCALAR * PREDICTION_HORIZON_SECONDS;
-
-        Pose2D future = new Pose2D(
-                DistanceUnit.INCH,
-                projectedX + velocity.x() * PREDICTION_HORIZON_SECONDS,
-                projectedY + velocity.y() * PREDICTION_HORIZON_SECONDS,
-                AngleUnit.RADIANS,
-                projectedHeading
-        );
-
-        return Sentinel.calculateRobotFootprint(future);
-    }
-
-    private static double bufferedPosition(double position, double velocityComponent) {
-        if (Math.abs(velocityComponent) < MIN_VELOCITY) return position;
-        return position + Math.signum(velocityComponent) * SAFETY_BUFFER_INCHES;
-    }
-
-    private static boolean checkHazard(Point[] footprint, double velocityComponent, Axis axis) {
-        return violatesProtection(footprint, velocityComponent, axis);
-    }
-
-    private static boolean violatesProtection(Point[] footprint, double velocity, Axis axis) {
-        if (CURRENT_ALLIANCE == Alliance.RED) {
-             boolean inZone = Sentinel.doesViolateRedProtection(footprint);
-             // Red Zone is Top (High Y). Escaping is moving Down (Negative Y).
-             boolean isEscaping = (axis == Axis.Y && velocity < 0);
-             return inZone && !isEscaping;
-        } else {
-             boolean inZone = Sentinel.doesViolateBlueProtection(footprint);
-             // Blue Zone is Bottom (Low Y). Escaping is moving Up (Positive Y).
-             boolean isEscaping = (axis == Axis.Y && velocity > 0);
-             return inZone && !isEscaping;
-        }
-    }
-
-    private static boolean rotationHazard(Point[] footprint, double turnRequest) {
-        if (Math.abs(turnRequest) < MIN_VELOCITY) return false;
-
-        return switch (CURRENT_ALLIANCE) {
-            case RED -> Sentinel.doesViolateRedProtection(footprint);
-            case BLUE -> Sentinel.doesViolateBlueProtection(footprint);
-        };
-    }
-
-    private static Velocity limitVelocity(Velocity request, boolean blockX, boolean blockY) {
-        double x = blockX ? 0 : request.x();
-        double y = blockY ? 0 : request.y();
         return new Velocity(x, y);
     }
 
@@ -143,13 +138,13 @@ public class BorderPatrol {
         double sin = Math.sin(heading);
         double strafeAngle = heading - Math.PI / 2.0;
 
-        double robotStrafe = v.x() * Math.cos(strafeAngle) + v.y() * Math.sin(strafeAngle);
-        double robotForward = v.x() * cos + v.y() * sin;
+        // Simple rotation matrix inverse
+        double robotForward = v.x * cos + v.y * sin;
+        double robotStrafe  = v.x * Math.cos(strafeAngle) + v.y * Math.sin(strafeAngle);
 
         return new double[]{robotStrafe, robotForward, turn};
     }
 
-    private record Velocity(double x, double y) {
-        Velocity scale() { return new Velocity(x * BorderPatrol.VELOCITY_SCALAR, y * BorderPatrol.VELOCITY_SCALAR); }
-    }
+    private record Velocity(double x, double y) {}
+    private record Bounds(double minX, double maxX, double minY, double maxY) {}
 }

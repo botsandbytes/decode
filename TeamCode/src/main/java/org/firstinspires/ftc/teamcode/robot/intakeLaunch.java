@@ -50,7 +50,8 @@ public class intakeLaunch {
     private double firstTimeBallDetected = -1;
     private boolean intakeFull = false;
 
-    public static double p = 0.001, f = 0.06;
+    public static double p = 0.01, f = 0.04;
+    // p=0.001 f=0.06
 
     public static double currentTurnAngle;
 
@@ -58,10 +59,15 @@ public class intakeLaunch {
 
     public static double initial;
 
-    public static double goalX = 129;
-    public static double goalY = 131;
+    public static double goalX;
+    public static double goalY;
 
-    public static double tolerance = 2;
+    public static double tolerance = 0.5;
+
+    public static boolean shooting = false;
+
+    public static ElapsedTime runtime = new ElapsedTime();
+
 
     public intakeLaunch(HardwareMap hardwareMap, Telemetry tel) {
         telemetry = tel;
@@ -116,9 +122,9 @@ public class intakeLaunch {
 
     public void takeShot(double launchPower, double waitTime) {
         telemetry.addData("Launching balls with power ", launchPower);
-        ElapsedTime runtime = new ElapsedTime();
         double targetVel = MAX_RPM * launchPower;
-        while (runtime.milliseconds() < waitTime) {
+
+        if (shooting) {
             shooter.setVelocity(targetVel);
             // start feeding the ball as soon as launcher velocity reaches 90% of the target to reduce the transfer time
             if (abs(shooter.getVelocity()) > MAX_RPM * (0.9 * launchPower)) {

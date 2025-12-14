@@ -1,11 +1,13 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 @TeleOp(name="Intake Ball Tracker", group="Utilities")
+@Disabled
 public class distanceSensorTracking extends LinearOpMode {
 
     private DistanceSensor intakeSensor;

@@ -10,6 +10,7 @@ import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.ftc.InvertedFTCCoordinates;
 import com.pedropathing.ftc.PoseConverter;
 import com.pedropathing.geometry.PedroCoordinates;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -29,6 +30,7 @@ import com.pedropathing.geometry.Pose;
 @TeleOp(name = "Shooter Training")
 @SuppressWarnings("unused")
 @Configurable
+@Disabled
 public class train extends OpMode {
 
     public static double GOAL_X = -62.9921259843;
@@ -107,13 +109,12 @@ public class train extends OpMode {
         double xInput = -gamepad1.left_stick_x;
         double rInput = gamepad1.right_stick_x;
 
-        double velX = robot.odo.getVelX(DistanceUnit.INCH);
-        double velY = robot.odo.getVelY(DistanceUnit.INCH);
 
         Pose2D pose2d = PoseConverter.poseToPose2D(pose, InvertedFTCCoordinates.INSTANCE);
 
         double[] adjusted = BorderPatrol.adjustDriveInput(
-                pose2d, velX, velY, xInput, yInput, rInput
+                // TODO: fix vel if we use this code
+                pose2d, 0, 0, xInput, yInput, rInput
         );
 
         follower.setTeleOpDrive(adjusted[1], adjusted[0], adjusted[2], CURRENT_DRIVE_MODE == DriveMode.ROBOT_CENTRIC);

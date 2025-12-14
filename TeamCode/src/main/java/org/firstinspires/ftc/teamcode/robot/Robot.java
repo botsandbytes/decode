@@ -20,15 +20,12 @@ public class Robot {
     public Servo hoodServo;
 
     // Localization
-    public GoBildaPinpointDriver odo;
-
     // Constants
     public static double PINPOINT_X_OFFSET_MM = -177;
     public static double PINPOINT_Y_OFFSET_MM = 40;
 
     public Robot(HardwareMap hardwareMap) {
         initDrive(hardwareMap);
-        initPinpoint(hardwareMap);
         initMechanisms(hardwareMap);
     }
 
@@ -47,13 +44,6 @@ public class Robot {
         leftBack.setDirection(DcMotorEx.Direction.REVERSE);
     }
 
-    private void initPinpoint(HardwareMap hardwareMap) {
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-        odo.setOffsets(PINPOINT_X_OFFSET_MM, PINPOINT_Y_OFFSET_MM, DistanceUnit.MM);
-        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
-        odo.resetPosAndIMU();
-    }
 
     private void initMechanisms(HardwareMap hardwareMap) {
         shooterMotor = hardwareMap.get(DcMotorEx.class, "shooter");

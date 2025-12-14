@@ -7,35 +7,47 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 public class Sentinel {
 
     public static final double ROBOT_WIDTH = 18.0;
-    private static final double FIELD_EDGE_X = 72.0;
-    private static final double FIELD_EDGE_Y = 72.0;
+
+    // Pedro Pathing Standard Field Size (0 to 144)
+    private static final double FIELD_SIZE_X = 144.0;
+    private static final double FIELD_SIZE_Y = 144.0;
+
+    // Protection Zone Constants
     private static final double PROTECTED_ZONE_DEPTH = 5.0;
-    private static final double PROTECTED_ZONE_WIDTH = 48.0;
 
+    // Converted Zones
+    // Old: Red was Right Wall (Y=72), extending Down.
+    // New: Right Wall (X=144), extending Y (24 to 72).
     public static final RectangularZone RED_PROTECTED_STRIP = new RectangularZone(
-        0.0,
-        PROTECTED_ZONE_WIDTH,
-        FIELD_EDGE_Y - PROTECTED_ZONE_DEPTH,
-        FIELD_EDGE_Y
+        FIELD_SIZE_X - PROTECTED_ZONE_DEPTH, // minX (139)
+        FIELD_SIZE_X,                        // maxX (144)
+        24.0,                                // minY
+        72.0                                 // maxY
     );
 
+    // Old: Blue was Left Wall (Y=-72), extending Down.
+    // New: Left Wall (X=0), extending Y (24 to 72).
     public static final RectangularZone BLUE_PROTECTED_STRIP = new RectangularZone(
-        0.0,
-        PROTECTED_ZONE_WIDTH,
-        -FIELD_EDGE_Y,
-        -FIELD_EDGE_Y + PROTECTED_ZONE_DEPTH
+        0.0,                                 // minX
+        PROTECTED_ZONE_DEPTH,                // maxX (5)
+        24.0,                                // minY
+        72.0                                 // maxY
     );
 
+    // Old: Triangle at Top Edge (-X).
+    // New: Triangle at Top Edge (+Y).
     private static final PolygonZone LEFT_BIG_LAUNCH_ZONE = new PolygonZone(
-        new Point(-FIELD_EDGE_X, FIELD_EDGE_Y),
-        new Point(-FIELD_EDGE_X, -FIELD_EDGE_Y),
-        new Point(0, 0)
+        new Point(144, 144), // Top Right
+        new Point(0, 144),   // Top Left
+        new Point(72, 72)    // Center
     );
 
+    // Old: Triangle at Bottom Edge (+X).
+    // New: Triangle at Bottom Edge (Y=0).
     private static final PolygonZone RIGHT_SMALL_LAUNCH_ZONE = new PolygonZone(
-        new Point(FIELD_EDGE_X, 24),
-        new Point(FIELD_EDGE_X, -24),
-        new Point(48, 0)
+        new Point(96, 0),    // Right of center on bottom wall
+        new Point(48, 0),    // Left of center on bottom wall
+        new Point(72, 24)    // Peak
     );
 
     public static boolean isLaunchAllowed(Pose2D currentPose) {
