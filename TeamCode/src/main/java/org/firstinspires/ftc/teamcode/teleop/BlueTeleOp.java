@@ -113,9 +113,9 @@ public class BlueTeleOp extends OpMode {
         DrawingUtil.drawBorderPatrolZones(field);
 
         if (!automatedDrive) {
-            double yInput = Math.clamp(Math.pow(gamepad1.left_stick_y, 3), -0.7, 0.7);
-            double xInput = Math.clamp(Math.pow(gamepad1.left_stick_x, 3), -0.7, 0.7);
-            double rInput = Math.clamp(Math.pow(-gamepad1.right_stick_x, 3), -0.7, 0.7);
+            double yInput = Math.clamp(Math.pow(gamepad1.left_stick_y, 3), -0.5, 0.5);
+            double xInput = Math.clamp(Math.pow(gamepad1.left_stick_x, 3), -0.5, 0.5);
+            double rInput = Math.clamp(Math.pow(-gamepad1.right_stick_x, 3), -0.5, 0.5);
 
             // adjusted[0] = Strafe, adjusted[1] = Forward
             // setTeleOpDrive(forward, strafe, turn, fieldCentric)

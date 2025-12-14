@@ -29,7 +29,7 @@ public class BlueBasketauto extends OpMode {
     private Timer pathTimer, actionTimer, opmodeTimer;
 
     private int pathState;
-    double launchPower = .68;
+    double launchPower = .683;
     double transferPower = .12;
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45)).mirror(); // Start Pose of our robot.
@@ -180,7 +180,7 @@ public class BlueBasketauto extends OpMode {
                     intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup1, true);
-                    intakeL.powerOnLauncher(.65);
+                    intakeL.powerOnLauncher(.653);
                     setPathState(3);
                 }
                 break;
@@ -192,7 +192,7 @@ public class BlueBasketauto extends OpMode {
                         intakeLaunch.shooting = true;
                         intakeLaunch.runtime.reset();
                     }
-                    intakeL.takeShot(0.65, 2800);
+                    intakeL.takeShot(0.653, 2800);
                     if (intakeLaunch.runtime.milliseconds() > 2800) {
                         intakeLaunch.shooting = false;
                         intakeL.stopIntake();
@@ -338,7 +338,8 @@ public class BlueBasketauto extends OpMode {
         intakeLaunch.shooting = false;
         buildPaths();
         follower.setStartingPose(startPose);
-
+        intakeLaunch.p = 0.005;
+        intakeLaunch.f = 0.05;
     }
 
     /**

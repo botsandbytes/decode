@@ -35,10 +35,10 @@ public class BlueOppositeAuto extends OpMode {
     private final Pose scorePose = new Pose(87, 21, Math.toRadians(70)).mirror();
     private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)).mirror(); // Lowest (Third Set) of Artifacts from the Spike Mark.
     private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0)).mirror();
-    private final Pose pickup2Pose = new Pose(125, 11, Math.toRadians(0)).mirror();
-    private final Pose pickup2PoseEnd = new Pose(131, 11, Math.toRadians(0)).mirror();
-    private final Pose pickup2PoseEnd2 = new Pose(125, 8.5, Math.toRadians(0)).mirror();
-    private final Pose pickup2PoseEnd3 = new Pose(131, 8.5, Math.toRadians(0)).mirror();// Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose pickup2Pose = new Pose(125, 13, Math.toRadians(0)).mirror();
+    private final Pose pickup2PoseEnd = new Pose(131, 13, Math.toRadians(0)).mirror();
+    private final Pose pickup2PoseEnd2 = new Pose(125, 9.5, Math.toRadians(0)).mirror();
+    private final Pose pickup2PoseEnd3 = new Pose(131, 9.5, Math.toRadians(0)).mirror();// Highest (First Set) of Artifacts from the Spike Mark.
 
     // alternate curved path for pickup2
     private final Pose CurvePickup2Pose = new Pose(120, 45, Math.toRadians(270)).mirror();
@@ -373,6 +373,11 @@ public class BlueOppositeAuto extends OpMode {
         buildPaths();
         follower.setStartingPose(startPose);
 //        intakeL.setHoodLongShotPosition();
+        intakeLaunch.p = 0.005;
+        intakeLaunch.f = 0.05;
+
+        // p = 0.01, f = 0.04; - new Amit Values that kind of worked on opposite
+        // p=0.001 f=0.06 old values
 
     }
 
