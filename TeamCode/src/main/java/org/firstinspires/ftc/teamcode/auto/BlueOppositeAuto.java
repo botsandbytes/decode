@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.auto;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
@@ -9,13 +8,14 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 
-@Autonomous(name = "RED Opposite", group = "BB Auto")
-public class redOppositeAuto extends OpMode {
+@Disabled
+@Autonomous(name = "BLUE Opposite", group = "BB Auto")
+public class BlueOppositeAuto extends OpMode {
 
     boolean pickupLine2 = false;
     double shootPower = 0.91;

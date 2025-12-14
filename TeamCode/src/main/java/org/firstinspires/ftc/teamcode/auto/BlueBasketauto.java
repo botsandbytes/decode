@@ -7,35 +7,42 @@ import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.utilities.Mathb;
+import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 
-@Autonomous(name = "Blue Basket Auto", group = "BB Auto")
-@SuppressWarnings("unused")
-public class blueMirrorCode extends OpMode {
+@Autonomous(name = "BLUE Basket Auto", group = "BB Auto")
+public class BlueBasketauto extends OpMode {
 
+    boolean openGateAfterPickup1 = false;
+    boolean openGateAfterPickup2 = true;
+    boolean pickupLine3 = true;
     intakeLaunch intakeL ;
     private Follower follower;
-    private Timer pathTimer, opmodeTimer;
+    private Timer pathTimer, actionTimer, opmodeTimer;
 
     private int pathState;
+    double launchPower = .68;
+    double transferPower = .12;
 
-    private final Pose startPose = new Pose(117, 128, Math.toRadians((45))).mirror(); // Start Pose of our robot.
-    private final Pose scorePose = new Pose(90, 90, Math.toRadians((45))).mirror();
+    private final Pose startPose = new Pose(117, 128, Math.toRadians(45)); // Start Pose of our robot.
+    private final Pose scorePose = new Pose(90, 90, Math.toRadians(45));
 
-    private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians((0))).mirror();
-    private final Pose pickup1PoseEnd = new Pose(128.5, 84, Math.toRadians((0))).mirror();// Highest (First Set) of Artifacts from the Spike Mark.
-    private final Pose scorePose2 = new Pose(96, 96, Math.toRadians((45))).mirror();// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
-    private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians((0))).mirror(); // Middle (Second Set) of Artifacts from the Spike Mark.
+    private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0));
+    private final Pose pickup1PoseEnd = new Pose(124, 84, Math.toRadians(0));// 128.5Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose gateAfterPose1 = new Pose(115,76, Math.toRadians(0));
+    private final Pose gateAfterPose1End = new Pose(122,76, Math.toRadians(0));
+    private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
+    private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0)); // Middle (Second Set) of Artifacts from the Spike Mark.
 
-    private final Pose pickup2PoseEnd = new Pose(136, 60, Math.toRadians((0))).mirror();
+    private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
+    private final Pose pickup2PoseReturn = new Pose(125,60, Math.toRadians(0));
 //94,36
-    private final Pose pickup3Pose = new Pose(96, 36, Math.toRadians((0))).mirror(); // Lowest (Third Set) of Artifacts from the Spike Mark.
+    private final Pose pickup3Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
 
-    private final Pose pickup3PoseEnd = new Pose(137, 36, Math.toRadians((0))).mirror();
+    private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
+    private final Pose pickup3PoseReturn = new Pose(125,36, Math.toRadians(0));
     private Path scorePreload;
     private PathChain grabPickup1, grabPickup1Start, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
@@ -47,10 +54,6 @@ public class blueMirrorCode extends OpMode {
         scorePreload.setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading());
 
 //        /* This is our grabPickup1 PathChain. We are using a single path with a BezierLine, which is a straight line. */
-//        grabPickup1 = follower.pathBuilder()
-//                .addPath(new BezierLine(scorePose, pickup1Pose))
-//                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup1Pose.getHeading())
-//                .build();
 
     /* Here is an example for Constant Interpolation
     scorePreload.setConstantInterpolation(startPose.getHeading()); */
@@ -58,65 +61,76 @@ public class blueMirrorCode extends OpMode {
         /* This is our grabPickup1 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         grabPickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose, pickup1Pose))
-//                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup1Pose.getHeading())
                 .addPath(new BezierLine(pickup1Pose,  pickup1PoseEnd))
-//                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .setLinearHeadingInterpolation(pickup1Pose.getHeading(), pickup1PoseEnd.getHeading())
-//                .setVelocityConstraint(20)
                 .build();
-//        /* This is our grabPickup1 PathChain. We are using a single path with a BezierLine, which is a straight line. */
-//        grabPickup1 = follower.pathBuilder()
-//                .addPath(new BezierLine(pickup1Pose, pickup1PoseEnd))
-//                .setLinearHeadingInterpolation(pickup1Pose.getHeading(), pickup1PoseEnd.getHeading()).setReversed()
-//                .build();
 
         /* This is our scorePickup1 PathChain. We are using a single path with a BezierLine, which is a straight line. */
-        scorePickup1 = follower.pathBuilder()
-//                .addPath(new BezierLine(pickup1PoseEnd, pickup1Pose))
-//                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                .addPath(new BezierLine(pickup1PoseEnd, new Pose(115,76).mirror()))
-                .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(0))
-                .addPath(new BezierLine(new Pose(115,76).mirror(), new Pose(120,76).mirror()))
-                .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(0))
+        if (openGateAfterPickup1) {
+            scorePickup1 = follower.pathBuilder()
+                    .addPath(new BezierLine(pickup1PoseEnd, gateAfterPose1))
+                    .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), gateAfterPose1.getHeading())
+                    .addPath(new BezierLine(gateAfterPose1, gateAfterPose1End))
+                    .setLinearHeadingInterpolation(gateAfterPose1.getHeading(), gateAfterPose1End.getHeading())
+                    .addPath(new BezierLine(gateAfterPose1End, gateAfterPose1))
+                    .setLinearHeadingInterpolation(gateAfterPose1End.getHeading(), gateAfterPose1.getHeading())
+                    .addPath(new BezierLine(gateAfterPose1, scorePose2))
+                    .setLinearHeadingInterpolation(gateAfterPose1.getHeading(), scorePose2.getHeading())
+                    .build();
+        } else {
+            scorePickup1 = follower.pathBuilder()
+                    .addPath(new BezierLine(pickup1PoseEnd, scorePose2))
+                    .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), scorePose2.getHeading())
+                    .build();
+        }
 
-                .addPath(new BezierLine(new Pose(120,76).mirror(), scorePose2))
-                .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(45))
-//                .addPath(new BezierCurve(pickup1Pose, new Pose(94, 81).mirror(), new Pose(96, 96).mirror())) //scorePose
-//                .setLinearHeadingInterpolation(0, 45) //scorePose.getHeading()
-//                .setConstantHeadingInterpolation(45)
-//                .setReversed()
-                .build();
-//
 //        /* This is our grabPickup2 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         grabPickup2 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose2, pickup2Pose))
                 .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup2Pose.getHeading())
                 .addPath(new BezierLine(pickup2Pose,  pickup2PoseEnd))
-                .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(0))
+                .setLinearHeadingInterpolation(pickup2Pose.getHeading(), pickup2PoseEnd.getHeading())
                 .build();
 
-        scorePickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup2PoseEnd, new Pose(125,60).mirror()))
-                .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(0))
-                .addPath(new BezierLine(new Pose(125,60).mirror(), scorePose))
-                .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), scorePose.getHeading())
-                .build();
+        /* This is our scorePickup2 PathChain. We are using a single path with a BezierLine, which is a straight line. */
+        if (openGateAfterPickup2) {
+            scorePickup2 = follower.pathBuilder()
+                    .addPath(new BezierLine(pickup2PoseEnd, pickup2PoseReturn))
+                    .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), pickup2PoseReturn.getHeading())
+                    .addPath(new BezierLine(pickup2PoseReturn, gateAfterPose1))
+                    .setLinearHeadingInterpolation(pickup2PoseReturn.getHeading(), gateAfterPose1.getHeading())
+                    .addPath(new BezierLine(gateAfterPose1, gateAfterPose1End))
+                    .setLinearHeadingInterpolation(gateAfterPose1.getHeading(), gateAfterPose1End.getHeading())
+                    .addPath(new BezierLine(gateAfterPose1End, gateAfterPose1))
+                    .setLinearHeadingInterpolation(gateAfterPose1End.getHeading(), gateAfterPose1.getHeading())
+                    .addPath(new BezierLine(gateAfterPose1, scorePose))
+                    .setLinearHeadingInterpolation(gateAfterPose1.getHeading(), scorePose.getHeading())
+                    .build();
+
+        } else {
+            scorePickup2 = follower.pathBuilder()
+                    .addPath(new BezierLine(pickup2PoseEnd, pickup2PoseReturn))
+                    .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), pickup2PoseReturn.getHeading())
+                    .addPath(new BezierLine(pickup2PoseReturn, scorePose))
+                    .setLinearHeadingInterpolation(pickup2PoseReturn.getHeading(), scorePose.getHeading())
+                    .build();
+        }
 
         /* This is our grabPickup3 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         grabPickup3 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose2, pickup3Pose))
                 .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup3Pose.getHeading())
                 .addPath(new BezierLine(pickup3Pose,  pickup3PoseEnd))
-                .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(0))
+                .setLinearHeadingInterpolation(pickup3Pose.getHeading(), pickup3PoseEnd.getHeading())
                 .build();
 
         /* This is our scorePickup3 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup3PoseEnd, new Pose(125,36).mirror()))
-                .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(0))
-                .addPath(new BezierLine(new Pose(125,36).mirror(), scorePose))
-                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), scorePose.getHeading())
+                .addPath(new BezierLine(pickup3PoseEnd, pickup3PoseReturn))
+                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), pickup3PoseReturn.getHeading())
+                .addPath(new BezierLine(pickup3PoseReturn, scorePose))
+                .setLinearHeadingInterpolation(pickup3PoseReturn.getHeading(), scorePose.getHeading())
                 .build();
     }
 
@@ -124,23 +138,21 @@ public class blueMirrorCode extends OpMode {
         switch (pathState) {
             case 0:
                 follower.followPath(scorePreload);
-                intakeL.powerOnLauncher(0.67);
+                intakeL.powerOnLauncher(launchPower);
                 setPathState(1);
                 break;
             case 1:
-//
 //            /* You could check for
 //            - Follower State: "if(!follower.isBusy()) {}"
 //            - Time: "if(pathTimer.getElapsedTimeSeconds() > 1) {}"
 //            - Robot Position: "if(follower.getPose().getX() > 36) {}"
 //            */
-//
 //                /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
 //                    /* Score Preload */
-                    intakeL.takeShot(0.67, 3000);
+                    intakeL.takeShot(launchPower, 2500);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
 //                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
                     follower.followPath(grabPickup1);
                     setPathState(2);
@@ -150,10 +162,7 @@ public class blueMirrorCode extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup1Pose's position */
                 if (!follower.isBusy()) {
                     /* Grab Sample */
-                    intakeL.runIntake(1, .15);
-
-//                    intakeL.stopIntake();
-//                    follower.followPath(grabPickup1, true);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup1, true);
                     intakeL.powerOnLauncher(.65);
@@ -167,7 +176,7 @@ public class blueMirrorCode extends OpMode {
                     intakeL.stopIntake();
                     intakeL.takeShot(0.65, 2800);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .15);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
                     follower.followPath(grabPickup2, true);
                     setPathState(4);
@@ -177,10 +186,10 @@ public class blueMirrorCode extends OpMode {
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup2Pose's position */
                 if (!follower.isBusy()) {
                     /* Grab Sample */
-                    intakeL.runIntake(1, .1);
+                    intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     follower.followPath(scorePickup2, true);
-                    intakeL.powerOnLauncher(.68);
+                    intakeL.powerOnLauncher(launchPower);
                     setPathState(5);
                 }
                 break;
@@ -189,39 +198,41 @@ public class blueMirrorCode extends OpMode {
                 if (!follower.isBusy()) {
                     /* Score Sample */
                     intakeL.stopIntake();
-                    intakeL.takeShot(0.68, 3400);
+                    intakeL.takeShot(launchPower, 3400);
                     intakeL.stopLauncher();
-                    intakeL.runIntake(1, .15);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                    follower.followPath(grabPickup3, true);
+                    // pick up 3rd based on flag
+                    if (pickupLine3) {
+                        intakeL.runIntake(1, transferPower);
+                        follower.followPath(grabPickup3, true);
+                    }
                     setPathState(6);
                 }
                 break;
             case 6:
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the pickup3Pose's position */
                 if (!follower.isBusy()) {
-                    /* Grab Sample */
-                    intakeL.runIntake(1, .1);
-                    /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
-                    follower.followPath(scorePickup3, true);
-                    intakeL.powerOnLauncher(.68);
+                    // pick up 3rd based on flag
+                    if (pickupLine3) {
+                        /* Grab Sample */
+                        intakeL.runIntake(1, transferPower);
+                        /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
+                        follower.followPath(scorePickup3, true);
+                        intakeL.powerOnLauncher(launchPower);
+                    }
                     setPathState(7);
-
-//                    /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
-//                    follower.followPath(scorePickup3, true);
-//                    setPathState(7);
                 }
                 break;
             case 7:
                 /* This case checks the robot's position and will wait until the robot position is close (1 inch away) from the scorePose's position */
                 if (!follower.isBusy()) {
-                    /* Score Sample */
-                    intakeL.stopIntake();
-                    intakeL.takeShot(0.68, 3500);
-                    intakeL.stopLauncher();
-//                    intakeL.runIntake(1, .15);
-                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-//                    follower.followPath(grabPickup3, true);
+                    // score 3rd based on flag
+                    if (pickupLine3) {
+                        /* Score Sample */
+                        intakeL.stopIntake();
+                        intakeL.takeShot(launchPower, 3500);
+                        intakeL.stopLauncher();
+                    }
                     setPathState(8);
                 }
                 break;
