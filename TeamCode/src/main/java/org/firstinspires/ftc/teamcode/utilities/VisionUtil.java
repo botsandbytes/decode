@@ -25,8 +25,8 @@ public class VisionUtil {
     private Pose2D lastKnownPose = new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0);
 
     // Camera Config
-    private final Position cameraPosition = new Position(DistanceUnit.CM, 10, -14, 28, 0);
-    private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
+    private final Position cameraPosition = new Position(DistanceUnit.CM, -12, 15.2, 20.75, 0);
+    private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -90, 180, 0);
 
     public void initAprilTag(HardwareMap hardwareMap, boolean useWebcam) {
         aprilTag = new AprilTagProcessor.Builder()

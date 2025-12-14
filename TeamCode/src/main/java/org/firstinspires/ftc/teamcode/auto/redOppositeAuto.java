@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 @Autonomous(name = "Red Opposite Auto", group = "BB Auto")
 public class redOppositeAuto extends OpMode {
 
-    boolean pickupLine2 = true;
+    boolean pickupLine2 = false;
     double shootPower = 0.91;
     int waitTimeForLaunch = 5000;
     double transferPower = .12;

@@ -96,7 +96,6 @@ public class bluebasketnear extends OpMode {
                 .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(0))
                 .build();
 
-        /* This is our scorePickup2 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         scorePickup2 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup2PoseEnd, new Pose(125,60).mirror()))
                 .setLinearHeadingInterpolation(Mathb.toRadians(0), Mathb.toRadians(0))

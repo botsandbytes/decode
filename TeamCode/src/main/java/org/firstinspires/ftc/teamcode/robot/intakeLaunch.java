@@ -25,7 +25,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 @Configurable
 public class intakeLaunch {
 
-    private final Pose goalTargetPose = new Pose(129, 131, Math.PI / 4.0);
     private DcMotorEx intakeF, intakeM, shooter;
     private IMU turnIMU;
     private Servo hood;
@@ -58,6 +57,11 @@ public class intakeLaunch {
     public static boolean done = false;
 
     public static double initial;
+
+    public static double goalX = 129;
+    public static double goalY = 131;
+
+    public static double tolerance = 2;
 
     public intakeLaunch(HardwareMap hardwareMap, Telemetry tel) {
         telemetry = tel;
@@ -151,8 +155,8 @@ public class intakeLaunch {
 
     public double getPoseDistance(Pose CurrentPose) {
         telemetry.addData("calculating distance for ", CurrentPose.getX() + ", " + CurrentPose.getY());
-        double deltaX = goalTargetPose.getX() - CurrentPose.getX();
-        double deltaY = goalTargetPose.getY() - CurrentPose.getY();
+        double deltaX = goalX - CurrentPose.getX();
+        double deltaY = goalY - CurrentPose.getY();
         // Uses Math.sqrt() and Math.pow() or simply multiplication
         double distanceToGoal = Math.sqrt((deltaX * deltaX) + (deltaY * deltaY));
 //        double distanceToGoal = Math.hypot(goalTargetPose.getX() - CurrentPose.getX(), goalTargetPose.getY() - CurrentPose.getY());
@@ -162,7 +166,7 @@ public class intakeLaunch {
 
     public double getAngeleToGoal(Pose CurrentPose) {
         telemetry.addData("calculating angle for ", CurrentPose.getX() + ", " + CurrentPose.getY());
-        double angleRadians = Math.atan2(goalTargetPose.getY() - CurrentPose.getY(), goalTargetPose.getX() - CurrentPose.getX());
+        double angleRadians = Math.atan2(goalY - CurrentPose.getY(), goalX - CurrentPose.getX());
         telemetry.addData("Angle is ", angleRadians);
 //        return Math.toDegrees(angleRadians);
         return angleRadians;
@@ -248,7 +252,7 @@ public class intakeLaunch {
 //            currentTurnAngle = orientation.getYaw(AngleUnit.DEGREES);
 //        }
         turn.setPower(Math.abs(degrees  - currentTurnAngle)*p + f);
-        if (Math.abs(degrees  - currentTurnAngle ) < 2) {
+        if (Math.abs(degrees  - currentTurnAngle ) < tolerance) {
             done = true;
             turn.setPower(0);
         }

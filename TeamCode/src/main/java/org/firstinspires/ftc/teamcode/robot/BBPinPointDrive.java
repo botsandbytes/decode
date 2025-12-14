@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.robot;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -10,6 +11,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+@Configurable
 public class BBPinPointDrive {
     private final HardwareMap hardwareMap;
     private final Telemetry telemetry;
@@ -20,11 +22,14 @@ public class BBPinPointDrive {
     private DcMotorEx rightBack;
     private DcMotorEx leftBack;
 
-    public GoBildaPinpointDriver odo;
 
-    // Constants
-    public static double PINPOINT_X_OFFSET_MM = -177;
-    public static double PINPOINT_Y_OFFSET_MM = 40;
+    // Constant
+
+    public static double PROPORTIONAL_GAIN = 1; // Adjust this value to tune turning speed and stability
+    public static double MIN_POWER = 0.5; // Minimum power to overcome friction
+    public static double THRESHOLD_RADIANS = Math.toRadians(1);
+
+    public double turnPower;
 
     // Flag so other files can tell if this is TeleOp
     public boolean isTeleOp = false;
@@ -33,7 +38,6 @@ public class BBPinPointDrive {
         hardwareMap = map;
         telemetry = tel;
         initDrive(hardwareMap);
-        initPinpoint(hardwareMap);
     }
 
     private void initDrive(HardwareMap hardwareMap) {
@@ -42,9 +46,13 @@ public class BBPinPointDrive {
         rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
 
+        assert leftFront != null;
         leftFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        assert leftBack != null;
         leftBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        assert rightBack != null;
         rightBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        assert rightFront != null;
         rightFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         // Use power directly
@@ -59,37 +67,19 @@ public class BBPinPointDrive {
         leftBack.setDirection(DcMotorEx.Direction.REVERSE);
     }
 
-    private void initPinpoint(HardwareMap hardwareMap) {
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-        odo.setOffsets(PINPOINT_X_OFFSET_MM, PINPOINT_Y_OFFSET_MM, DistanceUnit.MM);
-        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
-        odo.resetPosAndIMU();
-    }
 
-    public void turn(double targetAngleDegrees) {
+    public void turn(double angleDifference) {
         // Convert target angle to radians for internal calculations (most systems use radians)
-        double targetAngleRadians = Math.toRadians(targetAngleDegrees);
-
         // Normalize the target angle to be between -PI and PI, if needed for your system
         // ... (example: see search result 1.5.5 for angle normalization logic)
 
-        double currentHeading = odo.getHeading(AngleUnit.DEGREES);// Get current heading in radians
-        telemetry.addData("Current heading", currentHeading);
-        telemetry.update();
-        double angleDifference = targetAngleRadians - currentHeading;
-
         // Normalize the angle difference to the range [-PI, PI] to handle wrapping (e.g., turning from 170 deg to -170 deg)
-        while (angleDifference > Math.PI) angleDifference -= 2 * Math.PI;
-        while (angleDifference < -Math.PI) angleDifference += 2 * Math.PI;
 
-        final double THRESHOLD_RADIANS = Math.toRadians(1); // Stop when within 2 degrees of the target
-        final double PROPORTIONAL_GAIN = 0.6; // Adjust this value to tune turning speed and stability
-        final double MIN_POWER = 0.15; // Minimum power to overcome friction
+         // Stop when within 2 degrees of the target
 
-        while (Math.abs(angleDifference) > THRESHOLD_RADIANS) {
             // Calculate motor power using proportional control
-            double turnPower = angleDifference * PROPORTIONAL_GAIN;
+            turnPower = angleDifference * PROPORTIONAL_GAIN;
+            turnPower = Math.clamp(turnPower, 0, 1);
 
             // Apply a minimum power to prevent the robot from stalling near the target
             if (Math.abs(turnPower) < MIN_POWER) {
@@ -97,30 +87,27 @@ public class BBPinPointDrive {
             }
 
             // Set motor powers for differential turn
-            leftFront.setPower(-turnPower);
-            leftBack.setPower(-turnPower);
-            rightBack.setPower(turnPower);// One wheel goes forward, the other backward
-            rightFront.setPower(turnPower); // One wheel goes forward, the other backward
+            double y = 0; // Remember, Y stick value is reversed
+            double x = 0; // Counteract imperfect strafing
+            double rx = turnPower;
 
-            // Update odometry and angle difference in the loop
-            odo.update(); // Important: must call update() on every loop iteration
-            currentHeading = odo.getHeading(AngleUnit.DEGREES);
-            angleDifference = targetAngleRadians - currentHeading;
+            // Calculate motor powers
+            double denominator = Math.max(Math.pow(Math.abs(y) + Math.abs(x) + Math.abs(rx), 3), 1);
+            double frontLeftPower = Math.pow(y + x + rx, 3) / denominator;
+            double backLeftPower = Math.pow(y - x + rx, 3) / denominator;
+            double frontRightPower = Math.pow(y - x - rx, 3) / denominator;
+            double backRightPower = Math.pow(y + x - rx,3) / denominator;
 
-            // Re-normalize angle difference within the loop
-            while (angleDifference > Math.PI) angleDifference -= 2 * Math.PI;
-            while (angleDifference < -Math.PI) angleDifference += 2 * Math.PI;
+            // Set motor powers
+            leftFront.setPower(frontLeftPower);
+            leftBack.setPower(backLeftPower);
+            rightFront.setPower(frontRightPower);
+            rightBack.setPower(backRightPower);
 
             // Add a small sleep/pause if necessary to prevent the control loop from running too fast for your hardware
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
 
         // Stop the motors once the target is reached
         leftFront.setPower(0);
         rightFront.setPower(0);
-    }
-}
+
+}}
