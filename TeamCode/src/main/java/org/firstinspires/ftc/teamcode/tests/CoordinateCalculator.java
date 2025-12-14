@@ -6,7 +6,7 @@ public class CoordinateCalculator {
 
     // Define the fixed goal coordinates
     private static final double GOAL_X = 129.0;
-    private static final double GOAL_Y = 132.0;
+    private static final double GOAL_Y = 131.0;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -32,6 +32,7 @@ public class CoordinateCalculator {
         System.out.println("Distance to goal: " + distance);
         System.out.println("Angle (degrees from positive X axis): " + angleDegrees);
         System.out.println("Bearing (degrees clockwise from North): " + bearing);
+        System.out.println("Should Turn Left: " + shouldTurnLeft(183, 0));
 
         scanner.close();
     }
@@ -46,6 +47,20 @@ public class CoordinateCalculator {
         double deltaY = y2 - y1;
         // Uses Math.sqrt() and Math.pow() or simply multiplication
         return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    }
+
+    public static boolean shouldTurnLeft(double current, double target) {
+        current = (current % 360 + 360) % 360;
+        target = (target % 360 + 360) % 360;
+        double leftDiff = (target - current + 360) % 360;
+        double rightDiff = (current - target + 360) % 360;
+        boolean shortestisleft = leftDiff <= rightDiff;
+        boolean straddlesForbidden = (current < 240 && target > 300) || (current > 300 && target < 240);
+        boolean pathGoesThroughZone = Math.abs(current - target) < 180;
+        if (straddlesForbidden && pathGoesThroughZone) {
+            return !shortestisleft;
+        }
+        return shortestisleft;
     }
 
     /**

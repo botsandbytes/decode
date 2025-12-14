@@ -168,8 +168,8 @@ public class redOppositeAuto extends OpMode {
                     /* Grab Sample */
                     intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
-                    follower.followPath(scorePickup1, true);
                     intakeL.powerOnLauncher(shootPower);
+                    follower.followPath(scorePickup1, true);
                     setPathState(3);
                 }
                 break;
@@ -192,8 +192,8 @@ public class redOppositeAuto extends OpMode {
                     /* Grab Sample */
                     intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
-                    follower.followPath(scorePickup2, true);
                     intakeL.powerOnLauncher(shootPower);
+                    follower.followPath(scorePickup2, true);
                     setPathState(5);
                 }
                 break;
@@ -223,12 +223,12 @@ public class redOppositeAuto extends OpMode {
                         /* Grab Sample */
                         intakeL.runIntake(1, transferPower);
 //                    /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
-                        follower.followPath(scorePickup3, true);
                         intakeL.powerOnLauncher(shootPower);
+                        follower.followPath(scorePickup3, true);
                     } else {
                         intakeL.runIntake(1, transferPower);
-                        follower.followPath(scorePickup4, true);
                         intakeL.powerOnLauncher(shootPower);
+                        follower.followPath(scorePickup4, true);
                     }
                     setPathState(7);
                 }
@@ -252,8 +252,8 @@ public class redOppositeAuto extends OpMode {
                     /* Grab Sample */
                     intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
-                    follower.followPath(scorePickup5, true);
                     intakeL.powerOnLauncher(shootPower);
+                    follower.followPath(scorePickup5, true);
                     setPathState(9);
                 }
                 break;

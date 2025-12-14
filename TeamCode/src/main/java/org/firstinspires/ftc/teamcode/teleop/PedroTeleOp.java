@@ -45,6 +45,8 @@ public class PedroTeleOp extends OpMode {
     intakeLaunch intakeL;
     BBPinPointDrive bbDrive;
     LaunchParameters lp = new LaunchParameters(0,0,0);
+
+    private boolean turning = false;
 //    private final Pose scorePose = new Pose(87, 21.5, Math.toRadians(71));
 
     @Override
@@ -52,7 +54,7 @@ public class PedroTeleOp extends OpMode {
         field = PanelsField.INSTANCE.getField();
         field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
+        follower.setStartingPose(startingPose);
         follower.update();
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
         intakeL = new intakeLaunch(hardwareMap, telemetry);
@@ -64,6 +66,7 @@ public class PedroTeleOp extends OpMode {
                 .addPath(new Path(new BezierLine(follower::getPose, new Pose(96, 96))))
                 .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(45), 0.8))
                 .build();
+        intakeLaunch.degrees = 90;
     }
 
     @Override
@@ -82,6 +85,7 @@ public class PedroTeleOp extends OpMode {
         //In order to use float mode, add .useBrakeModeInTeleOp(true); to your Drivetrain Constants in Constant.java (for Mecanum)
         //If you don't pass anything in, it uses the default (false)
         follower.startTeleopDrive();
+        intakeLaunch.initial = follower.getHeading();
 //        intakeL.getAngeleToGoal(scorePose);
     }
 
@@ -146,27 +150,30 @@ public class PedroTeleOp extends OpMode {
             intakeL.stopIntake();
         }
         Pose pose = follower.getPose();
+        telemetryM.addData("pose", pose);
         lp = intakeL.calculateLaunchParameters(pose);
         telemetryM.addData("target", lp.LAUNCH_ANGLE);
         telemetryM.addData("current", follower.getHeading());
-        telemetryM.addData("ha", follower.getHeadingError());
 
-        if (gamepad1.x && !follower.isBusy() && !launchReady){
+        if (gamepad1.x){ //&& !launchReady
             if(lp.LAUNCH_POWER > 0.7){
                 intakeL.setHoodLongShotPosition();
             }else{
                 intakeL.setHoodPosition(0);
             }
-//            follower.turnTo(lp.LAUNCH_ANGLE);
-            bbDrive.turn(lp.LAUNCH_ANGLE);
-//            Path path = new Path(new BezierLine(follower.getPose(), new Pose(follower.getPose().getX() + 0.001, follower.getPose().getY() + 0.0001, lp.LAUNCH_ANGLE)));
-//            path.setLinearHeadingInterpolation(follower.getHeading(), lp.LAUNCH_ANGLE);
-//            follower.followPath(path);
+            intakeLaunch.degrees = lp.LAUNCH_ANGLE;
 //            intakeL.takeShot(lp.LAUNCH_POWER, lp.WAIT_TIME);
-            launchReady = true;
-            takeShot = true;
-            automatedDrive = true;
+            turning = true;
         }
+        if (turning) {
+            intakeL.setTurnPosition();
+            if (intakeLaunch.done) {
+                turning = false;
+                launchReady = true;
+                takeShot = true;
+            }
+        }
+        telemetryM.addData("done", intakeLaunch.done);
 //        if (launchReady && !follower.isBusy() && automatedDrive) {
 //            follower.startTeleopDrive();
 //            automatedDrive = false;
@@ -176,6 +183,8 @@ public class PedroTeleOp extends OpMode {
             takeShot = false;
             launchReady = false;
         }
+        telemetryM.addData("intakeL", intakeLaunch.degrees);
+        telemetryM.addData("currentYAW", intakeLaunch.currentTurnAngle);
         if (gamepad1.y){
             intakeL.stopLauncher();
 //            intakeL.powerOnLauncher(.65);

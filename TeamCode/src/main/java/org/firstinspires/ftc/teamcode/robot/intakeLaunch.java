@@ -1,31 +1,43 @@
 package org.firstinspires.ftc.teamcode.robot;
 
+import static java.lang.Math.abs;
 import static java.lang.Thread.sleep;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
+@Configurable
 public class intakeLaunch {
 
-    private final Pose goalTargetPose = new Pose(144, 144, Math.PI / 4.0);
+    private final Pose goalTargetPose = new Pose(129, 131, Math.PI / 4.0);
     private DcMotorEx intakeF, intakeM, shooter;
+    private IMU turnIMU;
     private Servo hood;
-    private Servo turn;
+    private CRServo turn;
     private final Telemetry telemetry;
     public static double TRAIN_RPM_PERCENT = 1;
     public static double LAUNCH_VELOCITY = .7;
     public static int MAX_RPM = 1500;
     public static double INTAkE_TRANSFER_POWER = 1;
+
+    public static double degrees = 90;
+
     double long_position = .35;
     private DistanceSensor intakeSensor;
 
@@ -39,14 +51,22 @@ public class intakeLaunch {
     private double firstTimeBallDetected = -1;
     private boolean intakeFull = false;
 
+    public static double p = 0.001, f = 0.06;
+
+    public static double currentTurnAngle;
+
+    public static boolean done = false;
+
+    public static double initial;
+
     public intakeLaunch(HardwareMap hardwareMap, Telemetry tel) {
         telemetry = tel;
-
+        turnIMU = hardwareMap.get(IMU.class, "turnImu");
         //Intake Motors
         intakeF = hardwareMap.get(DcMotorEx.class, "intakeFront");
         intakeM = hardwareMap.get(DcMotorEx.class, "intakeMid");
         hood = hardwareMap.get(Servo.class, "hood");
-        turn = hardwareMap.get(Servo.class, "turn");
+        turn = hardwareMap.get(CRServo.class, "turn");
 //        intakeSensor = hardwareMap.get(DistanceSensor.class, "intakeD");
         intakeF.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intakeM.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -63,8 +83,17 @@ public class intakeLaunch {
         shooter.setDirection(DcMotorSimple.Direction.REVERSE);
 
         setHoodPosition(0);
-        setTurnPosition(0.5);
+//        setTurnPosition(0.5);
 
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
+        RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  = RevHubOrientationOnRobot.UsbFacingDirection.DOWN;
+
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+
+        // Now initialize the IMU with this mounting orientation
+        // Note: if you choose two conflicting directions, this initialization will cause a code exception.
+        turnIMU.initialize(new IMU.Parameters(orientationOnRobot));
+        turnIMU.resetYaw();
     }
 
     public void runIntake(double intakePower, double transferPower) {
@@ -73,27 +102,23 @@ public class intakeLaunch {
         intakeF.setPower(intakePower);
         intakeM.setPower(transferPower);
         telemetry.addData("intake Front velocity ", intakeF.getVelocity());
-        telemetry.update();
     }
 
     public void stopIntake() {
         telemetry.addData("Shutting down: ", "intake");
-        telemetry.update();
         intakeM.setPower(0);
         intakeF.setPower(0);
     }
 
     public void takeShot(double launchPower, double waitTime) {
         telemetry.addData("Launching balls with power ", launchPower);
-        telemetry.update();
         ElapsedTime runtime = new ElapsedTime();
         double targetVel = MAX_RPM * launchPower;
         while (runtime.milliseconds() < waitTime) {
             shooter.setVelocity(targetVel);
             // start feeding the ball as soon as launcher velocity reaches 90% of the target to reduce the transfer time
-            if (Math.abs(shooter.getVelocity()) > MAX_RPM * (0.9 * launchPower)) {
+            if (abs(shooter.getVelocity()) > MAX_RPM * (0.9 * launchPower)) {
                 telemetry.addData("start the intake during shot ", shooter.getVelocity());
-                telemetry.update();
                 intakeM.setPower(INTAkE_TRANSFER_POWER);
                 intakeF.setPower(INTAkE_TRANSFER_POWER);
             } else {
@@ -105,14 +130,12 @@ public class intakeLaunch {
 
     public void powerOnLauncher(double launchPower) {
         telemetry.addData("Turning on Launcher with power ", launchPower);
-        telemetry.update();
         double targetVel = MAX_RPM * launchPower * TRAIN_RPM_PERCENT;
         shooter.setVelocity(targetVel);
     }
 
     public void stopLauncher() {
         telemetry.addData("Shutting down: ", "Launcher");
-        telemetry.update();
         shooter.setPower(0);
         intakeM.setPower(0);
         intakeF.setPower(0);
@@ -128,30 +151,25 @@ public class intakeLaunch {
 
     public double getPoseDistance(Pose CurrentPose) {
         telemetry.addData("calculating distance for ", CurrentPose.getX() + ", " + CurrentPose.getY());
-        telemetry.update();
         double deltaX = goalTargetPose.getX() - CurrentPose.getX();
         double deltaY = goalTargetPose.getY() - CurrentPose.getY();
         // Uses Math.sqrt() and Math.pow() or simply multiplication
         double distanceToGoal = Math.sqrt((deltaX * deltaX) + (deltaY * deltaY));
 //        double distanceToGoal = Math.hypot(goalTargetPose.getX() - CurrentPose.getX(), goalTargetPose.getY() - CurrentPose.getY());
         telemetry.addData("Distance is ", distanceToGoal);
-        telemetry.update();
         return distanceToGoal;
     }
 
     public double getAngeleToGoal(Pose CurrentPose) {
         telemetry.addData("calculating angle for ", CurrentPose.getX() + ", " + CurrentPose.getY());
-        telemetry.update();
         double angleRadians = Math.atan2(goalTargetPose.getY() - CurrentPose.getY(), goalTargetPose.getX() - CurrentPose.getX());
         telemetry.addData("Angle is ", angleRadians);
-        telemetry.update();
 //        return Math.toDegrees(angleRadians);
         return angleRadians;
     }
 
     public LaunchParameters calculateLaunchParameters(Pose CurrentPose) {
         telemetry.addData("calculating launch parameters for ", CurrentPose.getX() + ", " + CurrentPose.getY());
-        telemetry.update();
         LaunchParameters LP;
         double distanceToGoal = getPoseDistance(CurrentPose);
         double angleToGoal = getAngeleToGoal(CurrentPose);
@@ -167,7 +185,6 @@ public class intakeLaunch {
 
         telemetry.addData("Launch parameters are Power:", launchPower + ", Angle:" + Math.toDegrees(angleToGoal) + ", Distance:" + distanceToGoal + ", wait Time is:" + waitTime);
         telemetry.addData("launch parameters are ", CurrentPose.getX() + ", " + CurrentPose.getY());
-        telemetry.update();
 
 //        try {
 //            sleep(5000);
@@ -188,13 +205,113 @@ public class intakeLaunch {
         hood.setPosition(long_position);
     }
 
-    public void setTurnPosition(double position) {
-        turn.setPosition(position);
+    public boolean shouldTurnLeft(double c, double t) {
+        // 1. Rotate coordinates by +260 degrees (or -100) so the forbidden zone [100, 260]
+        //    becomes the continuous range [0, 160] in the rotated system.
+        double cR = (c + 260) % 360, tR = (t + 260) % 360;
+
+        // 2. The forbidden range is F = [0, 160]
+        final double F_END = 160;
+
+        // 3. Check if Left (CCW) path intersects F
+        // Path: cR to tR CCW.
+        boolean lBad = cR <= tR ?
+                (cR <= F_END && tR >= 0) : // Non-wrapping: starts before 160 AND ends after 0
+                (cR <= F_END || tR >= 0);  // Wrapping: starts before 160 OR ends after 0
+
+        // 4. Check if Right (CW) path intersects F (Path: tR to cR CCW)
+        boolean rBad = tR <= cR ?
+                (tR <= F_END && cR >= 0) :
+                (tR <= F_END || cR >= 0);
+
+        // 5. Shortest path calculation (not rotated)
+        double ld = (t - c + 360) % 360, rd = (c - t + 360) % 360;
+
+        // 6. If both paths are bad/safe, take shortest (ld <= rd). Otherwise, take the safe path (!lBad).
+        return lBad == rBad ? (ld <= rd) : !lBad;
+    }
+
+    public void setTurnPosition() {
+        YawPitchRollAngles orientation = turnIMU.getRobotYawPitchRollAngles();
+        AngularVelocity angularVelocity = turnIMU.getRobotAngularVelocity(AngleUnit.DEGREES);
+        currentTurnAngle = orientation.getYaw(AngleUnit.RADIANS);
+        currentTurnAngle += initial;
+        currentTurnAngle = Math.toDegrees(currentTurnAngle);
+        telemetry.addData("Yaw (Z)", "%.2f Deg. (Heading)", currentTurnAngle);
+        if (shouldTurnLeft(currentTurnAngle, degrees)) {
+            turn.setDirection(CRServo.Direction.REVERSE);
+        } else {
+            turn.setDirection(CRServo.Direction.FORWARD);
+        }
+//        while (((currentTurnAngle * direction) - degrees)  > 2 ) {
+//            turn.setPower(1);
+//            currentTurnAngle = orientation.getYaw(AngleUnit.DEGREES);
+//        }
+        turn.setPower(Math.abs(degrees  - currentTurnAngle)*p + f);
+        if (Math.abs(degrees  - currentTurnAngle ) < 2) {
+            done = true;
+            turn.setPower(0);
+        }
+        else {
+            done = false;
+        }
+//        time = (int) (Math.abs(degrees) * 4.2);
+//        turn.setPower(1);
+//        try {
+//            sleep(time);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+//        turn.setPower(0);
+    }
+
+    public void turnLauncher(double degrees) {
+//        YawPitchRollAngles orientation = turnIMU.getRobotYawPitchRollAngles();
+//        AngularVelocity angularVelocity = turnIMU.getRobotAngularVelocity(AngleUnit.DEGREES);
+//        currentTurnAngle = orientation.getYaw(AngleUnit.DEGREES);
+////        currentTurnAngle += Math.PI/2;
+////        currentTurnAngle = Math.toDegrees(currentTurnAngle);
+////        telemetry.addData("START : Yaw (Z)", "%.2f Deg. (Heading)", currentTurnAngle + " Target Heading is: " );
+////        telemetry.update();
+//        try {
+//            sleep(2000);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+////        int direction = 1;
+////        int time;
+//        if (degrees < 180) {
+//            turn.setDirection(CRServo.Direction.REVERSE);
+//        } else {
+//            turn.setDirection(CRServo.Direction.FORWARD);
+//            degrees = degrees - 360;
+//        }
+//        while ((degrees - currentTurnAngle)  > 2 ) {
+//            turn.setPower(.2);
+//            currentTurnAngle = orientation.getYaw(AngleUnit.DEGREES);
+////            telemetry.addData("Yaw (Z)", "%.2f Deg. (Heading)", currentTurnAngle + " Target Heading is: " );
+////            telemetry.update();
+//        }
+//        turn.setPower(0);
+
+//        turn.setPower(Math.abs(pServo));
+//        if (-(degrees  - currentTurnAngle ) > -2) {
+//            turn.setPower(0);
+//        }
+        int time = 0;
+        time = (int) (Math.abs(degrees) * 4.1);
+        turn.setPower(1);
+        try {
+            sleep(time);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        turn.setPower(0);
     }
 
     static double area(Pose p1, Pose p2, Pose p3)
     {
-        return Math.abs((p1.getX()*(p2.getY()-p3.getY()) + p2.getX()*(p3.getY()-p1.getY())+
+        return abs((p1.getX()*(p2.getY()-p3.getY()) + p2.getX()*(p3.getY()-p1.getY())+
                 p3.getX()*(p1.getY()-p2.getY()))/2.0);
     }
 
@@ -279,7 +396,6 @@ public class intakeLaunch {
             telemetry.addData("Ball " + (i + 1) + " Distance", "%.2f cm", ballDistances[i]);
         }
 
-        telemetry.update();
         return intakeFull;
     }
     public static class LaunchParameters {
