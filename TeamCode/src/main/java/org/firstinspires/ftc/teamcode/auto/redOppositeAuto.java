@@ -8,17 +8,19 @@ import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous(name = "Red Opposite Auto", group = "BB Auto")
+@Disabled
+@Autonomous(name = "Sample Mirror code", group = "Test")
 public class redOppositeAuto extends OpMode {
 
     boolean pickupLine2 = false;
     double shootPower = 0.91;
-    int waitTimeForLaunch = 5000;
+    int waitTimeForLaunch = 4500;
     double transferPower = .12;
     intakeLaunch intakeL ;
     private Follower follower;
@@ -33,7 +35,7 @@ public class redOppositeAuto extends OpMode {
     private final Pose pickup2Pose = new Pose(125, 11, Math.toRadians(0));
     private final Pose pickup2PoseEnd = new Pose(132, 11, Math.toRadians(0));
     private final Pose pickup2PoseEnd2 = new Pose(125, 8.5, Math.toRadians(0));
-    private final Pose pickup2PoseEnd3 = new Pose(132.5, 8.5, Math.toRadians(0));// Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose pickup2PoseEnd3 = new Pose(132, 8.5, Math.toRadians(0));// Highest (First Set) of Artifacts from the Spike Mark.
 
     // alternate curved path for pickup2
     private final Pose CurvePickup2Pose = new Pose(120, 45, Math.toRadians(270));
@@ -317,7 +319,7 @@ public class redOppositeAuto extends OpMode {
         intakeL = new intakeLaunch(hardwareMap, telemetry);
         buildPaths();
         follower.setStartingPose(startPose);
-        intakeL.setHoodLongShotPosition();
+//        intakeL.setHoodLongShotPosition();
 
     }
 
@@ -336,6 +338,7 @@ public class redOppositeAuto extends OpMode {
     public void start() {
         opmodeTimer.resetTimer();
         setPathState(0);
+        intakeL.setHoodLongShotPosition();
     }
 
     /**

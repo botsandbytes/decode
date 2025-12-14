@@ -15,7 +15,7 @@ import org.firstinspires.ftc.teamcode.utilities.Mathb;
 
 @Autonomous(name = "Blue Basket Auto", group = "BB Auto")
 @SuppressWarnings("unused")
-public class blueBasketAuto extends OpMode {
+public class blueMirrorCode extends OpMode {
 
     intakeLaunch intakeL ;
     private Follower follower;
