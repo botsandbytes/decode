@@ -7,13 +7,11 @@ import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 
-@Disabled
 @Autonomous(name = "BLUE Opposite", group = "BB Auto")
 public class BlueOppositeAuto extends OpMode {
 
@@ -27,25 +25,25 @@ public class BlueOppositeAuto extends OpMode {
 
     private int pathState;
 
-    private final Pose startPose = new Pose(87, 8, Math.toRadians(90)); // Start Pose of our robot.
-    private final Pose scorePose = new Pose(87, 21, Math.toRadians(70));
-    private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
-    private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0));
-    private final Pose pickup2Pose = new Pose(125, 11, Math.toRadians(0));
-    private final Pose pickup2PoseEnd = new Pose(132, 11, Math.toRadians(0));
-    private final Pose pickup2PoseEnd2 = new Pose(125, 8.5, Math.toRadians(0));
-    private final Pose pickup2PoseEnd3 = new Pose(132, 8.5, Math.toRadians(0));// Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose startPose = new Pose(87, 8, Math.toRadians(90)).mirror(); // Start Pose of our robot.
+    private final Pose scorePose = new Pose(87, 21, Math.toRadians(70)).mirror();
+    private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)).mirror(); // Lowest (Third Set) of Artifacts from the Spike Mark.
+    private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0)).mirror();
+    private final Pose pickup2Pose = new Pose(125, 11, Math.toRadians(0)).mirror();
+    private final Pose pickup2PoseEnd = new Pose(132, 11, Math.toRadians(0)).mirror();
+    private final Pose pickup2PoseEnd2 = new Pose(125, 8.5, Math.toRadians(0)).mirror();
+    private final Pose pickup2PoseEnd3 = new Pose(132, 8.5, Math.toRadians(0)).mirror();// Highest (First Set) of Artifacts from the Spike Mark.
 
     // alternate curved path for pickup2
-    private final Pose CurvePickup2Pose = new Pose(120, 45, Math.toRadians(270));
-    private final Pose CurvePickup2PoseEnd = new Pose(134, 9, Math.toRadians(270));
-    private final Pose CurvePickup2PoseReturn = new Pose(109, 28, Math.toRadians(270));
+    private final Pose CurvePickup2Pose = new Pose(120, 45, Math.toRadians(270)).mirror();
+    private final Pose CurvePickup2PoseEnd = new Pose(134, 9, Math.toRadians(270)).mirror();
+    private final Pose CurvePickup2PoseReturn = new Pose(109, 28, Math.toRadians(270)).mirror();
 
 //    private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
-    private final Pose pickup3Pose = new Pose(94, 60, Math.toRadians(0)); // Middle (Second Set) of Artifacts from the Spike Mark.
-    private final Pose pickup3PoseEnd = new Pose(134, 58, Math.toRadians(0));
-    private final Pose pickup4Pose = new Pose(133, 26, Math.toRadians(0));
-    private final Pose pickup5Pose = new Pose(133, 42, Math.toRadians(0));
+    private final Pose pickup3Pose = new Pose(94, 60, Math.toRadians(0)).mirror(); // Middle (Second Set) of Artifacts from the Spike Mark.
+    private final Pose pickup3PoseEnd = new Pose(134, 58, Math.toRadians(0)).mirror();
+    private final Pose pickup4Pose = new Pose(133, 26, Math.toRadians(0)).mirror();
+    private final Pose pickup5Pose = new Pose(133, 42, Math.toRadians(0)).mirror();
     //94,36
     private Path scorePreload;
     private PathChain grabPickup1, grabPickup1Start, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3, grabPickup4, scorePickup4, grabPickup5, scorePickup5;

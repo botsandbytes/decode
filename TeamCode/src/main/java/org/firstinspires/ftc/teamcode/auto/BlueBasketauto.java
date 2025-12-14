@@ -26,23 +26,23 @@ public class BlueBasketauto extends OpMode {
     double launchPower = .68;
     double transferPower = .12;
 
-    private final Pose startPose = new Pose(117, 128, Math.toRadians(45)); // Start Pose of our robot.
-    private final Pose scorePose = new Pose(90, 90, Math.toRadians(45));
+    private final Pose startPose = new Pose(117, 128, Math.toRadians(45)).mirror(); // Start Pose of our robot.
+    private final Pose scorePose = new Pose(90, 90, Math.toRadians(45)).mirror();
 
-    private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0));
-    private final Pose pickup1PoseEnd = new Pose(124, 84, Math.toRadians(0));// 128.5Highest (First Set) of Artifacts from the Spike Mark.
-    private final Pose gateAfterPose1 = new Pose(115,76, Math.toRadians(0));
-    private final Pose gateAfterPose1End = new Pose(122,76, Math.toRadians(0));
-    private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
-    private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0)); // Middle (Second Set) of Artifacts from the Spike Mark.
+    private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0)).mirror();
+    private final Pose pickup1PoseEnd = new Pose(124, 84, Math.toRadians(0)).mirror();// 128.5Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose gateAfterPose1 = new Pose(115,76, Math.toRadians(0)).mirror();
+    private final Pose gateAfterPose1End = new Pose(122,76, Math.toRadians(0)).mirror();
+    private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45)).mirror();// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
+    private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0)).mirror(); // Middle (Second Set) of Artifacts from the Spike Mark.
 
-    private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
-    private final Pose pickup2PoseReturn = new Pose(125,60, Math.toRadians(0));
+    private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0)).mirror();
+    private final Pose pickup2PoseReturn = new Pose(125,60, Math.toRadians(0)).mirror();
 //94,36
-    private final Pose pickup3Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
+    private final Pose pickup3Pose = new Pose(96, 36, Math.toRadians(0)).mirror(); // Lowest (Third Set) of Artifacts from the Spike Mark.
 
-    private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
-    private final Pose pickup3PoseReturn = new Pose(125,36, Math.toRadians(0));
+    private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0)).mirror();
+    private final Pose pickup3PoseReturn = new Pose(125,36, Math.toRadians(0)).mirror();
     private Path scorePreload;
     private PathChain grabPickup1, grabPickup1Start, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
