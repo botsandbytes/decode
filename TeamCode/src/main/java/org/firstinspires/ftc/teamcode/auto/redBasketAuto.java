@@ -70,18 +70,18 @@ public class redBasketAuto extends OpMode {
         if (openGateAfterPickup1) {
             scorePickup1 = follower.pathBuilder()
                     .addPath(new BezierLine(pickup1PoseEnd, gateAfterPose1))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), gateAfterPose1.getHeading())
                     .addPath(new BezierLine(gateAfterPose1, gateAfterPose1End))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(gateAfterPose1.getHeading(), gateAfterPose1End.getHeading())
                     .addPath(new BezierLine(gateAfterPose1End, gateAfterPose1))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(gateAfterPose1End.getHeading(), gateAfterPose1.getHeading())
                     .addPath(new BezierLine(gateAfterPose1, scorePose2))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
+                    .setLinearHeadingInterpolation(gateAfterPose1.getHeading(), scorePose2.getHeading())
                     .build();
         } else {
             scorePickup1 = follower.pathBuilder()
                     .addPath(new BezierLine(pickup1PoseEnd, scorePose2))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
+                    .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), scorePose2.getHeading())
                     .build();
         }
 
@@ -90,18 +90,18 @@ public class redBasketAuto extends OpMode {
                 .addPath(new BezierLine(scorePose2, pickup2Pose))
                 .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup2Pose.getHeading())
                 .addPath(new BezierLine(pickup2Pose,  pickup2PoseEnd))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                .setLinearHeadingInterpolation(pickup2Pose.getHeading(), pickup2PoseEnd.getHeading())
                 .build();
 
         /* This is our scorePickup2 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         if (openGateAfterPickup2) {
             scorePickup2 = follower.pathBuilder()
                     .addPath(new BezierLine(pickup2PoseEnd, pickup2PoseReturn))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), pickup2PoseReturn.getHeading())
                     .addPath(new BezierLine(pickup2PoseReturn, gateAfterPose1))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(pickup2PoseReturn.getHeading(), gateAfterPose1.getHeading())
                     .addPath(new BezierLine(gateAfterPose1, gateAfterPose1End))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(gateAfterPose1.getHeading(), gateAfterPose1End.getHeading())
                     .addPath(new BezierLine(gateAfterPose1End, gateAfterPose1))
                     .setLinearHeadingInterpolation(gateAfterPose1End.getHeading(), gateAfterPose1.getHeading())
                     .addPath(new BezierLine(gateAfterPose1, scorePose))
@@ -111,9 +111,9 @@ public class redBasketAuto extends OpMode {
         } else {
             scorePickup2 = follower.pathBuilder()
                     .addPath(new BezierLine(pickup2PoseEnd, pickup2PoseReturn))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), pickup2PoseReturn.getHeading())
                     .addPath(new BezierLine(pickup2PoseReturn, scorePose))
-                    .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), scorePose.getHeading())
+                    .setLinearHeadingInterpolation(pickup2PoseReturn.getHeading(), scorePose.getHeading())
                     .build();
         }
 
@@ -122,15 +122,15 @@ public class redBasketAuto extends OpMode {
                 .addPath(new BezierLine(scorePose2, pickup3Pose))
                 .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup3Pose.getHeading())
                 .addPath(new BezierLine(pickup3Pose,  pickup3PoseEnd))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                .setLinearHeadingInterpolation(pickup3Pose.getHeading(), pickup3PoseEnd.getHeading())
                 .build();
 
         /* This is our scorePickup3 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         scorePickup3 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup3PoseEnd, pickup3PoseReturn))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), pickup3PoseReturn.getHeading())
                 .addPath(new BezierLine(pickup3PoseReturn, scorePose))
-                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), scorePose.getHeading())
+                .setLinearHeadingInterpolation(pickup3PoseReturn.getHeading(), scorePose.getHeading())
                 .build();
     }
 

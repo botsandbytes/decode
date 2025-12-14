@@ -13,9 +13,9 @@ import org.firstinspires.ftc.teamcode.robot.intakeLaunch;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.utilities.Mathb;
 
-@Autonomous(name = "Blue Basket Near", group = "BB Auto")
+@Autonomous(name = "Blue Basket Auto", group = "BB Auto")
 @SuppressWarnings("unused")
-public class bluebasketnear extends OpMode {
+public class blueBasketAuto extends OpMode {
 
     intakeLaunch intakeL ;
     private Follower follower;

@@ -27,7 +27,7 @@ public class redOppositeAuto extends OpMode {
     private int pathState;
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90)); // Start Pose of our robot.
-    private final Pose scorePose = new Pose(87, 21, Math.toRadians(67));
+    private final Pose scorePose = new Pose(87, 21, Math.toRadians(70));
     private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
     private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0));
     private final Pose pickup2Pose = new Pose(125, 11, Math.toRadians(0));
@@ -59,13 +59,13 @@ public class redOppositeAuto extends OpMode {
                 .addPath(new BezierLine(scorePose, pickup1Pose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup1Pose.getHeading())
                 .addPath(new BezierLine(pickup1Pose,  pickup1PoseEnd))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                .setLinearHeadingInterpolation(pickup1Pose.getHeading(), pickup1PoseEnd.getHeading())
                 .build();
 
         /* This is our scorePickup2 PathChain. We are using a single path with a BezierLine, which is a straight line. */
         scorePickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup1PoseEnd, scorePose))
-                .setLinearHeadingInterpolation(Math.toRadians(0), scorePose.getHeading())
+                .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), scorePose.getHeading())
                 .build();
 //        /* This is our grabPickup2 PathChain. We are using a single path with a BezierLine, which is a straight line. */
 
@@ -104,7 +104,7 @@ public class redOppositeAuto extends OpMode {
                 .addPath(new BezierLine(scorePose, pickup3Pose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup3Pose.getHeading())
                 .addPath(new BezierLine(pickup3Pose,  pickup3PoseEnd))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                .setLinearHeadingInterpolation(pickup3Pose.getHeading(), pickup3PoseEnd.getHeading())
                 .build();
 
         /* This is our scorePickup3 PathChain. We are using a single path with a BezierLine, which is a straight line. */
