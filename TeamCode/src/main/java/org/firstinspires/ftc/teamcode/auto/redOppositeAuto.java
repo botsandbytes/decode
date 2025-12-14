@@ -38,9 +38,9 @@ public class redOppositeAuto extends OpMode {
     private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
     private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0));
     private final Pose pickup2Pose = new Pose(125, 11, Math.toRadians(0));
-    private final Pose pickup2PoseEnd = new Pose(132, 11, Math.toRadians(0));
+    private final Pose pickup2PoseEnd = new Pose(131, 11, Math.toRadians(0));
     private final Pose pickup2PoseEnd2 = new Pose(125, 8.5, Math.toRadians(0));
-    private final Pose pickup2PoseEnd3 = new Pose(132, 8.5, Math.toRadians(0));// Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose pickup2PoseEnd3 = new Pose(131, 8.5, Math.toRadians(0));// Highest (First Set) of Artifacts from the Spike Mark.
 
     // alternate curved path for pickup2
     private final Pose CurvePickup2Pose = new Pose(120, 45, Math.toRadians(270));
