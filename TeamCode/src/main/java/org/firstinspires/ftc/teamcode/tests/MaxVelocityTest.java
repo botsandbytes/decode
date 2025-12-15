@@ -1,4 +1,5 @@
 package org.firstinspires.ftc.teamcode.tests;
+import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -7,24 +8,23 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp
-@Disabled
+@Configurable
 public class MaxVelocityTest extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
+    public static String name = "";
     @Override
     public void runOpMode() throws InterruptedException {
-        final DcMotorEx leftFront, leftBack, rightBack, rightFront;
-        double maxMotorVelocity = 0;
-        String timeTaken="0";
-        leftFront = hardwareMap.get(DcMotorEx.class, "shooter");
-
-        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
+        DcMotorEx leftFront, leftBack, rightBack, rightFront;
 
         waitForStart();
 
         if (isStopRequested()) return;
 
         while (opModeIsActive()) {
+            double maxMotorVelocity = 0;
+            String timeTaken="0";
+            leftFront = hardwareMap.get(DcMotorEx.class, name);
+            leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             leftFront.setPower(1);
             double motor_velocity = leftFront.getVelocity();
             telemetry.addData("Current Velocity", motor_velocity);

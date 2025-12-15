@@ -148,7 +148,7 @@ public class BlueTeleOp extends OpMode {
         }
 
         if (turning) {
-            intakeL.setTurnPosition();
+//            intakeL.setTurnPosition();
             if (intakeLaunch.done) {
                 turning = false;
                 launchReady = true;
@@ -157,9 +157,27 @@ public class BlueTeleOp extends OpMode {
         }
 
         if (gamepad2.dpadUpWasPressed()) {
+            if(lp.LAUNCH_POWER > 0.7){
+                intakeL.setHoodLongShotPosition();
+            } else {
+                intakeL.setHoodPosition(0);
+            }
                 turning = false;
                 launchReady = true;
                 takeShot = true;
+                intakeLaunch.shooting = true;
+                intakeLaunch.runtime.reset();
+                automatedDrive = true;
+        }
+
+        if (gamepad2.dpadLeftWasPressed()) {
+            automatedDrive = true;
+            follower.holdPoint(new Pose(144-38.123197903014415, 33.40498034076016, Math.PI/2));
+        }
+
+        if (gamepad2.dpadRightWasPressed()) {
+            automatedDrive = false;
+            follower.startTeleopDrive();
         }
 
         telemetryM.addData("done", intakeLaunch.done);

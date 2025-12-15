@@ -24,7 +24,7 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 public class redOppositeAuto extends OpMode {
 
     boolean pickupLine2 = false;
-    double shootPower = 0.91;
+    double shootPower = 0.905;
     int waitTimeForLaunch = 4500;
     double transferPower = .12;
     intakeLaunch intakeL ;
@@ -34,7 +34,7 @@ public class redOppositeAuto extends OpMode {
     private int pathState;
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90)); // Start Pose of our robot.
-    private final Pose scorePose = new Pose(87, 21, Math.toRadians(70));
+    private final Pose scorePose = new Pose(87, 21, Math.toRadians(68));
     private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
     private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0));
     private final Pose pickup2Pose = new Pose(125, 13, Math.toRadians(0));
@@ -173,7 +173,7 @@ public class redOppositeAuto extends OpMode {
                         intakeL.stopLauncher();
                         intakeL.runIntake(1, transferPower);
 //                    /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                        follower.followPath(grabPickup1);
+                        follower.followPath(grabPickup2);
                         setPathState(2);
                     }
                 }
@@ -185,7 +185,7 @@ public class redOppositeAuto extends OpMode {
                     intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     intakeL.powerOnLauncher(shootPower);
-                    follower.followPath(scorePickup1, true);
+                    follower.followPath(scorePickup2, true);
                     setPathState(3);
                 }
                 break;
@@ -240,7 +240,7 @@ public class redOppositeAuto extends OpMode {
                         } else {
                             intakeL.runIntake(1, transferPower);
                             /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                            follower.followPath(grabPickup4, true);
+                            follower.followPath(grabPickup2, true);
                         }
                         setPathState(6);
                     }
@@ -258,7 +258,7 @@ public class redOppositeAuto extends OpMode {
                     } else {
                         intakeL.runIntake(1, transferPower);
                         intakeL.powerOnLauncher(shootPower);
-                        follower.followPath(scorePickup4, true);
+                        follower.followPath(scorePickup2, true);
                     }
                     setPathState(7);
                 }
@@ -278,7 +278,7 @@ public class redOppositeAuto extends OpMode {
                         intakeL.stopLauncher();
                         intakeL.runIntake(1, transferPower);
                         /* Since this is a pathChain, we can have Pedro hold the end point while we are grabbing the sample */
-                        follower.followPath(grabPickup5, .6,true);
+                        follower.followPath(grabPickup2, .6,true);
                         setPathState(8);
                     }
                 }
@@ -290,7 +290,7 @@ public class redOppositeAuto extends OpMode {
                     intakeL.runIntake(1, transferPower);
                     /* Since this is a pathChain, we can have Pedro hold the end point while we are scoring the sample */
                     intakeL.powerOnLauncher(shootPower);
-                    follower.followPath(scorePickup5, true);
+                    follower.followPath(scorePickup2, true);
                     setPathState(9);
                 }
                 break;

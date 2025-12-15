@@ -114,6 +114,11 @@ public class RedTeleOp extends OpMode {
         DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading(), GOAL_X, GOAL_Y);
         DrawingUtil.drawBorderPatrolZones(field);
 
+        Pose currentPose = follower.getPose();
+        blackboard.put("POSE_X", currentPose.getX());
+        blackboard.put("POSE_Y", currentPose.getY());
+        blackboard.put("POSE_HEADING", currentPose.getHeading());
+
         if (!automatedDrive) {
             double yInput = Math.clamp(Math.pow(-gamepad1.left_stick_y, 3), -0.7, 0.7);
             double xInput = Math.clamp(Math.pow(-gamepad1.left_stick_x, 3), -0.7, 0.7);
@@ -162,6 +167,18 @@ public class RedTeleOp extends OpMode {
                 turning = false;
                 launchReady = true;
                 takeShot = true;
+                intakeLaunch.shooting = true;
+                intakeLaunch.runtime.reset();
+                automatedDrive = true;
+        }
+
+        if (gamepad2.dpadLeftWasPressed()) {
+            automatedDrive = true;
+            follower.holdPoint(new Pose(38.123197903014415, 33.40498034076016, Math.PI/2));
+        }
+
+        if (gamepad2.dpadRightWasPressed()) {
+            automatedDrive = false;
         }
 
         telemetryM.addData("done", intakeLaunch.done);
@@ -203,7 +220,6 @@ public class RedTeleOp extends OpMode {
             Pose2D visionPose = vision.updateAprilTagPose();
             if (vision.isTagFound()) {
                 Pose pedroPose = PoseConverter.pose2DToPose(visionPose, InvertedFTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-                Pose currentPose = follower.getPose();
                 Pose newPose = new Pose(pedroPose.getX(), pedroPose.getY(), currentPose.getHeading());
                 follower.setPose(newPose);
             }

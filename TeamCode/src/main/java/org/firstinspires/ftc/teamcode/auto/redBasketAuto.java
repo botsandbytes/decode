@@ -22,30 +22,30 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 public class redBasketAuto extends OpMode {
 
     boolean openGateAfterPickup1 = false;
-    boolean openGateAfterPickup2 = true;
+    boolean openGateAfterPickup2 = false;
     boolean pickupLine3 = true;
     intakeLaunch intakeL ;
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
 
     private int pathState;
-    double launchPower = .68;
+    double launchPower = .67;
     double transferPower = .12;
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45)); // Start Pose of our robot.
     private final Pose scorePose = new Pose(90, 90, Math.toRadians(45));
 
     private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0));
-    private final Pose pickup1PoseEnd = new Pose(124, 84, Math.toRadians(0));// 128.5Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose pickup1PoseEnd = new Pose(126, 84, Math.toRadians(0));// 128.5Highest (First Set) of Artifacts from the Spike Mark.
     private final Pose gateAfterPose1 = new Pose(115,76, Math.toRadians(0));
     private final Pose gateAfterPose1End = new Pose(122,76, Math.toRadians(0));
     private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
     private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0)); // Middle (Second Set) of Artifacts from the Spike Mark.
 
-    private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
+    private final Pose pickup2PoseEnd = new Pose(132, 60, Math.toRadians(0));
     private final Pose pickup2PoseReturn = new Pose(125,60, Math.toRadians(0));
 //94,36
-    private final Pose pickup3Pose = new Pose(96, 36, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
+    private final Pose pickup3Pose = new Pose(96, 40, Math.toRadians(0)); // Lowest (Third Set) of Artifacts from the Spike Mark.
 
     private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
     private final Pose pickup3PoseReturn = new Pose(125,36, Math.toRadians(0));

@@ -21,28 +21,28 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Autonomous(name = "BLUE Basket Auto", group = "BB Auto")
 public class BlueBasketauto extends OpMode {
 
-    boolean openGateAfterPickup1 = false;
-    boolean openGateAfterPickup2 = true;
+    boolean openGateAfterPickup1 = true;
+    boolean openGateAfterPickup2 = false;
     boolean pickupLine3 = true;
     intakeLaunch intakeL ;
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
 
     private int pathState;
-    double launchPower = .683;
+    double launchPower = .665;
     double transferPower = .12;
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45)).mirror(); // Start Pose of our robot.
     private final Pose scorePose = new Pose(90, 90, Math.toRadians(45)).mirror();
 
     private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0)).mirror();
-    private final Pose pickup1PoseEnd = new Pose(124, 84, Math.toRadians(0)).mirror();// 128.5Highest (First Set) of Artifacts from the Spike Mark.
+    private final Pose pickup1PoseEnd = new Pose(128, 84, Math.toRadians(0)).mirror();// 128.5Highest (First Set) of Artifacts from the Spike Mark.
     private final Pose gateAfterPose1 = new Pose(115,76, Math.toRadians(0)).mirror();
     private final Pose gateAfterPose1End = new Pose(122,76, Math.toRadians(0)).mirror();
     private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45)).mirror();// Scoring Pose of our robot. It is facing the goal at a 135 degree angle.
     private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0)).mirror(); // Middle (Second Set) of Artifacts from the Spike Mark.
 
-    private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0)).mirror();
+    private final Pose pickup2PoseEnd = new Pose(134, 60, Math.toRadians(0)).mirror();
     private final Pose pickup2PoseReturn = new Pose(125,60, Math.toRadians(0)).mirror();
 //94,36
     private final Pose pickup3Pose = new Pose(96, 36, Math.toRadians(0)).mirror(); // Lowest (Third Set) of Artifacts from the Spike Mark.
@@ -262,11 +262,12 @@ public class BlueBasketauto extends OpMode {
                             intakeLaunch.shooting = true;
                             intakeLaunch.runtime.reset();
                         }
-                        intakeL.takeShot(launchPower, 3500);
-                        if (intakeLaunch.runtime.milliseconds() > 3500) {
+                        intakeL.takeShot(launchPower, 2500);
+                        if (intakeLaunch.runtime.milliseconds() > 2500) {
                             intakeLaunch.shooting = false;
                             intakeL.stopIntake();
                             intakeL.stopLauncher();
+                            follower.holdPoint(new Pose(72, follower.getPose().getX(), Math.PI/2));
                             setPathState(8);
                         }
                     } else {
@@ -304,7 +305,7 @@ public class BlueBasketauto extends OpMode {
         // These loop the movements of the robot, these must be called continuously in order to work
         follower.update();
         autonomousPathUpdate();
-        intakeL.setTurnPosition();
+//        intakeL.setTurnPosition();
 
         // Update blackboard with current pose
         Pose currentPose = follower.getPose();
