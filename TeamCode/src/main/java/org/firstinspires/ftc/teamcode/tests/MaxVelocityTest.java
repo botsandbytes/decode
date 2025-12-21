@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@TeleOp
+@TeleOp(name="Max Velocity Test", group="Test")
 @Configurable
 public class MaxVelocityTest extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
