@@ -19,10 +19,9 @@ public class IMUTest extends OpMode {
         turnIMU = hardwareMap.get(IMU.class, "turnImu");
 
         RevHubOrientationOnRobot.LogoFacingDirection logo = RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
-        RevHubOrientationOnRobot.UsbFacingDirection usb = RevHubOrientationOnRobot.UsbFacingDirection.DOWN;
+        RevHubOrientationOnRobot.UsbFacingDirection usb = RevHubOrientationOnRobot.UsbFacingDirection.UP;
         turnIMU.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(logo, usb)));
         turnIMU.resetYaw();
-
         telemetry.addData("Status", "Initialized - Rotate the turret manually");
         telemetry.update();
     }
