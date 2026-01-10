@@ -2,8 +2,6 @@ package org.firstinspires.ftc.teamcode.tests;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.TelemetryManager;
-import com.pedropathing.control.PIDFCoefficients;
-import com.pedropathing.control.PIDFController;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -23,42 +21,44 @@ public class manualTurretTurnTest extends LinearOpMode
     CRServo turn;
     private TelemetryManager telemetryM;
     public static int turn_degrees = 60;
-    public static double sleep_multiplier = 15.7;
-    public static PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.009, 0.0003, 0.003, 0.1); // (0.008, 0.0005, 0.003, 0.007);
-    PIDFController pidfController = new PIDFController(pidfCoefficients);
+    public static int error_tolerance = 2;
+    public static double maxPower = 0.5, minPower = 0.13;
+    public static  double Kp = 0.006;
+
 
     //----------------------------------------------------------------------------------------------
     // Main logic
     //----------------------------------------------------------------------------------------------
 
     public void turnUsingPIDF() {
-        int error_tolerance = 2;
-        double maxPower = 0.5, minPower = 0.15;
         double currentAngle = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        pidfController.updatePosition(currentAngle);
-        pidfController.setTargetPosition(turn_degrees);
-            turn.setDirection(CRServo.Direction.FORWARD);
-            while (pidfController.getError() > error_tolerance || pidfController.getError() < -error_tolerance) {
-                currentAngle = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-                pidfController.updatePosition(currentAngle);
-                double power = pidfController.run();
-                if (power > maxPower) {
-                    power = maxPower;
-                } else if (power < minPower && power > 0) {
-                    power = minPower;
-                } else if (power > -minPower && power < 0) {
-                    power = -minPower;
-                } else if (power < -maxPower) {
-                    power = -maxPower;
-                }
-                telemetry.addData("Current Power", power);
-                telemetry.addData("Error: ", pidfController.getError());
-                telemetry.addData("Current Angle: ", currentAngle);
-                telemetry.update();
-                turn.setPower(power);
+        if (turn_degrees > 115) {
+            turn_degrees = 115;
+        } else if (turn_degrees < -115) {
+            turn_degrees = -115;
+        }
+        double error = turn_degrees - currentAngle;
+        turn.setDirection(CRServo.Direction.FORWARD);
+        while (Math.abs(error) > 1) {
+            currentAngle = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+            error = turn_degrees - currentAngle;
+            double power = error * Kp;
+            if (power > maxPower) {
+                power = maxPower;
+            } else if (power < minPower && power > 0) {
+                power = minPower;
+            } else if (power > -minPower && power < 0) {
+                power = -minPower;
+            } else if (power < -maxPower) {
+                power = -maxPower;
             }
-            turn.setPower(0);
-            pidfController.reset();
+            telemetry.addData("Current Power", power);
+            telemetry.addData("Error: ", error);
+            telemetry.addData("Current Angle: ", currentAngle);
+            telemetry.update();
+            turn.setPower(power);
+        }
+        turn.setPower(0);
     }
 
     @Override public void runOpMode() throws InterruptedException {
@@ -76,7 +76,7 @@ public class manualTurretTurnTest extends LinearOpMode
         // Now initialize the IMU with this mounting orientation
         // Note: if you choose two conflicting directions, this initialization will cause a code exception.
         imu.initialize(new IMU.Parameters(orientationOnRobot));
-        pidfController.reset();
+        imu.resetYaw();
 
         // Loop and update the dashboard
         while (!isStopRequested()) {
@@ -85,7 +85,6 @@ public class manualTurretTurnTest extends LinearOpMode
                 telemetry.addData("Yaw", "Resetting\n");
                 imu.resetYaw();
             } else  if (gamepad1.dpad_right) {
-                pidfController.setTargetPosition(turn_degrees);
                 turnUsingPIDF();
             } else {
                 telemetry.addData("Yaw", "Press DPAD DOWN on Gamepad to reset\n");
