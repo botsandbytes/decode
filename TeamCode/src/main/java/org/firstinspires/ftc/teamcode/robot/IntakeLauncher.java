@@ -25,9 +25,9 @@ public class IntakeLauncher {
 
     // Constants
     private static final double TRAIN_RPM_PERCENT = 1.0;
-    private static final int MAX_RPM = 1500;
+    private static final int MAX_RPM = 1450;
     private static final double INTAKE_TRANSFER_POWER = 1.0;
-    private static final double HOOD_LONG_POSITION = 0.35;
+    private static final double HOOD_LONG_POSITION = 0.4;
     private static final double TURN_TOLERANCE_DEGREES = 2;
 
     // PIDF Constants (original working values)
