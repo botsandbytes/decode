@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.tests;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -37,6 +38,7 @@ import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
  */
 @Configurable
 @TeleOp(name = "Live PID Tuner", group = "Test")
+@Disabled
 public class LivePIDTuner extends OpMode {
 
     // Make these configurable via FTC Dashboard or Configurables
@@ -83,16 +85,12 @@ public class LivePIDTuner extends OpMode {
     @Override
     public void loop() {
         // Apply current PIDF values
-        IntakeLauncher.TURN_P = P;
-        IntakeLauncher.TURN_I = I;
-        IntakeLauncher.TURN_D = D;
-        IntakeLauncher.TURN_F = F;
 
         // Handle controls
         handleControls();
 
         // Update controller
-        intakeLauncher.updateTurret();
+        intakeLauncher.updateTurret(0);
 
         // Collect metrics
         if (testRunning) {

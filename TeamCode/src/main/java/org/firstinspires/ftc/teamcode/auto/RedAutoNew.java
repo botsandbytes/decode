@@ -7,6 +7,7 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.field.FieldManager;
 import com.bylazar.field.PanelsField;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
@@ -21,12 +22,12 @@ import org.firstinspires.ftc.teamcode.robot.LaunchParameters;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 
 @Configurable
-@Autonomous(name = "Red Near Auto", group = "Red Auto")
-public class RedNearAuto extends OpMode {
+@Autonomous(name = "Red Auto NEW", group = "Red Auto")
+public class RedAutoNew extends OpMode {
 
     public static boolean openGateAfterPickup1 = false;
     public static boolean openGateAfterPickup2 = false;
-    public static boolean pickupLine3 = true;
+    public static boolean pickupLine3 = false;
 
     private IntakeLauncher intakeLauncher;
     private Follower follower;
@@ -39,6 +40,9 @@ public class RedNearAuto extends OpMode {
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45));
     private final Pose scorePose = new Pose(90, 90, Math.toRadians(45));
+
+    private final Pose drinkPose = new Pose(130, 60, Math.toRadians(45));
+    private final Pose drinkPoseEnd = new Pose(132, 62, Math.toRadians(45));
 
     private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0));
     private final Pose pickup1PoseEnd = new Pose(126, 84, Math.toRadians(0));
@@ -53,13 +57,21 @@ public class RedNearAuto extends OpMode {
     private final Pose pickup3PoseReturn = new Pose(125, 36, Math.toRadians(0));
 
     private Path scorePreload;
-    private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
+    private PathChain grabPickup1, scorePickup1, drinkPickup, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
     private FieldManager field;
 
     public void buildPaths() {
         scorePreload = new Path(new BezierLine(startPose, scorePose));
         scorePreload.setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading());
+
+        drinkPickup = follower.pathBuilder()
+                .addPath(new BezierCurve(scorePose, drinkPose, new Pose(100, 70)))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), drinkPose.getHeading())
+                .addPath(new BezierLine(drinkPose, drinkPoseEnd))
+                .setLinearHeadingInterpolation(drinkPose.getHeading(), drinkPoseEnd.getHeading())
+                .build();
+
 
         grabPickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose, pickup1Pose))
@@ -147,7 +159,7 @@ public class RedNearAuto extends OpMode {
                     if (intakeLauncher.getShootingDuration() > 2500) {
                         intakeLauncher.stopShooting();
                         intakeLauncher.runIntake(1, transferPower);
-                        follower.followPath(grabPickup1);
+                        follower.followPath(drinkPickup);
                         setPathState(2);
                     }
                 }
@@ -160,73 +172,73 @@ public class RedNearAuto extends OpMode {
                     setPathState(3);
                 }
             }
-            case 3 -> {
-                if (!follower.isBusy()) {
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
-                    }
-                    intakeLauncher.updateShootingLogic(0.65);
-
-                    if (intakeLauncher.getShootingDuration() > 2800) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runIntake(1, transferPower);
-                        follower.followPath(grabPickup2, true);
-                        setPathState(4);
-                    }
-                }
-            }
-            case 4 -> {
-                if (!follower.isBusy()) {
-                    intakeLauncher.runIntake(1, transferPower);
-                    follower.followPath(scorePickup2, true);
-                    intakeLauncher.powerOnLauncher(launchPower);
-                    setPathState(5);
-                }
-            }
-            case 5 -> {
-                if (!follower.isBusy()) {
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
-                    }
-                    intakeLauncher.updateShootingLogic(launchPower);
-
-                    if (intakeLauncher.getShootingDuration() > 3400) {
-                        intakeLauncher.stopShooting();
-                        if (pickupLine3) {
-                            intakeLauncher.runIntake(1, transferPower);
-                            follower.followPath(grabPickup3, true);
-                        }
-                        setPathState(6);
-                    }
-                }
-            }
-            case 6 -> {
-                if (!follower.isBusy()) {
-                    if (pickupLine3) {
-                        intakeLauncher.runIntake(1, transferPower);
-                        follower.followPath(scorePickup3, true);
-                        intakeLauncher.powerOnLauncher(launchPower);
-                    }
-                    setPathState(7);
-                }
-            }
-            case 7 -> {
-                if (!follower.isBusy()) {
-                    if (pickupLine3) {
-                        if (!intakeLauncher.isShooting()) {
-                            intakeLauncher.startShooting();
-                        }
-                        intakeLauncher.updateShootingLogic(launchPower);
-
-                        if (intakeLauncher.getShootingDuration() > 3500) {
-                            intakeLauncher.stopShooting();
-                            setPathState(8);
-                        }
-                    } else {
-                        setPathState(8);
-                    }
-                }
-            }
+//            case 3 -> {
+//                if (!follower.isBusy()) {
+//                    if (!intakeLauncher.isShooting()) {
+//                        intakeLauncher.startShooting();
+//                    }
+//                    intakeLauncher.updateShootingLogic(0.65);
+//
+//                    if (intakeLauncher.getShootingDuration() > 2800) {
+//                        intakeLauncher.stopShooting();
+//                        intakeLauncher.runIntake(1, transferPower);
+//                        follower.followPath(grabPickup2, true);
+//                        setPathState(4);
+//                    }
+//                }
+//            }
+//            case 4 -> {
+//                if (!follower.isBusy()) {
+//                    intakeLauncher.runIntake(1, transferPower);
+//                    follower.followPath(scorePickup2, true);
+//                    intakeLauncher.powerOnLauncher(launchPower);
+//                    setPathState(5);
+//                }
+//            }
+//            case 5 -> {
+//                if (!follower.isBusy()) {
+//                    if (!intakeLauncher.isShooting()) {
+//                        intakeLauncher.startShooting();
+//                    }
+//                    intakeLauncher.updateShootingLogic(launchPower);
+//
+//                    if (intakeLauncher.getShootingDuration() > 3400) {
+//                        intakeLauncher.stopShooting();
+//                        if (pickupLine3) {
+//                            intakeLauncher.runIntake(1, transferPower);
+//                            follower.followPath(grabPickup3, true);
+//                        }
+//                        setPathState(6);
+//                    }
+//                }
+//            }
+//            case 6 -> {
+//                if (!follower.isBusy()) {
+//                    if (pickupLine3) {
+//                        intakeLauncher.runIntake(1, transferPower);
+//                        follower.followPath(scorePickup3, true);
+//                        intakeLauncher.powerOnLauncher(launchPower);
+//                    }
+//                    setPathState(7);
+//                }
+//            }
+//            case 7 -> {
+//                if (!follower.isBusy()) {
+//                    if (pickupLine3) {
+//                        if (!intakeLauncher.isShooting()) {
+//                            intakeLauncher.startShooting();
+//                        }
+//                        intakeLauncher.updateShootingLogic(launchPower);
+//
+//                        if (intakeLauncher.getShootingDuration() > 3500) {
+//                            intakeLauncher.stopShooting();
+//                            setPathState(8);
+//                        }
+//                    } else {
+//                        setPathState(8);
+//                    }
+//                }
+//            }
             case 8 -> {
                 if (!follower.isBusy()) {
                     setPathState(-1);
@@ -249,7 +261,8 @@ public class RedNearAuto extends OpMode {
 
         LaunchParameters lp = intakeLauncher.calculateLaunchParameters(follower.getPose());
         intakeLauncher.setTargetTurnAngle(lp.launchAngle());
-        intakeLauncher.updateTurret(follower.getHeading());
+//        intakeLauncher.turnTurret();
+//        intakeLauncher.updateTurret();
 
         Pose currentPose = follower.getPose();
         blackboard.put("POSE_X", currentPose.getX());

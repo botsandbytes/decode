@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
+import com.pedropathing.geometry.Pose;
+
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
@@ -50,7 +52,7 @@ public class Sentinel {
         new Point(72, 24)    // Peak
     );
 
-    public static boolean isLaunchAllowed(Pose2D currentPose) {
+    public static boolean isLaunchAllowed(Pose currentPose) {
         Point[] robotFootprint = calculateRobotFootprint(currentPose);
 
         boolean inLeftZone = isIntersectingPolygon(robotFootprint, LEFT_BIG_LAUNCH_ZONE.vertices);
@@ -67,10 +69,10 @@ public class Sentinel {
         return isIntersectingRectangle(robotFootprint, BLUE_PROTECTED_STRIP);
     }
 
-    public static Point[] calculateRobotFootprint(Pose2D pose) {
-        double heading = pose.getHeading(AngleUnit.RADIANS);
-        double centerX = pose.getX(DistanceUnit.INCH);
-        double centerY = pose.getY(DistanceUnit.INCH);
+    public static Point[] calculateRobotFootprint(Pose pose) {
+        double heading = pose.getHeading();
+        double centerX = pose.getX();
+        double centerY = pose.getY();
 
         double cos = Math.cos(heading);
         double sin = Math.sin(heading);
@@ -98,10 +100,10 @@ public class Sentinel {
     }
 
     private static boolean isIntersectingPolygon(Point[] shapeA, Point[] shapeB) {
-        return !isSeparated(shapeA, shapeB) && !isSeparated(shapeB, shapeA);
+        return isntSeparated(shapeA, shapeB) && isntSeparated(shapeB, shapeA);
     }
 
-    private static boolean isSeparated(Point[] shapeA, Point[] shapeB) {
+    private static boolean isntSeparated(Point[] shapeA, Point[] shapeB) {
         for (int i = 0; i < shapeA.length; i++) {
             Point p1 = shapeA[i];
             Point p2 = shapeA[(i + 1) % shapeA.length];
@@ -110,9 +112,9 @@ public class Sentinel {
             Projection projA = projectShapeOnAxis(shapeA, normal);
             Projection projB = projectShapeOnAxis(shapeB, normal);
 
-            if (projA.max < projB.min || projB.max < projA.min) return true;
+            if (projA.max < projB.min || projB.max < projA.min) return false;
         }
-        return false;
+        return true;
     }
 
     private static Projection projectShapeOnAxis(Point[] shape, Point axis) {
@@ -126,25 +128,15 @@ public class Sentinel {
         return new Projection(min, max);
     }
 
-    public static class Point {
-        public final double x, y;
-        public Point(double x, double y) { this.x = x; this.y = y; }
+    public record Point(double x, double y) {
     }
 
-    public static class RectangularZone {
-        public final double minX, maxX, minY, maxY;
-        public RectangularZone(double minX, double maxX, double minY, double maxY) {
-            this.minX = minX; this.maxX = maxX; this.minY = minY; this.maxY = maxY;
-        }
+    public record RectangularZone(double minX, double maxX, double minY, double maxY) {
     }
 
-    private static class PolygonZone {
-        public final Point[] vertices;
-        public PolygonZone(Point... vertices) { this.vertices = vertices; }
+    private record PolygonZone(Point... vertices) {
     }
 
-    private static class Projection {
-        final double min, max;
-        Projection(double min, double max) { this.min = min; this.max = max; }
+    private record Projection(double min, double max) {
     }
 }

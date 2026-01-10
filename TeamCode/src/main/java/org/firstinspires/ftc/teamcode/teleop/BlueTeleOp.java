@@ -15,7 +15,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
 import org.firstinspires.ftc.teamcode.robot.LaunchParameters;
+import org.firstinspires.ftc.teamcode.utilities.BorderPatrol;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
+import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 import org.firstinspires.ftc.teamcode.utilities.VisionUtil;
 
 import com.pedropathing.ftc.InvertedFTCCoordinates;
@@ -40,7 +42,7 @@ public class BlueTeleOp extends OpMode {
     private IntakeLauncher intakeLauncher;
 
     // State
-    private Pose startPose = new Pose(72, 72, 0);
+    private final Pose startPose = new Pose(72, 72, 0);
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
@@ -106,11 +108,13 @@ public class BlueTeleOp extends OpMode {
 
     private void handleDrive() {
         if (!automatedDrive) {
-            double yInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_y, 3)));
+            double yInput = Math.max(-0.7, Math.min(0.7, Math.pow(gamepad1.left_stick_y, 3)));
             double xInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_x, 3)));
             double rInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.right_stick_x, 3)));
 
-            follower.setTeleOpDrive(yInput, xInput, rInput, false);
+            double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getPose().getX(), follower.getPose().getY(), xInput, yInput, rInput);
+            follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2]);
+            follower.setTeleOpDrive(yInput, xInput, rInput, true);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
         }
@@ -130,7 +134,7 @@ public class BlueTeleOp extends OpMode {
         currentLaunchParams = intakeLauncher.calculateLaunchParameters(currentPose);
 
         // Aiming
-        if (gamepad2.x) {
+        if (gamepad2.x && Sentinel.isLaunchAllowed(follower.getPose())) {
             if (currentLaunchParams.launchPower() > 0.7) {
                 intakeLauncher.setHoodLongShotPosition();
             } else {
@@ -143,7 +147,7 @@ public class BlueTeleOp extends OpMode {
         }
 
         if (isTurning) {
-            intakeLauncher.updateTurret();
+            intakeLauncher.updateTurret(Math.toDegrees(follower.getHeading()));
             if (intakeLauncher.isTurnDone()) {
                 isTurning = false;
             }
@@ -171,10 +175,10 @@ public class BlueTeleOp extends OpMode {
 
         if (intakeLauncher.isShooting()) {
             intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
-            intakeLauncher.updateTurret();
+            intakeLauncher.updateTurret(Math.toDegrees(follower.getHeading()));
             intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower());
 
-            if (intakeLauncher.getShootingDuration() > currentLaunchParams.waitTime()) {
+            if (intakeLauncher.getShootingDuration() > currentLaunchParams.waitTime() || !Sentinel.isLaunchAllowed(follower.getPose())) {
                 stopShootingSequence();
             }
         }
