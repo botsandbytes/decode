@@ -31,7 +31,9 @@ public class IntakeLauncher {
     private static final double TURN_TOLERANCE_DEGREES = 2;
 
     // PIDF Constants (original working values)
-    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.006, 0, 0, 0);
+    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01, 0.0005, 0.003, 0);
+    double f = 0.13;
+    // PIDF f doesn't work, set to 0, and adjust f value above
     PIDFController pidfController = new PIDFController(pidfCoefficients);
 
     public static double robotTurnPinPoint_Kp = 0.025;
@@ -236,7 +238,7 @@ public class IntakeLauncher {
             double power = pidfController.run();
 
             double absPower = Math.abs(power);
-            if (power != 0) absPower = Math.clamp(absPower, 0.13, MAX_POWER_OUTPUT);
+            if (power != 0) absPower = Math.clamp(absPower, f, MAX_POWER_OUTPUT);
 
             if (turnLeft) {
                 turnServo.setDirection(CRServo.Direction.FORWARD);
