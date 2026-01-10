@@ -1,6 +1,9 @@
 package org.firstinspires.ftc.teamcode.robot;
+import static java.lang.Thread.sleep;
+
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.control.PIDFController;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -12,7 +15,10 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+
 import com.pedropathing.geometry.Pose;
 
 public class IntakeLauncher {
@@ -29,6 +35,8 @@ public class IntakeLauncher {
     PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.009, 0.0003, 0.003, 0.1); // (0.008, 0.0005, 0.003, 0.007);
     PIDFController pidfController = new PIDFController(pidfCoefficients);
 
+    public static double robotTurnPinPoint_Kp = 0.025;
+
     // PIDF Constants
     public static double TURN_P = 0.01;
     public static double TURN_I = 0.0005;
@@ -41,9 +49,10 @@ public class IntakeLauncher {
     private static final double DERIVATIVE_FILTER = 0.7; // Low-pass filter for derivative
 
     // Hardware
-    private final DcMotorEx intakeFront;
-    private final DcMotorEx intakeMid;
+    private final DcMotorEx intakeFront,intakeMid;
+    private final DcMotorEx leftFront, leftBack, rightFront, rightBack;
     private final DcMotorEx shooter, shooter2;
+    GoBildaPinpointDriver pinpoint;
     private final Servo hood;
     private final CRServo turnServo;
     private final IMU turnIMU;
@@ -66,7 +75,6 @@ public class IntakeLauncher {
 
     public IntakeLauncher(HardwareMap hardwareMap, Telemetry telemetry) {
         this.telemetry = telemetry;
-
         // Initialize Hardware
         turnIMU = hardwareMap.get(IMU.class, "turnImu");
         intakeFront = hardwareMap.get(DcMotorEx.class, "intakeFront");
@@ -75,6 +83,17 @@ public class IntakeLauncher {
         turnServo = hardwareMap.get(CRServo.class, "turn");
         shooter = hardwareMap.get(DcMotorEx.class, "shooter");
         shooter2 = hardwareMap.get(DcMotorEx.class, "shooter2");
+        leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
+        leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
+        rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
+        rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
+
+        //configure pinpoint
+        pinpoint.setOffsets(1.5, -4.75, DistanceUnit.INCH);
+        pinpoint.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,
+                GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
         // Configure Motors
         intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -94,6 +113,15 @@ public class IntakeLauncher {
         shooter2.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         shooter2.setDirection(DcMotorSimple.Direction.FORWARD);
 
+        // Drive Motors
+        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBack.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFront.setDirection(DcMotorSimple.Direction.FORWARD);
+        rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBack.setDirection(DcMotorSimple.Direction.FORWARD);
         // Configure Turn IMU
         RevHubOrientationOnRobot.LogoFacingDirection logo = RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
         RevHubOrientationOnRobot.UsbFacingDirection usb = RevHubOrientationOnRobot.UsbFacingDirection.UP;
@@ -112,6 +140,9 @@ public class IntakeLauncher {
         this.initialHeadingOffset = heading;
     }
 
+//    public void setFollower(Follower follower){
+//        this.follower = follower;
+//    }
     public void runIntake(double intakePower, double transferPower) {
         intakeFront.setPower(intakePower);
         intakeMid.setPower(transferPower);
@@ -142,7 +173,7 @@ public class IntakeLauncher {
         shooter2.setVelocity(targetVel);
 
         // Feed ball when shooter is ready (93% of target velocity)
-        if (Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * 0.93) {
+        if (Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * 0.97) {
             intakeMid.setPower(INTAKE_TRANSFER_POWER);
             intakeFront.setPower(INTAKE_TRANSFER_POWER);
         } else {
@@ -164,7 +195,7 @@ public class IntakeLauncher {
             launchPower = 0.57;
             waitTime = 2000;
         } else {
-            launchPower = 0.57 + ((distance - 33) / 300.0);
+            launchPower = 0.57 + ((distance - 33) / 320.0);
             waitTime = distance * 68;
         }
 
@@ -185,17 +216,24 @@ public class IntakeLauncher {
         pidfController.setTargetPosition(this.targetTurnAngle);
     }
 
-    public void turnUsingPIDF() {
-        double maxPower = 0.5, minPower = 0.15;
-        double currentAngle = getCurrentTurnAngle(); //turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        pidfController.updatePosition(currentAngle);
-        pidfController.setTargetPosition(this.targetTurnAngle);
+    public void turnTurret() {
+        double turn_degrees = targetTurnAngle - Math.toDegrees(initialHeadingOffset);
+        telemetry.addData("Target turn in degrees ", turn_degrees);
+        double maxPower = 0.5, minPower = 0.13;
+        double Kp = 0.006;
+        double currentAngle = turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        if (turn_degrees > 115) {
+            turn_degrees = 115;
+        } else if (turn_degrees < -115) {
+            turn_degrees = -115;
+        }
+        double error = turn_degrees - currentAngle;
         turnServo.setDirection(CRServo.Direction.FORWARD);
-        while (pidfController.getError() > TURN_TOLERANCE_DEGREES || pidfController.getError() < -TURN_TOLERANCE_DEGREES) {
+        while (Math.abs(error) > 2) {
             isTurnDone = false;
-            currentAngle = getCurrentTurnAngle(); //turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-            pidfController.updatePosition(currentAngle);
-            double power = pidfController.run();
+            currentAngle = turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+            error = turn_degrees - currentAngle;
+            double power = error * Kp;
             if (power > maxPower) {
                 power = maxPower;
             } else if (power < minPower && power > 0) {
@@ -206,13 +244,12 @@ public class IntakeLauncher {
                 power = -maxPower;
             }
             telemetry.addData("Current Power", power);
-            telemetry.addData("Error: ", pidfController.getError());
+            telemetry.addData("Error: ", error);
             telemetry.addData("Current Angle: ", currentAngle);
             telemetry.update();
             turnServo.setPower(power);
         }
         turnServo.setPower(0);
-        pidfController.reset();
         isTurnDone = true;
     }
 
@@ -315,5 +352,65 @@ public class IntakeLauncher {
     public double getCurrentTurnAngle() {
         YawPitchRollAngles orientation = turnIMU.getRobotYawPitchRollAngles();
         return Math.toDegrees(orientation.getYaw(AngleUnit.RADIANS) + initialHeadingOffset);
+    }
+
+    public void turnRobot() {
+        double min_power = 0.2, max_power = 0.4;
+        pinpoint.update();
+        Pose2D pose2D = pinpoint.getPosition();
+        double currentAngle = pose2D.getHeading(AngleUnit.DEGREES);
+        double error = targetTurnAngle - currentAngle;
+
+        telemetry.addData("Start: Robot Current Angle", currentAngle);
+        telemetry.addData("Start: Robot Turn Target", targetTurnAngle);
+        // Handle angle wrapping (e.g., turning from 170 to -170 degrees)
+        if (error > 180) error -= 360;
+        if (error < -180) error += 360;
+        double power = error * robotTurnPinPoint_Kp;
+        // Clamp power to a reasonable range (e.g., -0.5 to 0.5) to prevent twitching
+        power = Math.max(-max_power, Math.min(max_power, power));
+        telemetry.addData("Start: Robot Turn Power", power);
+        telemetry.update();
+        try {
+            sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        // Apply power (opposite for left/right)
+        leftFront.setPower(-power);
+        rightFront.setPower(power);
+        leftBack.setPower(-power);
+        rightBack.setPower(power);
+        while (Math.abs(error) > 1) { // Loop until very close
+            isTurnDone = false;
+            pinpoint.update();
+            pose2D = pinpoint.getPosition();
+            currentAngle = pose2D.getHeading(AngleUnit.DEGREES);
+//            currentAngle = follower.getHeading();
+            error = targetTurnAngle - currentAngle;
+            if (error > 180) error -= 360;
+            if (error < -180) error += 360;
+            power = error * robotTurnPinPoint_Kp;
+            telemetry.addData("Robot Current Angle", currentAngle);
+            telemetry.addData("Robot Turn Target", targetTurnAngle);
+            telemetry.addData("Robot Turn power", power);
+            telemetry.update();
+            if (power > 0 && power < min_power) {
+                power = min_power;
+            } else  if (power < 0 && power > -min_power) {
+                power = -min_power;
+            } else {
+                power = Math.max(-max_power, Math.min(max_power, power));
+            }
+            leftFront.setPower(-power);
+            rightFront.setPower(power);
+            leftBack.setPower(-power);
+            rightBack.setPower(power);
+        }
+        isTurnDone = true;
+        leftFront.setPower(0);
+        rightFront.setPower(0);
+        leftBack.setPower(0);
+        rightBack.setPower(0);
     }
 }

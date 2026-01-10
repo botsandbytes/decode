@@ -41,7 +41,8 @@ public class RedTeleOp extends OpMode {
 
     // State
 //    private Pose startPose = new Pose(72, 72, 0);
-    private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
+    public static int heading = 90;
+    private final Pose startPose = new Pose(87, 8, Math.toRadians(heading));
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
@@ -74,7 +75,6 @@ public class RedTeleOp extends OpMode {
         intakeLauncher = new IntakeLauncher(hardwareMap, telemetry);
         intakeLauncher.setGoal(GOAL_X, GOAL_Y);
         intakeLauncher.setInitialHeading(startPose.getHeading()); // Assuming 0 start or updated later
-
         vision = new VisionUtil();
         vision.initAprilTag(hardwareMap, true);
     }
@@ -84,6 +84,7 @@ public class RedTeleOp extends OpMode {
         follower.setStartingPose(startPose);
         follower.startTeleopDrive();
         intakeLauncher.setInitialHeading(follower.getHeading());
+//        intakeLauncher.setFollower(follower);
     }
 
     @Override
@@ -108,22 +109,29 @@ public class RedTeleOp extends OpMode {
 
     private void handleDrive() {
         if (!automatedDrive) {
-            double yInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_y, 3)));
-            double xInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_x, 3)));
-            double rInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.right_stick_x, 3)));
+            follower.setTeleOpDrive(
+                    Math.pow(gamepad1.left_stick_y, 3), //gamepad1.left_stick_y,
+                    Math.pow(gamepad1.left_stick_x, 3),
+                    Math.pow(gamepad1.right_stick_x, 3),
+                    true // Robot Centric
+            );
 
-            follower.setTeleOpDrive(yInput, xInput, rInput, false);
+//            double yInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_y, 3)));
+//            double xInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_x, 3)));
+//            double rInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.right_stick_x, 3)));
+//
+//            follower.setTeleOpDrive(yInput, xInput, rInput, true);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
         }
     }
 
     private void handleIntake() {
-        if (gamepad2.aWasPressed() || gamepad1.aWasPressed()) {
+        if (gamepad2.aWasPressed()) {
             intakeLauncher.runIntake(1, 0.1);
         }
 
-        if (gamepad2.bWasPressed() || gamepad1.bWasPressed()) {
+        if (gamepad2.bWasPressed()) {
             intakeLauncher.stopIntake();
         }
     }
@@ -133,13 +141,12 @@ public class RedTeleOp extends OpMode {
         currentLaunchParams = intakeLauncher.calculateLaunchParameters(currentPose);
 
         // Aiming
-        if (gamepad2.x || gamepad1.x) {
+        if (gamepad2.x) {
             if (currentLaunchParams.launchPower() > 0.7) {
                 intakeLauncher.setHoodLongShotPosition();
             } else {
                 intakeLauncher.setHoodPosition(0);
             }
-
             intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
             isTurning = true;
             holdPose = follower.getPose();
@@ -147,7 +154,8 @@ public class RedTeleOp extends OpMode {
 
         if (isTurning) {
 //            intakeLauncher.updateTurret();
-            intakeLauncher.turnUsingPIDF();
+            intakeLauncher.turnTurret();
+//            intakeLauncher.turnRobot();
             if (intakeLauncher.isTurnDone()) {
                 isTurning = false;
                 // Ready to shoot?
@@ -155,29 +163,30 @@ public class RedTeleOp extends OpMode {
         }
 
         // Manual Shoot Trigger
-        if (gamepad2.dpadUpWasPressed() || gamepad1.dpadUpWasPressed()) {
+        if (gamepad2.dpadUpWasPressed()) {
             startShootingSequence();
         }
 
         // Auto Drive Override
-        if (gamepad2.dpadLeftWasPressed() || gamepad1.dpadLeftWasPressed()) {
+        if (gamepad2.dpadLeftWasPressed()) {
             automatedDrive = true;
             follower.holdPoint(new Pose(38.12, 33.40, Math.PI / 2));
         }
 
-        if (gamepad2.dpadRightWasPressed() || gamepad1.dpadRightWasPressed()) {
+        if (gamepad2.dpadRightWasPressed()) {
             automatedDrive = false;
             follower.startTeleopDrive();
         }
 
         // Shooting Logic
-        if ((gamepad2.right_trigger > 0.5 || gamepad1.right_trigger > 0.5) && !intakeLauncher.isShooting()) {
+        if ((gamepad2.right_trigger > 0.5) && !intakeLauncher.isShooting()) {
              startShootingSequence();
         }
 
         if (intakeLauncher.isShooting()) {
             intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
-            intakeLauncher.turnUsingPIDF();
+//            intakeLauncher.turnTurret();
+//            intakeLauncher.turnRobot();
             //intakeLauncher.updateTurret();
             intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower());
 
@@ -187,13 +196,13 @@ public class RedTeleOp extends OpMode {
         }
 
         // Emergency Stop Launcher
-        if (gamepad2.left_trigger > 0.5 || gamepad1.left_trigger > 0.5) {
+        if (gamepad2.left_trigger > 0.5) {
             stopShootingSequence();
         }
 
         // Manual Power On
-        if (gamepad2.yWasPressed() || gamepad1.yWasPressed()) {
-            intakeLauncher.powerOnLauncher(0.6);
+        if (gamepad2.yWasPressed()) {
+//            intakeLauncher.powerOnLauncher(0.6);
         }
     }
 
