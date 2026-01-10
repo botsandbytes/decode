@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.tests;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -16,6 +17,8 @@ import java.util.Locale;
 // TODO: The code appears to be correct, but its not great and manual tuning is much faster. See if theres a better approach to the problem. It likely lies in my loss function, rather than bayesian.
 @Configurable
 @TeleOp(name = "PID Optimizer", group = "Test")
+@Disabled
+// WARNING: THIS DOESNT WORK ANYMORE
 public class PIDOptimizer extends OpMode {
 
     // Bounds for Bayesian Optimization - VERY CONSERVATIVE FOR SAFETY
@@ -70,11 +73,6 @@ public class PIDOptimizer extends OpMode {
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
         intakeLauncher = new IntakeLauncher(hardwareMap, telemetry);
 
-        // Reset PIDF to initial values every time we start
-        IntakeLauncher.TURN_P = 0.01;
-        IntakeLauncher.TURN_I = 0.0;
-        IntakeLauncher.TURN_D = 0.0;
-        IntakeLauncher.TURN_F = 0.04;
 
         // Define bounds for P, I, D, F
         double[][] bounds = {
@@ -91,21 +89,12 @@ public class PIDOptimizer extends OpMode {
         );
 
         // Seed with initial PIDF values
-        double[] currentParams = {
-            IntakeLauncher.TURN_P,
-            IntakeLauncher.TURN_I,
-            IntakeLauncher.TURN_D,
-            IntakeLauncher.TURN_F
-        };
+        double[] currentParams = {0, 0, 0, 0};
         optimizer.setInitialGuess(currentParams);
 
         trialErrors = new double[TRIALS_PER_CONFIG];
 
         telemetryM.addData("Status", "Initialized. Press Play to start optimization.");
-        telemetryM.addData("Starting P", String.format(Locale.US, "%.6f", IntakeLauncher.TURN_P));
-        telemetryM.addData("Starting I", String.format(Locale.US, "%.6f", IntakeLauncher.TURN_I));
-        telemetryM.addData("Starting D", String.format(Locale.US, "%.6f", IntakeLauncher.TURN_D));
-        telemetryM.addData("Starting F", String.format(Locale.US, "%.6f", IntakeLauncher.TURN_F));
         telemetryM.update();
     }
 
@@ -130,7 +119,7 @@ public class PIDOptimizer extends OpMode {
             startTest();
         } else {
             // Run test
-            intakeLauncher.updateTurret();
+            intakeLauncher.updateTurret(0);
 
             // Accumulate error (Integral of Absolute Error)
             double currentAngle = intakeLauncher.getCurrentTurnAngle();
@@ -310,10 +299,6 @@ public class PIDOptimizer extends OpMode {
         if (currentTrial > 0 || lastAveragedError > 0) {
             telemetryM.addData("Last Avg Error", String.format(Locale.US, "%.2f", lastAveragedError));
         }
-        telemetryM.addData("Current P", String.format(Locale.US, "%.6f", IntakeLauncher.TURN_P));
-        telemetryM.addData("Current I", String.format(Locale.US, "%.6f", IntakeLauncher.TURN_I));
-        telemetryM.addData("Current D", String.format(Locale.US, "%.6f", IntakeLauncher.TURN_D));
-        telemetryM.addData("Current F", String.format(Locale.US, "%.6f", IntakeLauncher.TURN_F));
         telemetryM.update();
     }
 
@@ -337,11 +322,7 @@ public class PIDOptimizer extends OpMode {
     }
 
     private void applyParams(double[] params) {
-        // Apply bounds to prevent dangerous values
-        IntakeLauncher.TURN_P = Math.max(0, Math.min(params[0], 0.5));
-        IntakeLauncher.TURN_I = Math.max(0, Math.min(params[1], 0.1));
-        IntakeLauncher.TURN_D = Math.max(0, Math.min(params[2], 0.2));
-        IntakeLauncher.TURN_F = Math.max(0, Math.min(params[3], 0.2));
+
     }
 
     private Double getError() {

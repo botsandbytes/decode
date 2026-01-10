@@ -15,7 +15,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
 import org.firstinspires.ftc.teamcode.robot.LaunchParameters;
+import org.firstinspires.ftc.teamcode.utilities.BorderPatrol;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
+import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 import org.firstinspires.ftc.teamcode.utilities.VisionUtil;
 
 import com.pedropathing.ftc.InvertedFTCCoordinates;
@@ -109,18 +111,20 @@ public class RedTeleOp extends OpMode {
 
     private void handleDrive() {
         if (!automatedDrive) {
-            follower.setTeleOpDrive(
-                    Math.pow(gamepad1.left_stick_y, 3), //gamepad1.left_stick_y,
-                    Math.pow(gamepad1.left_stick_x, 3),
-                    Math.pow(gamepad1.right_stick_x, 3),
-                    true // Robot Centric
-            );
+//            follower.setTeleOpDrive(
+//                    Math.pow(gamepad1.left_stick_y, 3), //gamepad1.left_stick_y,
+//                    Math.pow(gamepad1.left_stick_x, 3),
+//                    Math.pow(gamepad1.right_stick_x, 3),
+//                    true // Robot Centric
+//            );
 
-//            double yInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_y, 3)));
-//            double xInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_x, 3)));
-//            double rInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.right_stick_x, 3)));
-//
-//            follower.setTeleOpDrive(yInput, xInput, rInput, true);
+            double yInput = Math.max(-0.7, Math.min(0.7, Math.pow(gamepad1.left_stick_y, 3)));
+            double xInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_x, 3)));
+            double rInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.right_stick_x, 3)));
+
+            double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getPose().getX(), follower.getPose().getY(), xInput, yInput, rInput);
+            follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2]);
+            follower.setTeleOpDrive(yInput, xInput, rInput, true);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
         }
@@ -141,7 +145,7 @@ public class RedTeleOp extends OpMode {
         currentLaunchParams = intakeLauncher.calculateLaunchParameters(currentPose);
 
         // Aiming
-        if (gamepad2.x) {
+        if (gamepad2.x && Sentinel.isLaunchAllowed(follower.getPose())) {
             if (currentLaunchParams.launchPower() > 0.7) {
                 intakeLauncher.setHoodLongShotPosition();
             } else {
@@ -153,12 +157,9 @@ public class RedTeleOp extends OpMode {
         }
 
         if (isTurning) {
-//            intakeLauncher.updateTurret();
-            intakeLauncher.turnTurret();
-//            intakeLauncher.turnRobot();
+            intakeLauncher.updateTurret(Math.toDegrees(follower.getHeading()));
             if (intakeLauncher.isTurnDone()) {
                 isTurning = false;
-                // Ready to shoot?
             }
         }
 
@@ -187,10 +188,10 @@ public class RedTeleOp extends OpMode {
             intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
 //            intakeLauncher.turnTurret();
 //            intakeLauncher.turnRobot();
-            //intakeLauncher.updateTurret();
+            intakeLauncher.updateTurret(Math.toDegrees(follower.getHeading()));
             intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower());
 
-            if (intakeLauncher.getShootingDuration() > currentLaunchParams.waitTime()) {
+            if (intakeLauncher.getShootingDuration() > currentLaunchParams.waitTime() || !Sentinel.isLaunchAllowed(follower.getPose())) {
                 stopShootingSequence();
             }
         }
@@ -202,7 +203,7 @@ public class RedTeleOp extends OpMode {
 
         // Manual Power On
         if (gamepad2.yWasPressed()) {
-//            intakeLauncher.powerOnLauncher(0.6);
+            intakeLauncher.powerOnLauncher(0.6);
         }
     }
 

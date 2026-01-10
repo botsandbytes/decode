@@ -251,7 +251,7 @@ public class BlueNearAuto extends OpMode {
 
         LaunchParameters lp = intakeLauncher.calculateLaunchParameters(follower.getPose());
         intakeLauncher.setTargetTurnAngle(lp.launchAngle());
-        intakeLauncher.updateTurret();
+        intakeLauncher.updateTurret(follower.getHeading());
 
         Pose currentPose = follower.getPose();
         blackboard.put("POSE_X", currentPose.getX());

@@ -271,7 +271,7 @@ public class BlueOppositeAuto extends OpMode {
         autonomousPathUpdate();
 
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
-        intakeLauncher.updateTurret();
+        intakeLauncher.updateTurret(follower.getHeading());
 
         Pose currentPose = follower.getPose();
         blackboard.put("POSE_X", currentPose.getX());

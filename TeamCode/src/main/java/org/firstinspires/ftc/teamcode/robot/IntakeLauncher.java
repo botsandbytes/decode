@@ -29,24 +29,13 @@ public class IntakeLauncher {
     private static final double INTAKE_TRANSFER_POWER = 1.0;
     private static final double HOOD_LONG_POSITION = 0.35;
     private static final double TURN_TOLERANCE_DEGREES = 2;
-    private static final double MAX_TURN_ANGLE = 100.0; // Maximum positive rotation
-    private static final double MIN_TURN_ANGLE = -100.0; // Maximum negative rotation
 
-    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.009, 0.0003, 0.003, 0.1); // (0.008, 0.0005, 0.003, 0.007);
+    // PIDF Constants (original working values)
+    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.006, 0, 0, 0);
     PIDFController pidfController = new PIDFController(pidfCoefficients);
 
     public static double robotTurnPinPoint_Kp = 0.025;
-
-    // PIDF Constants
-    public static double TURN_P = 0.01;
-    public static double TURN_I = 0.0005;
-    public static double TURN_D = 0.003;
-    public static double TURN_F = 0.07;
-
-    // Safety limits
-    private static final double MAX_INTEGRAL = 5.0; // Prevent integral windup
-    private static final double MAX_POWER_OUTPUT = 1;
-    private static final double DERIVATIVE_FILTER = 0.7; // Low-pass filter for derivative
+    private static final double MAX_POWER_OUTPUT = 0.5;
 
     // Hardware
     private final DcMotorEx intakeFront,intakeMid;
@@ -67,11 +56,6 @@ public class IntakeLauncher {
     private boolean isTurnDone = false;
     private final ElapsedTime shootingTimer = new ElapsedTime();
 
-    // PID State
-    private double lastError = 0;
-    private double integralSum = 0;
-    private double lastDerivative = 0;
-    private final ElapsedTime pidTimer = new ElapsedTime();
 
     public IntakeLauncher(HardwareMap hardwareMap, Telemetry telemetry) {
         this.telemetry = telemetry;
@@ -101,7 +85,6 @@ public class IntakeLauncher {
         intakeFront.setDirection(DcMotorSimple.Direction.REVERSE);
         intakeMid.setDirection(DcMotorSimple.Direction.REVERSE);
 
-
         // shooter motor
         shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
@@ -127,7 +110,6 @@ public class IntakeLauncher {
         RevHubOrientationOnRobot.UsbFacingDirection usb = RevHubOrientationOnRobot.UsbFacingDirection.UP;
         turnIMU.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(logo, usb)));
         turnIMU.resetYaw();
-        pidfController.reset();
         setHoodPosition(0);
     }
 
@@ -172,6 +154,9 @@ public class IntakeLauncher {
         shooter.setVelocity(targetVel);
         shooter2.setVelocity(targetVel);
 
+        telemetry.addData("current v", Math.abs(shooter.getVelocity()));
+        telemetry.addData("target v", Math.abs(targetVel) * 0.97);
+
         // Feed ball when shooter is ready (93% of target velocity)
         if (Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * 0.97) {
             intakeMid.setPower(INTAKE_TRANSFER_POWER);
@@ -211,106 +196,65 @@ public class IntakeLauncher {
     }
 
     public void setTargetTurnAngle(double degrees) {
-        // Clamp to physical limits
-        this.targetTurnAngle = Math.max(MIN_TURN_ANGLE, Math.min(MAX_TURN_ANGLE, degrees));
-        pidfController.setTargetPosition(this.targetTurnAngle);
+        this.targetTurnAngle = degrees;
     }
 
-    public void turnTurret() {
-        double turn_degrees = targetTurnAngle - Math.toDegrees(initialHeadingOffset);
-        telemetry.addData("Target turn in degrees ", turn_degrees);
-        double maxPower = 0.5, minPower = 0.13;
-        double Kp = 0.006;
-        double currentAngle = turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        if (turn_degrees > 115) {
-            turn_degrees = 115;
-        } else if (turn_degrees < -115) {
-            turn_degrees = -115;
+    public void updateTurret(double robotWorldHeading) {
+        // Get turret's current world angle
+        double turretWorldAngle = turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES) + Math.toDegrees(initialHeadingOffset);
+
+        // FIX: targetTurnAngle is now already in degrees
+        double targetWorldAngle = targetTurnAngle;
+
+        // Convert to robot-relative coordinates
+        double relativeTurretAngle = (turretWorldAngle - robotWorldHeading + 360) % 360;
+        double relativeTargetAngle = (targetWorldAngle - robotWorldHeading + 360) % 360;
+
+        // Now shouldTurnLeft works correctly because angles are robot-relative
+        boolean turnLeft = shouldTurnLeft(relativeTurretAngle, relativeTargetAngle);
+
+        // Calculate error in robot-relative space
+        double error;
+        if (turnLeft) {
+            error = (relativeTargetAngle - relativeTurretAngle + 360) % 360;
+            if (error > 180) error -= 360;
+        } else {
+            error = -((relativeTurretAngle - relativeTargetAngle + 360) % 360);
+            if (error < -180) error += 360;
         }
-        double error = turn_degrees - currentAngle;
-        turnServo.setDirection(CRServo.Direction.FORWARD);
-        while (Math.abs(error) > 2) {
-            isTurnDone = false;
-            currentAngle = turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-            error = turn_degrees - currentAngle;
-            double power = error * Kp;
-            if (power > maxPower) {
-                power = maxPower;
-            } else if (power < minPower && power > 0) {
-                power = minPower;
-            } else if (power > -minPower && power < 0) {
-                power = -minPower;
-            } else if (power < -maxPower) {
-                power = -maxPower;
-            }
-            telemetry.addData("Current Power", power);
-            telemetry.addData("Error: ", error);
-            telemetry.addData("Current Angle: ", currentAngle);
-            telemetry.update();
-            turnServo.setPower(power);
-        }
-        turnServo.setPower(0);
-        isTurnDone = true;
-    }
-
-    public void updateTurret() {
-        YawPitchRollAngles orientation = turnIMU.getRobotYawPitchRollAngles();
-        double currentYaw = orientation.getYaw(AngleUnit.RADIANS);
-        double currentDegrees = Math.toDegrees(currentYaw + initialHeadingOffset);
-
-        // Calculate distances for both directions
-        double ld = (targetTurnAngle - currentDegrees + 360) % 360;
-        double rd = (currentDegrees - targetTurnAngle + 360) % 360;
-
-        boolean turnLeft = shouldTurnLeft(currentDegrees, targetTurnAngle);
-        double error = turnLeft ? ld : rd;
-
-        double dt = pidTimer.seconds();
-        pidTimer.reset();
 
         if (Math.abs(error) < TURN_TOLERANCE_DEGREES) {
             turnServo.setPower(0);
             isTurnDone = true;
-            integralSum = 0;
-            lastError = 0;
+            pidfController.reset();
         } else {
             isTurnDone = false;
 
-            // PID Calculations with safety limits
-            integralSum += error * dt;
-            // Clamp integral to prevent windup
-            integralSum = Math.max(-MAX_INTEGRAL, Math.min(MAX_INTEGRAL, integralSum));
+            pidfController.setTargetPosition(relativeTurretAngle + error);
+            pidfController.updatePosition(relativeTurretAngle);
+            pidfController.updateFeedForwardInput(1);
+            double power = pidfController.run();
 
-            double derivative = (error - lastError) / dt;
-            // Apply low-pass filter to derivative to reduce noise spikes
-            derivative = DERIVATIVE_FILTER * derivative + (1 - DERIVATIVE_FILTER) * lastDerivative;
-            lastDerivative = derivative;
-            lastError = error;
-
-            double pidOutput = (error * TURN_P) + (integralSum * TURN_I) + (derivative * TURN_D);
-            double feedforward = TURN_F;
-
-            // SAFETY: Cap total power output to prevent hardware damage
-            double power = Math.clamp(pidOutput + feedforward, 0, MAX_POWER_OUTPUT);
-
-            // Apply minimum power threshold to prevent weak jittery movements
-            if (power < 0.05) {
-                power = 0;
-            }
+            double absPower = Math.abs(power);
+            if (power != 0) absPower = Math.clamp(absPower, 0.13, MAX_POWER_OUTPUT);
 
             if (turnLeft) {
-                turnServo.setDirection(CRServo.Direction.REVERSE);
-            } else {
                 turnServo.setDirection(CRServo.Direction.FORWARD);
+            } else {
+                turnServo.setDirection(CRServo.Direction.REVERSE);
             }
-            turnServo.setPower(power);
+            turnServo.setPower(absPower);
         }
 
-        telemetry.addData("Turret Yaw", currentDegrees);
-        telemetry.addData("Turret Target", targetTurnAngle);
-        telemetry.addData("Turret Error", error);
+        telemetry.addData("Turret World", turretWorldAngle);
+        telemetry.addData("Turret Target", targetWorldAngle);
+        telemetry.addData("Robot Heading", robotWorldHeading);
+        telemetry.addData("Target Relative", relativeTargetAngle);
+        telemetry.addData("Turret Relative", relativeTurretAngle);
         telemetry.addData("Turret Power", turnServo.getPower());
+        telemetry.addData("Turret Error", error);
         telemetry.addData("Turret Done", isTurnDone);
+        telemetry.addData("Turret Direction", turnLeft ? "LEFT" : "RIGHT");
     }
 
     public boolean shouldTurnLeft(double current, double target) {
