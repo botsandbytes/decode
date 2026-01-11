@@ -9,6 +9,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 public class Sentinel {
 
     public static final double ROBOT_WIDTH = 18.0;
+    public static final double ROBOT_WIDTH2 = 17.0;
+
 
     // Pedro Pathing Standard Field Size (0 to 144)
     private static final double FIELD_SIZE_X = 144.0;
@@ -53,12 +55,23 @@ public class Sentinel {
     );
 
     public static boolean isLaunchAllowed(Pose currentPose) {
-        Point[] robotFootprint = calculateRobotFootprint(currentPose);
+        Point[] robotFootprint = calculateSmallRobotFootprint(currentPose);
 
         boolean inLeftZone = isIntersectingPolygon(robotFootprint, LEFT_BIG_LAUNCH_ZONE.vertices);
         boolean inRightZone = isIntersectingPolygon(robotFootprint, RIGHT_SMALL_LAUNCH_ZONE.vertices);
 
         return inLeftZone || inRightZone;
+    }
+
+    public static boolean farLaunchZone(Pose currentPose) {
+        Point[] robotFootprint = calculateRobotFootprint(currentPose);
+
+        return isIntersectingPolygon(robotFootprint, RIGHT_SMALL_LAUNCH_ZONE.vertices);
+    }
+    public static boolean nearLaunchZone(Pose currentPose) {
+        Point[] robotFootprint = calculateRobotFootprint(currentPose);
+
+        return isIntersectingPolygon(robotFootprint, LEFT_BIG_LAUNCH_ZONE.vertices);
     }
 
     public static boolean doesViolateRedProtection(Point[] robotFootprint) {
@@ -78,6 +91,27 @@ public class Sentinel {
         double sin = Math.sin(heading);
 
         double ROBOT_RADIUS = ROBOT_WIDTH / 2;
+        double[] xOffsets = {-ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS, -ROBOT_RADIUS};
+        double[] yOffsets = {-ROBOT_RADIUS, -ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS};
+
+        Point[] corners = new Point[4];
+        for (int i = 0; i < 4; i++) {
+            double rotatedX = (xOffsets[i] * cos) - (yOffsets[i] * sin);
+            double rotatedY = (xOffsets[i] * sin) + (yOffsets[i] * cos);
+            corners[i] = new Point(centerX + rotatedX, centerY + rotatedY);
+        }
+        return corners;
+    }
+
+    public static Point[] calculateSmallRobotFootprint(Pose pose) {
+        double heading = pose.getHeading();
+        double centerX = pose.getX();
+        double centerY = pose.getY();
+
+        double cos = Math.cos(heading);
+        double sin = Math.sin(heading);
+
+        double ROBOT_RADIUS = ROBOT_WIDTH2 / 2;
         double[] xOffsets = {-ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS, -ROBOT_RADIUS};
         double[] yOffsets = {-ROBOT_RADIUS, -ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS};
 

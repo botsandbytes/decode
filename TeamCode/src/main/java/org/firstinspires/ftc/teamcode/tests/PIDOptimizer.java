@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.tests;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -119,7 +120,7 @@ public class PIDOptimizer extends OpMode {
             startTest();
         } else {
             // Run test
-            intakeLauncher.updateTurret(0);
+            intakeLauncher.updateTurret(new Pose());
 
             // Accumulate error (Integral of Absolute Error)
             double currentAngle = intakeLauncher.getCurrentTurnAngle();

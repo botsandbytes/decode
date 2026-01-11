@@ -132,7 +132,7 @@ public class RedOppositeAuto extends OpMode {
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
                     }
-                    intakeLauncher.updateShootingLogic(shootPower);
+                    intakeLauncher.updateShootingLogic(shootPower, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > waitTimeForLaunch) {
                         intakeLauncher.stopShooting();
@@ -157,7 +157,7 @@ public class RedOppositeAuto extends OpMode {
                         intakeLauncher.startShooting();
                     }
                     intakeLauncher.stopIntake();
-                    intakeLauncher.updateShootingLogic(shootPower);
+                    intakeLauncher.updateShootingLogic(shootPower, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > waitTimeForLaunch) {
                         intakeLauncher.stopShooting();
@@ -182,7 +182,7 @@ public class RedOppositeAuto extends OpMode {
                         intakeLauncher.startShooting();
                     }
                     intakeLauncher.stopIntake();
-                    intakeLauncher.updateShootingLogic(shootPower);
+                    intakeLauncher.updateShootingLogic(shootPower, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > waitTimeForLaunch) {
                         intakeLauncher.stopShooting();
@@ -216,7 +216,7 @@ public class RedOppositeAuto extends OpMode {
                         intakeLauncher.startShooting();
                     }
                     intakeLauncher.stopIntake();
-                    intakeLauncher.updateShootingLogic(shootPower);
+                    intakeLauncher.updateShootingLogic(shootPower, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > waitTimeForLaunch) {
                         intakeLauncher.stopShooting();
@@ -241,7 +241,7 @@ public class RedOppositeAuto extends OpMode {
                         intakeLauncher.startShooting();
                     }
                     intakeLauncher.stopIntake();
-                    intakeLauncher.updateShootingLogic(shootPower);
+                    intakeLauncher.updateShootingLogic(shootPower, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > waitTimeForLaunch) {
                         intakeLauncher.stopShooting();
@@ -265,14 +265,14 @@ public class RedOppositeAuto extends OpMode {
 
     @Override
     public void loop() {
-        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading(), GOAL_X, GOAL_Y);
-
+        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
+                follower.getPose().getHeading(), Math.toRadians(intakeLauncher.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         follower.update();
         autonomousPathUpdate();
 
         LaunchParameters lp = intakeLauncher.calculateLaunchParameters(follower.getPose());
         intakeLauncher.setTargetTurnAngle(lp.launchAngle());
-        intakeLauncher.updateTurret(follower.getHeading());
+        intakeLauncher.updateTurret(follower.getPose());
 
         Pose currentPose = follower.getPose();
         blackboard.put("POSE_X", currentPose.getX());
@@ -295,7 +295,7 @@ public class RedOppositeAuto extends OpMode {
         opmodeTimer.resetTimer();
 
         follower = Constants.createFollower(hardwareMap);
-        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry);
+        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setInitialHeading(startPose.getHeading());
 
         buildPaths();

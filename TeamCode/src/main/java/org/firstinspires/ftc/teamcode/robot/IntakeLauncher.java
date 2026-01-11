@@ -1,8 +1,9 @@
 package org.firstinspires.ftc.teamcode.robot;
-import static java.lang.Thread.sleep;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.control.PIDFController;
+import com.pedropathing.follower.Follower;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -16,27 +17,34 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.MathFunctions;
 
+@Configurable
 public class IntakeLauncher {
 
+    private final PIDFCoefficients headingPIDFCoefficients = Constants.followerConstants.getCoefficientsHeadingPIDF();
+    private final PIDFController headingController = new PIDFController(headingPIDFCoefficients);
+    private static final double MAX_TURN_POWER = 0.5; // Safety clamp
+    private static final double MIN_TURN_POWER = 0.12;
+
     // Constants
-    private static final double TRAIN_RPM_PERCENT = 1.0;
     private static final int MAX_RPM = 1450;
     private static final double INTAKE_TRANSFER_POWER = 1.0;
-    private static final double HOOD_LONG_POSITION = 0.4;
-    private static final double TURN_TOLERANCE_DEGREES = 2;
+    public static double HOOD_LONG_POSITION = 0.4;
+
+    // Shooting Mode Configuration
+    public static boolean AUTO_SHOOT_MODE = true; // true = right trigger does full sequence, false = two-button mode (X then trigger)
 
     // PIDF Constants (original working values)
     PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01, 0.0005, 0.003, 0);
-    double f = 0.13;
+    double f = 0.08;
     // PIDF f doesn't work, set to 0, and adjust f value above
     PIDFController pidfController = new PIDFController(pidfCoefficients);
 
-    public static double robotTurnPinPoint_Kp = 0.025;
     private static final double MAX_POWER_OUTPUT = 0.5;
 
     // Hardware
@@ -59,6 +67,50 @@ public class IntakeLauncher {
     private final ElapsedTime shootingTimer = new ElapsedTime();
 
 
+    public IntakeLauncher(HardwareMap hardwareMap, Telemetry telemetry, Follower follower) {
+        this.telemetry = telemetry;
+        // Initialize Hardware
+        turnIMU = hardwareMap.get(IMU.class, "turnImu");
+        intakeFront = hardwareMap.get(DcMotorEx.class, "intakeFront");
+        intakeMid = hardwareMap.get(DcMotorEx.class, "intakeMid");
+        hood = hardwareMap.get(Servo.class, "hood");
+        turnServo = hardwareMap.get(CRServo.class, "turn");
+        shooter = hardwareMap.get(DcMotorEx.class, "shooter");
+        shooter2 = hardwareMap.get(DcMotorEx.class, "shooter2");
+        leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
+        leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
+        rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
+        rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
+
+        // Configure Motors
+        intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intakeMid.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intakeFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        intakeMid.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        // shooter motor
+        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        shooter.setDirection(DcMotorSimple.Direction.REVERSE);
+
+
+        // shooter2 motor
+        shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        shooter2.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        shooter2.setDirection(DcMotorSimple.Direction.FORWARD);
+
+        follower.getDrivetrain().updateConstants();
+
+        // Drive Motors
+        // Configure Turn IMU
+        RevHubOrientationOnRobot.LogoFacingDirection logo = RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
+        RevHubOrientationOnRobot.UsbFacingDirection usb = RevHubOrientationOnRobot.UsbFacingDirection.UP;
+        turnIMU.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(logo, usb)));
+        turnIMU.resetYaw();
+        setHoodPosition(0);
+    }
+
+    // WARNING: USE THIS ONLY IF YOU ARENT USING DRIVETRAIN
     public IntakeLauncher(HardwareMap hardwareMap, Telemetry telemetry) {
         this.telemetry = telemetry;
         // Initialize Hardware
@@ -99,14 +151,6 @@ public class IntakeLauncher {
         shooter2.setDirection(DcMotorSimple.Direction.FORWARD);
 
         // Drive Motors
-        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftBack.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightFront.setDirection(DcMotorSimple.Direction.FORWARD);
-        rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightBack.setDirection(DcMotorSimple.Direction.FORWARD);
         // Configure Turn IMU
         RevHubOrientationOnRobot.LogoFacingDirection logo = RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
         RevHubOrientationOnRobot.UsbFacingDirection usb = RevHubOrientationOnRobot.UsbFacingDirection.UP;
@@ -132,6 +176,21 @@ public class IntakeLauncher {
         intakeMid.setPower(transferPower);
     }
 
+    public void runShooterRaw(double power) {
+        // Set raw power, bypassing the REV Hub's internal PID
+        shooter.setPower(power);
+        shooter2.setPower(power);
+    }
+
+    public double getShooterVelocity() {
+        // Returns velocity in Ticks Per Second
+        return shooter.getVelocity();
+    }
+
+    public double getShooterPower() {
+        return shooter.getPower();
+    }
+
     public void stopIntake() {
         intakeFront.setPower(0);
         intakeMid.setPower(0);
@@ -144,12 +203,22 @@ public class IntakeLauncher {
     }
 
     public void powerOnLauncher(double power) {
-        double targetVel = MAX_RPM * power * TRAIN_RPM_PERCENT;
+        double targetVel = MAX_RPM * power;
         shooter.setVelocity(targetVel);
         shooter2.setVelocity(targetVel);
     }
 
-    public void updateShootingLogic(double launchPower) {
+    public double calculateDynamicTolerance(double distanceInches) {
+        final double MAX_DRIFT_ALLOWED = 6.0;
+
+        if (distanceInches < 1.0) return 45.0;
+
+        double thetaRadians = Math.asin((MAX_DRIFT_ALLOWED / 2.0) / distanceInches);
+
+        return Math.clamp(Math.toDegrees(thetaRadians), 0.5, 2.0);
+}
+
+    public void updateShootingLogic(double launchPower, Pose currentPose) {
         if (!isShooting) return;
 
         double targetVel = MAX_RPM * launchPower;
@@ -157,10 +226,40 @@ public class IntakeLauncher {
         shooter2.setVelocity(targetVel);
 
         telemetry.addData("current v", Math.abs(shooter.getVelocity()));
-        telemetry.addData("target v", Math.abs(targetVel) * 0.97);
+        telemetry.addData("target v", Math.abs(targetVel) * 0.98);
 
-        // Feed ball when shooter is ready (93% of target velocity)
-        if (Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * 0.97) {
+        // Calculate turret alignment error
+        double robotWorldHeading = currentPose.getHeading();
+        double turretWorldAngle = turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES) + Math.toDegrees(initialHeadingOffset);
+        double targetWorldAngle = targetTurnAngle;
+
+        double relativeTurretAngle = (turretWorldAngle - robotWorldHeading + 360) % 360;
+        double relativeTargetAngle = (targetWorldAngle - robotWorldHeading + 360) % 360;
+
+        boolean turnLeft = shouldTurnLeft(relativeTurretAngle, relativeTargetAngle);
+        double error;
+        if (turnLeft) {
+            error = (relativeTargetAngle - relativeTurretAngle + 360) % 360;
+            if (error > 180) error -= 360;
+        } else {
+            error = -((relativeTurretAngle - relativeTargetAngle + 360) % 360);
+            if (error < -180) error += 360;
+        }
+
+        // Calculate dynamic tolerance based on distance to goal
+        double distance = Math.hypot(goalX - currentPose.getX(), goalY - currentPose.getY());
+        double dynamicTolerance = calculateDynamicTolerance(distance);
+
+        // Feed ball when shooter is ready (98% of target velocity) AND turret is within dynamic tolerance
+        boolean velocityReady = Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * 0.98 &&
+                                Math.abs(shooter.getVelocity()) < Math.abs(targetVel) * 1.02;
+        boolean turretAligned = Math.abs(error) < dynamicTolerance;
+
+        telemetry.addData("Turret Error (deg)", error);
+        telemetry.addData("Dynamic Tolerance (deg)", dynamicTolerance);
+        telemetry.addData("Turret Aligned", turretAligned);
+
+        if (velocityReady && turretAligned) {
             intakeMid.setPower(INTAKE_TRANSFER_POWER);
             intakeFront.setPower(INTAKE_TRANSFER_POWER);
         } else {
@@ -182,7 +281,7 @@ public class IntakeLauncher {
             launchPower = 0.57;
             waitTime = 2000;
         } else {
-            launchPower = 0.57 + ((distance - 33) / 320.0);
+            launchPower = 0.57 + ((distance - 33) / 300.0);
             waitTime = distance * 68;
         }
 
@@ -201,7 +300,8 @@ public class IntakeLauncher {
         this.targetTurnAngle = degrees;
     }
 
-    public void updateTurret(double robotWorldHeading) {
+    public void updateTurret(Pose currentPose) {
+        double robotWorldHeading = currentPose.getHeading();
         // Get turret's current world angle
         double turretWorldAngle = turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES) + Math.toDegrees(initialHeadingOffset);
 
@@ -225,7 +325,7 @@ public class IntakeLauncher {
             if (error < -180) error += 360;
         }
 
-        if (Math.abs(error) < TURN_TOLERANCE_DEGREES) {
+        if (Math.abs(error) < calculateDynamicTolerance(Math.hypot(goalX - currentPose.getX(), goalY - currentPose.getY()))) {
             turnServo.setPower(0);
             isTurnDone = true;
             pidfController.reset();
@@ -300,60 +400,82 @@ public class IntakeLauncher {
         return Math.toDegrees(orientation.getYaw(AngleUnit.RADIANS) + initialHeadingOffset);
     }
 
-    public void turnRobot() {
-        double min_power = 0.2, max_power = 0.4;
-        pinpoint.update();
-        Pose2D pose2D = pinpoint.getPosition();
-        double currentAngle = pose2D.getHeading(AngleUnit.DEGREES);
-        double error = targetTurnAngle - currentAngle;
+    /**
+     * Updates the robot turn using PedroPathing's tuned PIDF constants.
+     * Call this in your loop.
+     *
+     * @param currentPose The current Pose from pinpoint/follower.
+     * @param targetHeadingDegrees The target angle in DEGREES.
+     * @return true if the turn is complete (within tolerance).
+     */
+    public boolean updateTurn(Pose currentPose, double targetHeadingDegrees) {
+        // 1. Convert everything to Radians (PedroPathing Constants are tuned for Radians)
+        double currentHeadingRad = currentPose.getHeading();
+        double targetHeadingRad = Math.toRadians(targetHeadingDegrees);
 
-        telemetry.addData("Start: Robot Current Angle", currentAngle);
-        telemetry.addData("Start: Robot Turn Target", targetTurnAngle);
-        // Handle angle wrapping (e.g., turning from 170 to -170 degrees)
-        if (error > 180) error -= 360;
-        if (error < -180) error += 360;
-        double power = error * robotTurnPinPoint_Kp;
-        // Clamp power to a reasonable range (e.g., -0.5 to 0.5) to prevent twitching
-        power = Math.max(-max_power, Math.min(max_power, power));
-        telemetry.addData("Start: Robot Turn Power", power);
-        telemetry.update();
-        try {
-            sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        // Apply power (opposite for left/right)
+        // 2. Calculate Error using PedroPathing MathFunctions
+        // getSmallestAngleDifference returns positive magnitude
+        double errorAbs = MathFunctions.getSmallestAngleDifference(currentHeadingRad, targetHeadingRad);
+
+        // getTurnDirection returns 1 (CCW/Left) or -1 (CW/Right)
+        double direction = MathFunctions.getTurnDirection(currentHeadingRad, targetHeadingRad);
+
+        // Combined signed error in Radians
+        double signedError = errorAbs * direction;
+
+        // 3. Update the PedroPathing Controller
+        headingController.updateFeedForwardInput(direction);
+        headingController.updateError(signedError);
+
+        // 4. Run PIDF
+        // Note: We leave FeedForward input as 0 for point turns, relying on P and D.
+        double pidOutput = headingController.run() * 2;
+
+        // 5. Clamp and Apply Power
+        // If pidOutput is positive (Left Turn), we want Left Motors Reverse, Right Motors Forward
+        double power = Math.clamp(Math.abs(pidOutput), MIN_TURN_POWER , MAX_TURN_POWER);
+        power = Math.copySign(power, pidOutput);
+
         leftFront.setPower(-power);
-        rightFront.setPower(power);
         leftBack.setPower(-power);
+        rightFront.setPower(power);
         rightBack.setPower(power);
-        while (Math.abs(error) > 1) { // Loop until very close
-            isTurnDone = false;
-            pinpoint.update();
-            pose2D = pinpoint.getPosition();
-            currentAngle = pose2D.getHeading(AngleUnit.DEGREES);
-//            currentAngle = follower.getHeading();
-            error = targetTurnAngle - currentAngle;
-            if (error > 180) error -= 360;
-            if (error < -180) error += 360;
-            power = error * robotTurnPinPoint_Kp;
-            telemetry.addData("Robot Current Angle", currentAngle);
-            telemetry.addData("Robot Turn Target", targetTurnAngle);
-            telemetry.addData("Robot Turn power", power);
-            telemetry.update();
-            if (power > 0 && power < min_power) {
-                power = min_power;
-            } else  if (power < 0 && power > -min_power) {
-                power = -min_power;
-            } else {
-                power = Math.max(-max_power, Math.min(max_power, power));
-            }
-            leftFront.setPower(-power);
-            rightFront.setPower(power);
-            leftBack.setPower(-power);
-            rightBack.setPower(power);
+
+        // Calculate dynamic tolerance based on distance to goal
+        double distance = Math.hypot(goalX - currentPose.getX(), goalY - currentPose.getY());
+        double dynamicToleranceDegrees = calculateDynamicTolerance(distance);
+        double dynamicToleranceRadians = Math.toRadians(dynamicToleranceDegrees);
+
+        // Telemetry for debugging
+        telemetry.addData("Turn Target (Deg)", targetHeadingDegrees);
+        telemetry.addData("Turn Current (Deg)", Math.toDegrees(currentHeadingRad));
+        telemetry.addData("Turn Error (Rad)", signedError);
+        telemetry.addData("Turn Error (Deg)", Math.toDegrees(errorAbs));
+        telemetry.addData("Turn Tolerance (Deg)", dynamicToleranceDegrees);
+        telemetry.addData("PID Output", pidOutput);
+
+        // 6. Check for Completion using dynamic tolerance
+        if (errorAbs < dynamicToleranceRadians) {
+            stopDrive();
+            headingController.reset(); // Reset for next time
+            return false;
         }
-        isTurnDone = true;
+
+        return true;
+    }
+
+    public void tuneMinTurnPower(double min) {
+        leftFront.setPower(-min);
+        rightFront.setPower(min);
+        leftBack.setPower(-min);
+        rightBack.setPower(min);
+    }
+
+    public void tuneMinTurretPower(double min) {
+        turnServo.setPower(min);
+    }
+
+    private void stopDrive() {
         leftFront.setPower(0);
         rightFront.setPower(0);
         leftBack.setPower(0);

@@ -154,7 +154,7 @@ public class RedAutoNew extends OpMode {
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
                     }
-                    intakeLauncher.updateShootingLogic(launchPower);
+                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > 2500) {
                         intakeLauncher.stopShooting();
@@ -254,8 +254,8 @@ public class RedAutoNew extends OpMode {
 
     @Override
     public void loop() {
-        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading(), GOAL_X, GOAL_Y);
-
+        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
+                follower.getPose().getHeading(), Math.toRadians(intakeLauncher.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         follower.update();
         autonomousPathUpdate();
 
@@ -285,7 +285,7 @@ public class RedAutoNew extends OpMode {
         opmodeTimer.resetTimer();
 
         follower = Constants.createFollower(hardwareMap);
-        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry);
+        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setInitialHeading(startPose.getHeading());
 
         buildPaths();

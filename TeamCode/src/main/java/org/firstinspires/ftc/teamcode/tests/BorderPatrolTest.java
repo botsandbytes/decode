@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.tests;
 
+import static org.firstinspires.ftc.teamcode.teleop.RedTeleOp.GOAL_X;
+import static org.firstinspires.ftc.teamcode.teleop.RedTeleOp.GOAL_Y;
+
 import com.bylazar.field.FieldManager;
 import com.bylazar.field.PanelsField;
 import com.pedropathing.follower.Follower;
@@ -13,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
 import org.firstinspires.ftc.teamcode.utilities.BorderPatrol;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 
@@ -116,8 +120,8 @@ public class BorderPatrolTest extends OpMode {
     private void drawField() {
         if (field != null) {
             DrawingUtil.drawBorderPatrolZones(field);
-            DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
-                    follower.getPose().getHeading(), 0, 0);
+        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
+                follower.getPose().getHeading(), Math.toRadians(new IntakeLauncher(hardwareMap, telemetry, follower).getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         }
     }
 }

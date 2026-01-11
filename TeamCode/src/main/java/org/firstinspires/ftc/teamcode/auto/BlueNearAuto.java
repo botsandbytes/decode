@@ -143,7 +143,7 @@ public class BlueNearAuto extends OpMode {
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
                     }
-                    intakeLauncher.updateShootingLogic(launchPower);
+                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > 2500) {
                         intakeLauncher.stopShooting();
@@ -166,7 +166,7 @@ public class BlueNearAuto extends OpMode {
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
                     }
-                    intakeLauncher.updateShootingLogic(0.653);
+                    intakeLauncher.updateShootingLogic(0.653, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > 2800) {
                         intakeLauncher.stopShooting();
@@ -189,7 +189,7 @@ public class BlueNearAuto extends OpMode {
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
                     }
-                    intakeLauncher.updateShootingLogic(launchPower);
+                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
 
                     if (intakeLauncher.getShootingDuration() > 3400) {
                         intakeLauncher.stopShooting();
@@ -217,7 +217,7 @@ public class BlueNearAuto extends OpMode {
                         if (!intakeLauncher.isShooting()) {
                             intakeLauncher.startShooting();
                         }
-                        intakeLauncher.updateShootingLogic(launchPower);
+                        intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
 
                         if (intakeLauncher.getShootingDuration() > 2500) {
                             intakeLauncher.stopShooting();
@@ -244,14 +244,14 @@ public class BlueNearAuto extends OpMode {
 
     @Override
     public void loop() {
-        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading(), GOAL_X, GOAL_Y);
-
+        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
+                follower.getPose().getHeading(), Math.toRadians(intakeLauncher.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         follower.update();
         autonomousPathUpdate();
 
         LaunchParameters lp = intakeLauncher.calculateLaunchParameters(follower.getPose());
         intakeLauncher.setTargetTurnAngle(lp.launchAngle());
-        intakeLauncher.updateTurret(follower.getHeading());
+        intakeLauncher.updateTurret(follower.getPose());
 
         Pose currentPose = follower.getPose();
         blackboard.put("POSE_X", currentPose.getX());
@@ -274,7 +274,7 @@ public class BlueNearAuto extends OpMode {
         opmodeTimer.resetTimer();
 
         follower = Constants.createFollower(hardwareMap);
-        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry);
+        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setInitialHeading(startPose.getHeading());
 
         buildPaths();

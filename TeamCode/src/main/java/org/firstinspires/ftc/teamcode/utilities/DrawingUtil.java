@@ -5,13 +5,11 @@ import com.bylazar.field.FieldManager;
 public class DrawingUtil {
 
     /**
-     * Draws the robot, heading, and goal line on the Panels dashboard.
+     * Draws the robot, heading, turret heading, and goal line on the Panels dashboard.
+     * Added turretH parameter (Radians).
      */
-    public static void drawRobotOnField(FieldManager field, double x, double y, double h, double goalX, double goalY) {
+    public static void drawRobotOnField(FieldManager field, double x, double y, double h, double turretH, double goalX, double goalY) {
         if (field == null) return;
-
-        // Visual adjustment: Standard math 0 is Right, but sometimes dashboards expect Up.
-        // If your robot draws 90 deg off, remove/add this offset.
 
         // --- 1. Draw Line to Goal (Cyan) ---
         field.setStyle("none", "cyan", 2.0);
@@ -51,6 +49,7 @@ public class DrawingUtil {
         field.line(xFL, yFL);
 
         // --- 4. Draw Heading Line (Yellow) ---
+        // This represents the Drivetrain heading
         double frontX = x + (halfSize * cosA);
         double frontY = y + (halfSize * sinA);
 
@@ -58,26 +57,37 @@ public class DrawingUtil {
         field.moveCursor(x, y);
         field.line(frontX, frontY);
 
+        // --- 5. Draw Turret Heading (Green) ---
+        // This represents the Turret IMU heading
+        double turretCos = Math.cos(turretH);
+        double turretSin = Math.sin(turretH);
+
+        // Draw the line slightly longer (12) so it is distinct from the yellow robot heading
+        double turretX = x + (12.0 * turretCos);
+        double turretY = y + (12.0 * turretSin);
+
+        field.setStyle("none", "green", 2.0);
+        field.moveCursor(x, y);
+        field.line(turretX, turretY);
+
         field.update();
     }
 
     public static void drawBorderPatrolZones(FieldManager field) {
         if (field == null) return;
-
+        // ... (Rest of the file remains unchanged) ...
         // --- RED PROTECTED ZONE (Right Wall) ---
-        // Sentinel: X [139, 144], Y [24, 72]
         field.setStyle("stroke", "red", 1.0);
         drawRect(field, 139, 24, 144, 72);
 
         // --- BLUE PROTECTED ZONE (Left Wall) ---
-        // Sentinel: X [0, 5], Y [24, 72]
         field.setStyle("stroke", "blue", 1.0);
         drawRect(field, 0, 24, 5, 72);
 
         // --- LAUNCH ZONES (Green) ---
         field.setStyle("stroke", "green", 1.0);
 
-        // Big Launch V (Top Edge): (0, 144) -> (144, 144) -> (72, 72)
+        // Big Launch V (Top Edge)
         field.moveCursor(0, 144);
         field.line(144, 144);
         field.moveCursor(144, 144);
@@ -85,7 +95,7 @@ public class DrawingUtil {
         field.moveCursor(72, 72);
         field.line(0, 144);
 
-        // Small Launch Triangle (Bottom Edge): (96, 0) -> (48, 0) -> (72, 24)
+        // Small Launch Triangle (Bottom Edge)
         field.moveCursor(96, 0);
         field.line(48, 0);
         field.moveCursor(48, 0);

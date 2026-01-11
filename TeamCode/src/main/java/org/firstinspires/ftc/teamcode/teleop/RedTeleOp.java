@@ -45,10 +45,15 @@ public class RedTeleOp extends OpMode {
 //    private Pose startPose = new Pose(72, 72, 0);
     public static int heading = 90;
     private final Pose startPose = new Pose(87, 8, Math.toRadians(heading));
+
+    private final Pose scorePose = new Pose(57, 21, Math.toRadians(68));
+
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
     private LaunchParameters currentLaunchParams;
+
+    private boolean isRotating = false;
 
 
     @Override
@@ -74,7 +79,7 @@ public class RedTeleOp extends OpMode {
     }
 
     private void initializeSubsystems() {
-        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry);
+        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setGoal(GOAL_X, GOAL_Y);
         intakeLauncher.setInitialHeading(startPose.getHeading()); // Assuming 0 start or updated later
         vision = new VisionUtil();
@@ -118,13 +123,13 @@ public class RedTeleOp extends OpMode {
 //                    true // Robot Centric
 //            );
 
-            double yInput = Math.max(-0.7, Math.min(0.7, Math.pow(gamepad1.left_stick_y, 3)));
-            double xInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.left_stick_x, 3)));
-            double rInput = Math.max(-0.7, Math.min(0.7, Math.pow(-gamepad1.right_stick_x, 3)));
+            double yInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_y, 3)));
+            double xInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_x, 3)));
+            double rInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.right_stick_x, 3)));
 
             double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getPose().getX(), follower.getPose().getY(), xInput, yInput, rInput);
-            follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2]);
-            follower.setTeleOpDrive(yInput, xInput, rInput, true);
+//            follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
+            follower.setTeleOpDrive(yInput, xInput, rInput, false);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
         }
@@ -137,6 +142,7 @@ public class RedTeleOp extends OpMode {
 
         if (gamepad2.bWasPressed()) {
             intakeLauncher.stopIntake();
+            intakeLauncher.runShooterRaw(0.6);
         }
     }
 
@@ -144,8 +150,18 @@ public class RedTeleOp extends OpMode {
         Pose currentPose = follower.getPose();
         currentLaunchParams = intakeLauncher.calculateLaunchParameters(currentPose);
 
-        // Aiming
-        if (gamepad2.x && Sentinel.isLaunchAllowed(follower.getPose())) {
+        // Aiming Logic
+        // In AUTO_SHOOT_MODE: right trigger does full sequence
+        // In two-button mode: gamepad2.x aims, then right trigger shoots
+        boolean shouldAim;
+        if (IntakeLauncher.AUTO_SHOOT_MODE) {
+            shouldAim = gamepad2.right_trigger > 0.5;
+        } else {
+            shouldAim = gamepad2.x;
+        }
+
+        if (shouldAim && !intakeLauncher.isShooting() && !isRotating && !isTurning && Sentinel.isLaunchAllowed(follower.getPose())) {
+            // Set hood position based on launch power
             if (currentLaunchParams.launchPower() > 0.7) {
                 intakeLauncher.setHoodLongShotPosition();
             } else {
@@ -156,11 +172,50 @@ public class RedTeleOp extends OpMode {
             holdPose = follower.getPose();
         }
 
-        if (isTurning) {
-            intakeLauncher.updateTurret(Math.toDegrees(follower.getHeading()));
-            if (intakeLauncher.isTurnDone()) {
-                isTurning = false;
+        if ((gamepad1.xWasPressed() || isRotating) && Sentinel.isLaunchAllowed(follower.getPose())) {
+            isRotating = intakeLauncher.updateTurn(currentPose, currentLaunchParams.launchAngle());
+            automatedDrive = isRotating || intakeLauncher.isShooting();
+
+            if (!isRotating && !gamepad1.xWasPressed()) {
+                intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
+                isTurning = true;
             }
+        }
+
+        // Emergency Stop Launcher - MUST be checked first to override everything else
+        if (gamepad2.left_trigger > 0.5) {
+            stopShootingSequence();
+            intakeLauncher.stopLauncher(); // Ensure shooter is completely stopped
+            isTurning = false; // Stop turret tracking
+            isRotating = false; // Stop robot rotation
+        }
+        // Auto rev-up logic: Keep shooter spinning at target velocity if it's already on
+        else if (intakeLauncher.getShooterPower() > 0 && !intakeLauncher.isShooting()) {
+            intakeLauncher.powerOnLauncher(currentLaunchParams.launchPower());
+        }
+
+        if (gamepad1.yWasPressed()) {
+            isRotating = false;
+            isTurning = false; // Allow cancelling turret aim manually
+        }
+
+        if (isTurning) {
+            intakeLauncher.updateTurret(currentPose);
+            if (intakeLauncher.isTurnDone()) {
+                // Keep isTurning = true to maintain tracking/alignment
+
+                // Auto-start shooting in AUTO_SHOOT_MODE when turret is done and trigger is held
+                if (IntakeLauncher.AUTO_SHOOT_MODE && gamepad2.right_trigger > 0.5 && !intakeLauncher.isShooting()) {
+                    startShootingSequence();
+                }
+            }
+        }
+
+        // Shooting Trigger
+        // In AUTO_SHOOT_MODE: handled automatically after aiming
+        // In two-button mode: right trigger manually starts shooting after aiming with X
+        if (!IntakeLauncher.AUTO_SHOOT_MODE && gamepad2.right_trigger > 0.5 && !intakeLauncher.isShooting() && !isTurning) {
+            startShootingSequence();
         }
 
         // Manual Shoot Trigger
@@ -171,39 +226,37 @@ public class RedTeleOp extends OpMode {
         // Auto Drive Override
         if (gamepad2.dpadLeftWasPressed()) {
             automatedDrive = true;
-            follower.holdPoint(new Pose(38.12, 33.40, Math.PI / 2));
+            follower.holdPoint(new Pose(37.497382198952884, 31.929319371727757, -Math.PI / 2));
         }
 
-        if (gamepad2.dpadRightWasPressed()) {
+        if (gamepad1.right_trigger > 0.5 && !follower.isBusy()) {
+            follower.holdPoint(scorePose);
+        }
+
+        if (gamepad2.dpadRightWasPressed() || gamepad1.dpadRightWasPressed()) {
             automatedDrive = false;
             follower.startTeleopDrive();
         }
 
-        // Shooting Logic
-        if ((gamepad2.right_trigger > 0.5) && !intakeLauncher.isShooting()) {
-             startShootingSequence();
-        }
 
         if (intakeLauncher.isShooting()) {
             intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
 //            intakeLauncher.turnTurret();
 //            intakeLauncher.turnRobot();
-            intakeLauncher.updateTurret(Math.toDegrees(follower.getHeading()));
-            intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower());
+            intakeLauncher.updateTurret(currentPose);
+            intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower(), currentPose);
 
             if (intakeLauncher.getShootingDuration() > currentLaunchParams.waitTime() || !Sentinel.isLaunchAllowed(follower.getPose())) {
                 stopShootingSequence();
+                // Return drive control immediately after shooting completes
+                automatedDrive = false;
+                follower.startTeleopDrive();
             }
-        }
-
-        // Emergency Stop Launcher
-        if (gamepad2.left_trigger > 0.5) {
-            stopShootingSequence();
         }
 
         // Manual Power On
         if (gamepad2.yWasPressed()) {
-            intakeLauncher.powerOnLauncher(0.6);
+            intakeLauncher.runShooterRaw(0.6);
         }
     }
 
@@ -235,7 +288,7 @@ public class RedTeleOp extends OpMode {
 
     private void drawField() {
         DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
-                follower.getPose().getHeading(), GOAL_X, GOAL_Y);
+                follower.getPose().getHeading(), Math.toRadians(intakeLauncher.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         DrawingUtil.drawBorderPatrolZones(field);
     }
 
