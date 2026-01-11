@@ -76,7 +76,7 @@ public class BlueTeleOp extends OpMode {
     private void initializeSubsystems() {
         intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setGoal(GOAL_X, GOAL_Y);
-        intakeLauncher.setInitialHeading(0);
+        intakeLauncher.setInitialHeading(startPose.getHeading());
         vision = new VisionUtil();
         vision.initAprilTag(hardwareMap, true);
     }
@@ -115,7 +115,6 @@ public class BlueTeleOp extends OpMode {
             double rInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.right_stick_x, 3)));
 
             double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getPose().getX(), follower.getPose().getY(), xInput, yInput, rInput);
-            // follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
             follower.setTeleOpDrive(yInput, xInput, rInput, false);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
@@ -126,6 +125,7 @@ public class BlueTeleOp extends OpMode {
         if (gamepad2.aWasPressed()) {
             intakeLauncher.runIntake(1, 0.1);
         }
+
         if (gamepad2.bWasPressed()) {
             intakeLauncher.stopIntake();
             intakeLauncher.runShooterRaw(0.6);
@@ -139,7 +139,7 @@ public class BlueTeleOp extends OpMode {
         // Aiming Logic
         // In AUTO_SHOOT_MODE: right trigger does full sequence
         // In two-button mode: gamepad2.x aims, then right trigger shoots
-        boolean shouldAim = false;
+        boolean shouldAim;
         if (IntakeLauncher.AUTO_SHOOT_MODE) {
             shouldAim = gamepad2.right_trigger > 0.5;
         } else {
@@ -209,13 +209,14 @@ public class BlueTeleOp extends OpMode {
         if (gamepad2.dpadUpWasPressed()) {
             startShootingSequence();
         }
+
         // Auto Drive Override
         if (gamepad2.dpadLeftWasPressed()) {
             automatedDrive = true;
             follower.holdPoint(new Pose(37.497382198952884, 31.929319371727757, -Math.PI / 2).mirror());
         }
 
-        if (gamepad1.right_trigger > 0.5) {
+        if (gamepad1.right_trigger > 0.5 && !follower.isBusy()) {
             follower.holdPoint(scorePose);
         }
 

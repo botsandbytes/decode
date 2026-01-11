@@ -42,19 +42,14 @@ public class RedTeleOp extends OpMode {
     private IntakeLauncher intakeLauncher;
 
     // State
-//    private Pose startPose = new Pose(72, 72, 0);
-    public static int heading = 90;
-    private final Pose startPose = new Pose(87, 8, Math.toRadians(heading));
-
+    private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
     private final Pose scorePose = new Pose(57, 21, Math.toRadians(68));
-
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
     private LaunchParameters currentLaunchParams;
 
     private boolean isRotating = false;
-
 
     @Override
     public void init() {
@@ -81,7 +76,7 @@ public class RedTeleOp extends OpMode {
     private void initializeSubsystems() {
         intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setGoal(GOAL_X, GOAL_Y);
-        intakeLauncher.setInitialHeading(startPose.getHeading()); // Assuming 0 start or updated later
+        intakeLauncher.setInitialHeading(startPose.getHeading());
         vision = new VisionUtil();
         vision.initAprilTag(hardwareMap, true);
     }
@@ -91,7 +86,6 @@ public class RedTeleOp extends OpMode {
         follower.setStartingPose(startPose);
         follower.startTeleopDrive();
         intakeLauncher.setInitialHeading(follower.getHeading());
-//        intakeLauncher.setFollower(follower);
     }
 
     @Override
@@ -116,19 +110,11 @@ public class RedTeleOp extends OpMode {
 
     private void handleDrive() {
         if (!automatedDrive) {
-//            follower.setTeleOpDrive(
-//                    Math.pow(gamepad1.left_stick_y, 3), //gamepad1.left_stick_y,
-//                    Math.pow(gamepad1.left_stick_x, 3),
-//                    Math.pow(gamepad1.right_stick_x, 3),
-//                    true // Robot Centric
-//            );
-
             double yInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_y, 3)));
             double xInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_x, 3)));
             double rInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.right_stick_x, 3)));
 
             double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getPose().getX(), follower.getPose().getY(), xInput, yInput, rInput);
-//            follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
             follower.setTeleOpDrive(yInput, xInput, rInput, false);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
@@ -167,6 +153,7 @@ public class RedTeleOp extends OpMode {
             } else {
                 intakeLauncher.setHoodPosition(0);
             }
+
             intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
             isTurning = true;
             holdPose = follower.getPose();
@@ -241,8 +228,6 @@ public class RedTeleOp extends OpMode {
 
         if (intakeLauncher.isShooting()) {
             intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
-//            intakeLauncher.turnTurret();
-//            intakeLauncher.turnRobot();
             intakeLauncher.updateTurret(currentPose);
             intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower(), currentPose);
 
@@ -281,6 +266,9 @@ public class RedTeleOp extends OpMode {
                         .getAsCoordinateSystem(PedroCoordinates.INSTANCE);
                 Pose newPose = new Pose(pedroPose.getX(), pedroPose.getY(), follower.getHeading());
                 follower.setPose(newPose);
+            }
+            else {
+                telemetry.addData("Vision", "No Tag Found");
             }
             vision.stopStreaming();
         }
