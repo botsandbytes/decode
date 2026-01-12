@@ -241,27 +241,34 @@ public class BorderPatrol {
         if (distToStop <= hardStopDist) {
             state.scale = 0.0;
             state.triggerRepulsion = true;
+            return state;
         }
-        else if (distToStop < slowDownDist) {
-            double proximityScale = (distToStop - hardStopDist) / (slowDownDist - hardStopDist);
 
-            double physicsScale = 1.0;
-            if (Math.abs(currentVel) > 0.2) {
-                double decel = calculateEffectiveDecel(heading, axisAngle, fwdAccel, latAccel);
-                decel *= DECEL_SAFETY_FACTOR;
-                if (decel < 1e-6) decel = 0.1;
+        // --- LIMIT 1: PROXIMITY (Only applies when close) ---
+        double proximityScale = 1.0;
+        if (distToStop < slowDownDist) {
+            proximityScale = (distToStop - hardStopDist) / (slowDownDist - hardStopDist);
+        }
 
-                double brakingDistance = Math.max(0, distToStop - hardStopDist);
-                double maxSafeSpeed = Math.sqrt(2 * decel * brakingDistance);
+        // --- LIMIT 2: PHYSICS (Always applies) ---
+        // This was previously hidden inside the "if (distToStop < slowDownDist)" block.
+        // Moving it out allows it to catch high-speed approaches from far away.
+        double physicsScale = 1.0;
+        if (Math.abs(currentVel) > 0.2) {
+            double decel = calculateEffectiveDecel(heading, axisAngle, fwdAccel, latAccel);
+            decel *= DECEL_SAFETY_FACTOR;
+            if (decel < 1e-6) decel = 0.1;
 
-                if (Math.abs(currentVel) > maxSafeSpeed) {
-                    physicsScale = maxSafeSpeed / Math.abs(currentVel);
-                }
+            double brakingDistance = Math.max(0, distToStop - hardStopDist);
+            double maxSafeSpeed = Math.sqrt(2 * decel * brakingDistance);
+
+            if (Math.abs(currentVel) > maxSafeSpeed) {
+                physicsScale = maxSafeSpeed / Math.abs(currentVel);
             }
-            state.scale = Math.min(proximityScale, physicsScale);
-        } else {
-            state.scale = 1.0;
         }
+
+        // Take the most restrictive limit
+        state.scale = Math.min(proximityScale, physicsScale);
         return state;
     }
 
