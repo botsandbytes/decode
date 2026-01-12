@@ -56,6 +56,7 @@ public class RedTeleOp extends OpMode {
         initializeField();
         initializeHardware();
         initializeSubsystems();
+        BorderPatrol.reset();
     }
 
     private void initializeField() {
