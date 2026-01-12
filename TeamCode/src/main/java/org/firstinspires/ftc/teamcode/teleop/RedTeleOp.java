@@ -32,7 +32,7 @@ public class RedTeleOp extends OpMode {
     public static double GOAL_X = 127;
     public static double GOAL_Y = 135;
 
-    public static double MAXSPEED = 0.5;
+    public static double MAXSPEED = 0.6;
 
     private Follower follower;
     private VisionUtil vision;
