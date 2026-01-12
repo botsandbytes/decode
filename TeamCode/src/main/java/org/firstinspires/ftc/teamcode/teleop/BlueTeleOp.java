@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.teleop;
 
+import static org.firstinspires.ftc.teamcode.teleop.RedTeleOp.MAXSPEED;
+
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.field.FieldManager;
 import com.bylazar.field.PanelsField;
@@ -43,7 +45,7 @@ public class BlueTeleOp extends OpMode {
 
     // State
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90)).mirror();
-    private final Pose scorePose = new Pose(57, 21, Math.toRadians(68)).mirror();
+    private final Pose scorePose = RedTeleOp.scorePose.mirror();
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
@@ -56,6 +58,8 @@ public class BlueTeleOp extends OpMode {
         initializeField();
         initializeHardware();
         initializeSubsystems();
+        BorderPatrol.reset();
+        BorderPatrol.CURRENT_ALLIANCE = BorderPatrol.Alliance.BLUE;
     }
 
     private void initializeField() {
@@ -110,14 +114,14 @@ public class BlueTeleOp extends OpMode {
 
     private void handleDrive() {
         if (!automatedDrive) {
-            double yInput = Math.max(-0.5, Math.min(0.5, Math.pow(gamepad1.left_stick_y, 3)));
-            double xInput = Math.max(-0.5, Math.min(0.5, Math.pow(gamepad1.left_stick_x, 3)));
-            double rInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.right_stick_x, 3)));
+            double yInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(gamepad1.left_stick_y, 3)));
+            double xInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(gamepad1.left_stick_x, 3)));
+            double rInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.right_stick_x, 3)));
 
             double[] robotCentric = BorderPatrol.adjustDriveInput(                follower.getPose(),
                 follower.getVelocity(),
                 xInput, yInput, rInput);
-            follower.setTeleOpDrive(yInput, xInput, rInput, false);
+            follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
         }

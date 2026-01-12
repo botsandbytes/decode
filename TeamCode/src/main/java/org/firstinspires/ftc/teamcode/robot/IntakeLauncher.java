@@ -226,7 +226,7 @@ public class IntakeLauncher {
         shooter2.setVelocity(targetVel);
 
         telemetry.addData("current v", Math.abs(shooter.getVelocity()));
-        telemetry.addData("target v", Math.abs(targetVel) * 0.98);
+        telemetry.addData("target v", Math.abs(targetVel) * 0.95);
 
         // Calculate turret alignment error
         double robotWorldHeading = currentPose.getHeading();
@@ -251,7 +251,7 @@ public class IntakeLauncher {
         double dynamicTolerance = calculateDynamicTolerance(distance);
 
         // Feed ball when shooter is ready (98% of target velocity) AND turret is within dynamic tolerance
-        boolean velocityReady = Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * 0.98 &&
+        boolean velocityReady = Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * 0.95 &&
                                 Math.abs(shooter.getVelocity()) < Math.abs(targetVel) * 1.02;
         boolean turretAligned = Math.abs(error) < dynamicTolerance;
 
@@ -286,6 +286,13 @@ public class IntakeLauncher {
         }
 
         return new LaunchParameters(launchPower, waitTime, Math.toDegrees(angleRadians));
+    }
+
+    public static Pose AlignPose(double X, double Y, double GOALX, double GOALY) {
+        double deltaX = GOALX - X;
+        double deltaY = GOALY - Y;
+        double angleRadians = Math.atan2(deltaY, deltaX);
+        return new Pose(X, Y, angleRadians);
     }
 
     public void setHoodPosition(double position) {

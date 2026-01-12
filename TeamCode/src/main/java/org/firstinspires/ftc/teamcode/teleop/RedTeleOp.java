@@ -32,6 +32,8 @@ public class RedTeleOp extends OpMode {
     public static double GOAL_X = 127;
     public static double GOAL_Y = 135;
 
+    public static double MAXSPEED = 0.5;
+
     private Follower follower;
     private VisionUtil vision;
     private FieldManager field;
@@ -43,7 +45,8 @@ public class RedTeleOp extends OpMode {
 
     // State
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
-    private final Pose scorePose = new Pose(57, 21, Math.toRadians(68));
+
+    public static final Pose scorePose = IntakeLauncher.AlignPose(61, 21, GOAL_X, GOAL_Y);
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
@@ -57,6 +60,7 @@ public class RedTeleOp extends OpMode {
         initializeHardware();
         initializeSubsystems();
         BorderPatrol.reset();
+        BorderPatrol.CURRENT_ALLIANCE = BorderPatrol.Alliance.RED;
     }
 
     private void initializeField() {
@@ -111,9 +115,9 @@ public class RedTeleOp extends OpMode {
 
     private void handleDrive() {
         if (!automatedDrive) {
-            double yInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_y, 3)));
-            double xInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_x, 3)));
-            double rInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.right_stick_x, 3)));
+            double yInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.left_stick_y, 3)));
+            double xInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.left_stick_x, 3)));
+            double rInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.right_stick_x, 3)));
 
             double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getVelocity(), xInput, yInput, rInput );
             follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
