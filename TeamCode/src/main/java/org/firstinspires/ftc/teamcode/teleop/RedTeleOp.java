@@ -114,8 +114,8 @@ public class RedTeleOp extends OpMode {
             double xInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_x, 3)));
             double rInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.right_stick_x, 3)));
 
-            double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getPose().getX(), follower.getPose().getY(), xInput, yInput, rInput);
-            follower.setTeleOpDrive(yInput, xInput, rInput, false);
+            double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getVelocity(), xInput, yInput, rInput );
+            follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], true);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
         }

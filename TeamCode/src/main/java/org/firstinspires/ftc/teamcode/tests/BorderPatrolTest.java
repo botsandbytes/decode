@@ -94,7 +94,7 @@ public class BorderPatrolTest extends OpMode {
         // Passing 0 for current velocity as it seems unused or we don't have it easily
         double[] adjusted = BorderPatrol.adjustDriveInput(
                 follower.getPose(),
-                0.0, 0.0,
+                follower.getVelocity(),
                 strafe, forward, turn
         );
 

@@ -42,7 +42,7 @@ public class BlueTeleOp extends OpMode {
     private IntakeLauncher intakeLauncher;
 
     // State
-    private final Pose startPose = new Pose(72, 72, 0);
+    private final Pose startPose = new Pose(87, 8, Math.toRadians(90)).mirror();
     private final Pose scorePose = new Pose(57, 21, Math.toRadians(68)).mirror();
     private boolean automatedDrive = false;
     private boolean isTurning = false;
@@ -110,11 +110,13 @@ public class BlueTeleOp extends OpMode {
 
     private void handleDrive() {
         if (!automatedDrive) {
-            double yInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_y, 3)));
-            double xInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.left_stick_x, 3)));
+            double yInput = Math.max(-0.5, Math.min(0.5, Math.pow(gamepad1.left_stick_y, 3)));
+            double xInput = Math.max(-0.5, Math.min(0.5, Math.pow(gamepad1.left_stick_x, 3)));
             double rInput = Math.max(-0.5, Math.min(0.5, Math.pow(-gamepad1.right_stick_x, 3)));
 
-            double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(), follower.getPose().getX(), follower.getPose().getY(), xInput, yInput, rInput);
+            double[] robotCentric = BorderPatrol.adjustDriveInput(                follower.getPose(),
+                follower.getVelocity(),
+                xInput, yInput, rInput);
             follower.setTeleOpDrive(yInput, xInput, rInput, false);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
