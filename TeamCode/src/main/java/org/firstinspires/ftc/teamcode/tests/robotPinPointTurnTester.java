@@ -34,7 +34,7 @@ public class robotPinPointTurnTester extends LinearOpMode{
 
         // Drive Motors
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftFront.setDirection(DcMotorSimple.Direction.FORWARD);
         leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBack.setDirection(DcMotorSimple.Direction.REVERSE);
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -77,8 +77,8 @@ public class robotPinPointTurnTester extends LinearOpMode{
         telemetry.update();
         sleep(1000);
         // Apply power (opposite for left/right)
-        leftFront.setPower(-power);
-        rightFront.setPower(power);
+        leftFront.setPower(power);
+        rightFront.setPower(-power);
         leftBack.setPower(-power);
         rightBack.setPower(power);
         while (Math.abs(error) > 1) { // Loop until very close
@@ -102,8 +102,8 @@ public class robotPinPointTurnTester extends LinearOpMode{
             } else {
                 power = Math.max(-max_power, Math.min(max_power, power));
             }
-            leftFront.setPower(-power);
-            rightFront.setPower(power);
+            leftFront.setPower(power);
+            rightFront.setPower(-power);
             leftBack.setPower(-power);
             rightBack.setPower(power);
         }

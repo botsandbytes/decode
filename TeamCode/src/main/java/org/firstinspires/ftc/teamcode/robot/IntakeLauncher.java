@@ -36,6 +36,8 @@ public class IntakeLauncher {
     private static final double INTAKE_TRANSFER_POWER = 1.0;
     public static double HOOD_LONG_POSITION = 0.4;
 
+    public static double minTransferThreashhold = .95;
+
     // Shooting Mode Configuration
     public static boolean AUTO_SHOOT_MODE = true; // true = right trigger does full sequence, false = two-button mode (X then trigger)
 
@@ -216,7 +218,21 @@ public class IntakeLauncher {
         double thetaRadians = Math.asin((MAX_DRIFT_ALLOWED / 2.0) / distanceInches);
 
         return Math.clamp(Math.toDegrees(thetaRadians), 0.5, 2.0);
-}
+    }
+
+    public void takeShot(double launchPower){
+        if (!isShooting) return;
+        double targetVel = MAX_RPM * launchPower;
+        shooter.setVelocity(targetVel);
+        shooter2.setVelocity(targetVel);
+        if (shooter.getVelocity() > 0.95) {
+            intakeMid.setPower(INTAKE_TRANSFER_POWER);
+            intakeFront.setPower(INTAKE_TRANSFER_POWER);
+        } else {
+            intakeMid.setPower(0);
+            intakeFront.setPower(0);
+        }
+    }
 
     public void updateShootingLogic(double launchPower, Pose currentPose) {
         if (!isShooting) return;
@@ -226,7 +242,7 @@ public class IntakeLauncher {
         shooter2.setVelocity(targetVel);
 
         telemetry.addData("current v", Math.abs(shooter.getVelocity()));
-        telemetry.addData("target v", Math.abs(targetVel) * 0.95);
+        telemetry.addData("target v", Math.abs(targetVel) * minTransferThreashhold);
 
         // Calculate turret alignment error
         double robotWorldHeading = currentPose.getHeading();
@@ -251,7 +267,7 @@ public class IntakeLauncher {
         double dynamicTolerance = calculateDynamicTolerance(distance);
 
         // Feed ball when shooter is ready (98% of target velocity) AND turret is within dynamic tolerance
-        boolean velocityReady = Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * 0.95 &&
+        boolean velocityReady = Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * minTransferThreashhold &&
                                 Math.abs(shooter.getVelocity()) < Math.abs(targetVel) * 1.02;
         boolean turretAligned = Math.abs(error) < dynamicTolerance;
 
@@ -259,12 +275,12 @@ public class IntakeLauncher {
         telemetry.addData("Dynamic Tolerance (deg)", dynamicTolerance);
         telemetry.addData("Turret Aligned", turretAligned);
 
-        if (velocityReady && turretAligned) {
+        if (velocityReady) {
             intakeMid.setPower(INTAKE_TRANSFER_POWER);
             intakeFront.setPower(INTAKE_TRANSFER_POWER);
         } else {
             intakeMid.setPower(0);
-            intakeFront.setPower(0.1);
+            intakeFront.setPower(0);
         }
     }
 
