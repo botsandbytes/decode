@@ -36,22 +36,18 @@ public class RedAutoNew extends OpMode {
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45));
     private final Pose scorePose = new Pose(88, 80, Math.toRadians(52));
-    private final Pose drinkPose = new Pose(120, 55, Math.toRadians(45));
+    private final Pose drinkPoseCP = new Pose(96, 72, Math.toRadians(42));
     private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(42));
-    private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0));
+    private final Pose pickup1PoseCP = new Pose(100, 84, Math.toRadians(0));
     private final Pose pickup1PoseEnd = new Pose(123, 84, Math.toRadians(0));
     private final Pose gateAfterPose1 = new Pose(103, 76, Math.toRadians(0));
-    private final Pose gateAfterPose1End = new Pose(122, 76, Math.toRadians(0));
-    private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));
-    private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0));
+    private final Pose pickup2PoseCP = new Pose(84, 55, Math.toRadians(0));
     private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
-    private final Pose pickup2PoseReturn = new Pose(120, 60, Math.toRadians(0));
-    private final Pose pickup3Pose = new Pose(88, 25, Math.toRadians(0));
+    private final Pose pickup3PoseCP = new Pose(88, 25, Math.toRadians(0));
     private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
-    private final Pose pickup3PoseReturn = new Pose(125, 36, Math.toRadians(0));
 
     private Path scorePreload;
-    private PathChain grabPickup1, scorePickup1, drinkPickupStart, drinkPickup, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
+    private PathChain grabPickup1, scorePickup1, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
     private FieldManager field;
 
     public void buildPaths() {
@@ -59,37 +55,22 @@ public class RedAutoNew extends OpMode {
         scorePreload.setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading());
 
         drinkPickupStart = follower.pathBuilder()
-//                .addPath(new BezierLine(scorePose, drinkPose))
-                .addPath(new BezierCurve(scorePose, new Pose(96, 72), drinkPoseEnd ))
+                .addPath(new BezierCurve(scorePose, drinkPoseCP, drinkPoseEnd ))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), drinkPoseEnd.getHeading())
                 .build();
 
-        drinkPickup = follower.pathBuilder()
-                .addPath(new BezierLine(drinkPose, drinkPoseEnd))
-                .setLinearHeadingInterpolation(drinkPose.getHeading(), drinkPoseEnd.getHeading())
-                .setVelocityConstraint(slowVelocity)
-                .build();
-
         drinkPickupScore = follower.pathBuilder()
-//                .addPath(new BezierLine(drinkPoseEnd, drinkPose))
-//                .setLinearHeadingInterpolation(drinkPoseEnd.getHeading(), drinkPose.getHeading())
-//                .addPath(new BezierLine(drinkPose, scorePose))
-//                .setLinearHeadingInterpolation(drinkPose.getHeading(), scorePose.getHeading())
-                .addPath(new BezierCurve(drinkPoseEnd, new Pose(96, 72), scorePose ))
+                .addPath(new BezierCurve(drinkPoseEnd, drinkPoseCP, scorePose ))
                 .setLinearHeadingInterpolation(drinkPoseEnd.getHeading(), scorePose.getHeading())
                 .build();
 
         grabPickup1 = follower.pathBuilder()
-//                .addPath(new BezierLine(scorePose, pickup1Pose))
-//                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup1Pose.getHeading())
-//                .addPath(new BezierLine(pickup1Pose, pickup1PoseEnd))
-//                .setLinearHeadingInterpolation(pickup1Pose.getHeading(), pickup1PoseEnd.getHeading())
-                .addPath(new BezierCurve(scorePose, pickup1Pose, pickup1PoseEnd ))
+                .addPath(new BezierCurve(scorePose, pickup1PoseCP, pickup1PoseEnd ))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup1PoseEnd.getHeading(), .1)
                 .build();
 
         gatePark = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, pickup1Pose, gateAfterPose1 ))
+                .addPath(new BezierCurve(scorePose, pickup1PoseCP, gateAfterPose1 ))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), gateAfterPose1.getHeading(), .1)
                 .build();
 
@@ -99,39 +80,23 @@ public class RedAutoNew extends OpMode {
                 .build();
 
         grabPickup2 = follower.pathBuilder()
-//                .addPath(new BezierLine(scorePose, pickup2Pose))
-//                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup2Pose.getHeading())
-//                .addPath(new BezierLine(pickup2Pose, pickup2PoseEnd))
-//                .setLinearHeadingInterpolation(pickup2Pose.getHeading(), pickup2PoseEnd.getHeading())
-                .addPath(new BezierCurve(scorePose, new Pose(84, 55), pickup2PoseEnd ))
+                .addPath(new BezierCurve(scorePose, pickup2PoseCP, pickup2PoseEnd ))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup2PoseEnd.getHeading(), 0.5)
                 .build();
 
 
         scorePickup2 = follower.pathBuilder()
-//                .addPath(new BezierLine(pickup2PoseEnd, pickup2PoseReturn))
-//                .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), pickup2PoseReturn.getHeading())
-//                .addPath(new BezierLine(pickup2PoseReturn, scorePose))
-//                .setLinearHeadingInterpolation(pickup2PoseReturn.getHeading(), scorePose.getHeading())
-                .addPath(new BezierCurve(pickup2PoseEnd, new Pose(84, 55), scorePose ))
+                .addPath(new BezierCurve(pickup2PoseEnd, pickup2PoseCP, scorePose ))
                 .setLinearHeadingInterpolation(pickup2PoseEnd.getHeading(), scorePose.getHeading())
                 .build();
 
         grabPickup3 = follower.pathBuilder()
-//                .addPath(new BezierLine(scorePose2, pickup3Pose))
-//                .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup3Pose.getHeading())
-//                .addPath(new BezierLine(pickup3Pose, pickup3PoseEnd))
-//                .setLinearHeadingInterpolation(pickup3Pose.getHeading(), pickup3PoseEnd.getHeading())
-                .addPath(new BezierCurve(scorePose, pickup3Pose, pickup3PoseEnd ))
+                .addPath(new BezierCurve(scorePose, pickup3PoseCP, pickup3PoseEnd ))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup3PoseEnd.getHeading(), 0.5)
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-//                .addPath(new BezierLine(pickup3PoseEnd, pickup3PoseReturn))
-//                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), pickup3PoseReturn.getHeading())
-//                .addPath(new BezierLine(pickup3PoseReturn, scorePose))
-//                .setLinearHeadingInterpolation(pickup3PoseReturn.getHeading(), scorePose.getHeading())
-                .addPath(new BezierCurve(pickup3PoseEnd, pickup3Pose,  scorePose))
+                .addPath(new BezierCurve(pickup3PoseEnd, scorePose))
                 .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), scorePose.getHeading())
                 .build();
     }
@@ -145,7 +110,7 @@ public class RedAutoNew extends OpMode {
                 setPathState(1);
             }
             case 1 -> {
-                // score preload & pick up line 2
+                // score preload & go to pick up line 2
                 if (follower.atPose(scorePose, 1, 1)) {
                     intakeLauncher.stopIntake();
                     // score preload
@@ -167,7 +132,6 @@ public class RedAutoNew extends OpMode {
             case 2 -> {
                 // go to score pose for line 2
                 if (!follower.isBusy()) {
-//                    intakeLauncher.runIntake(1, transferPower);
                     intakeLauncher.powerOnLauncher(launchPower);
                     follower.followPath(scorePickup2);
                     setPathState(3);
@@ -220,9 +184,6 @@ public class RedAutoNew extends OpMode {
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
                         intakeLauncher.runIntake(1, transferPower);
-//                        intakeLauncher.powerOnLauncher(launchPower);
-//                        follower.followPath(grabPickup1, true);
-//                        setPathState(8);
                         follower.followPath(drinkPickupStart);
                         setPathState(6);
                     }
@@ -244,7 +205,7 @@ public class RedAutoNew extends OpMode {
                 }
             }
             case 7 -> {
-                // score the drink 2 and go to drink start for round 3
+                // score the drink 2 and go to line 1 for pick up
                 if (follower.atPose(scorePose, 1, 1)) {
                     intakeLauncher.stopIntake();
                     if (!intakeLauncher.isShooting()) {
@@ -274,14 +235,15 @@ public class RedAutoNew extends OpMode {
             case 9 -> {
                 // score line 1 & go to line 3
                 if (follower.atPose(scorePose, 1, 1)) {
-                    // score line 3
+                    intakeLauncher.stopIntake();
+                    // score line 1
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
                     }
                     intakeLauncher.takeShot(launchPower + 0.03);
 //                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
 
-                    // stop shooting and go for drink pick up 1
+                    // stop shooting and go for drink pick up 3
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
                         intakeLauncher.runIntake(1, transferPower);
@@ -291,7 +253,7 @@ public class RedAutoNew extends OpMode {
                 }
             }
             case 10 -> {
-                // go to score pose for line 1
+                // go to score pose for line 3
                 if (!follower.isBusy()) {
                     intakeLauncher.runIntake(1, transferPower);
                     follower.followPath(scorePickup3);
