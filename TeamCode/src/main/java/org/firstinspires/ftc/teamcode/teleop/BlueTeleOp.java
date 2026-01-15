@@ -60,6 +60,13 @@ public class BlueTeleOp extends OpMode {
         initializeSubsystems();
         BorderPatrol.reset();
         BorderPatrol.CURRENT_ALLIANCE = BorderPatrol.Alliance.BLUE;
+        Double poseX = (Double) blackboard.getOrDefault("POSE_X",  startPose.getX());
+        Double poseY = (Double) blackboard.getOrDefault("POSE_Y",  startPose.getY());
+        Double poseHeading = (Double) blackboard.getOrDefault("POSE_HEADING",  startPose.getHeading());
+        follower.setStartingPose(new Pose(poseX, poseY, poseHeading));
+
+        //follower.setStartingPose(startPose);
+        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     private void initializeField() {
@@ -87,9 +94,7 @@ public class BlueTeleOp extends OpMode {
 
     @Override
     public void start() {
-        follower.setStartingPose(startPose);
         follower.startTeleopDrive();
-        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     @Override
