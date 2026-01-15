@@ -31,23 +31,23 @@ public class RedAutoNew extends OpMode {
     private Timer pathTimer;
     private Timer opmodeTimer;
     private int pathState;
-    public static final double launchPower = 0.67;
+    public static final double launchPower = 0.7;
     private final double transferPower = 0.12;
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45));
     private final Pose scorePose = new Pose(88, 80, Math.toRadians(52));
     private final Pose drinkPose = new Pose(120, 55, Math.toRadians(45));
-    private final Pose drinkPoseEnd = new Pose(128, 60.5, Math.toRadians(43));
+    private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(42));
     private final Pose pickup1Pose = new Pose(100, 84, Math.toRadians(0));
-    private final Pose pickup1PoseEnd = new Pose(122, 84, Math.toRadians(0));
-    private final Pose gateAfterPose1 = new Pose(110, 76, Math.toRadians(0));
+    private final Pose pickup1PoseEnd = new Pose(123, 84, Math.toRadians(0));
+    private final Pose gateAfterPose1 = new Pose(103, 76, Math.toRadians(0));
     private final Pose gateAfterPose1End = new Pose(122, 76, Math.toRadians(0));
     private final Pose scorePose2 = new Pose(96, 96, Math.toRadians(45));
     private final Pose pickup2Pose = new Pose(94, 60, Math.toRadians(0));
     private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
     private final Pose pickup2PoseReturn = new Pose(120, 60, Math.toRadians(0));
     private final Pose pickup3Pose = new Pose(88, 25, Math.toRadians(0));
-    private final Pose pickup3PoseEnd = new Pose(128, 36, Math.toRadians(0));
+    private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
     private final Pose pickup3PoseReturn = new Pose(125, 36, Math.toRadians(0));
 
     private Path scorePreload;
@@ -312,7 +312,7 @@ public class RedAutoNew extends OpMode {
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
 //                        intakeLauncher.runIntake(1, transferPower);
-                        follower.followPath(grabPickup1, true);
+                        follower.followPath(gatePark, true);
                         setPathState(12);
                     }
                 }
@@ -366,10 +366,11 @@ public class RedAutoNew extends OpMode {
         follower = Constants.createFollower(hardwareMap);
         intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setInitialHeading(startPose.getHeading());
-        IntakeLauncher.minTransferThreashhold = 0.93;
+        IntakeLauncher.minTransferThreashhold = 0.95;
         intakeLauncher.setGoal(GOAL_X, GOAL_Y);
         buildPaths();
         follower.setStartingPose(startPose);
+        intakeLauncher.setShooterPIDFCoefficients();
     }
 
     @Override

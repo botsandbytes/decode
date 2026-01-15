@@ -18,7 +18,7 @@ public class MaxVelocityTest extends LinearOpMode {
     public static String name = "shooter";
     public static String name2 = "shooter2";
     public static Double power = 1.0;
-    public static Double targetVelocity = 1350.0;
+    public static Double targetVelocity = 1000.0;
     public static PIDFCoefficients pidfCoefficients= new PIDFCoefficients(150, 0, 0, 22.8);
     private TelemetryManager telemetryM;
 

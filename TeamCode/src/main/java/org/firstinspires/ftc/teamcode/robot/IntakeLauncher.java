@@ -225,7 +225,7 @@ public class IntakeLauncher {
         double targetVel = MAX_RPM * launchPower;
         shooter.setVelocity(targetVel);
         shooter2.setVelocity(targetVel);
-        if (shooter.getVelocity() > 0.95) {
+        if (shooter.getVelocity() > minTransferThreashhold) {
             intakeMid.setPower(INTAKE_TRANSFER_POWER);
             intakeFront.setPower(INTAKE_TRANSFER_POWER);
         } else {
@@ -408,6 +408,12 @@ public class IntakeLauncher {
     public void stopShooting() {
         isShooting = false;
         stopLauncher();
+    }
+
+    public void setShooterPIDFCoefficients(){
+        com.qualcomm.robotcore.hardware.PIDFCoefficients shooterPIDFCoefficients= new  com.qualcomm.robotcore.hardware.PIDFCoefficients(150, 0, 0, 22.8);
+        shooter.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, shooterPIDFCoefficients);
+        shooter2.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, shooterPIDFCoefficients);
     }
 
     public boolean isShooting() {
