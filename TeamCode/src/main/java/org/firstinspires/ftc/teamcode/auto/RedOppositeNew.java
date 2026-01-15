@@ -25,29 +25,29 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Autonomous(name = "Red Opposite NEW", group = "Red Auto")
 public class RedOppositeNew extends OpMode {
     public static long drinkWaitTime = 1250;
-    public static double shootWaitTime = 1250;
+    public static double shootWaitTime = 2000;
     private IntakeLauncher intakeLauncher;
     private Follower follower;
     private Timer pathTimer;
     private Timer opmodeTimer;
     private int pathState;
-    public static final double launchPower = 0.7;
+    public static final double launchPower = 0.85;
     private final double transferPower = 0.12;
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
     private final Pose scorePose = new Pose(87, 21, Math.toRadians(68));
-    private final Pose drinkPoseCP = new Pose(96, 72, Math.toRadians(42));
+    private final Pose drinkPoseCP = new Pose(90, 50, Math.toRadians(42));
     private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(42));
-    private final Pose pickup1PoseCP = new Pose(100, 84, Math.toRadians(0));
-    private final Pose pickup1PoseEnd = new Pose(123, 84, Math.toRadians(0));
-    private final Pose gateAfterPose1 = new Pose(103, 76, Math.toRadians(0));
-    private final Pose pickup2PoseCP = new Pose(84, 55, Math.toRadians(0));
+    private final Pose pickup2PoseCP = new Pose(90, 60, Math.toRadians(0));
     private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
-    private final Pose pickup3PoseCP = new Pose(88, 25, Math.toRadians(0));
+    private final Pose pickup3PoseCP = new Pose(90, 40, Math.toRadians(0));
     private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
+    private final Pose pickup4PoseCP = new Pose(100, 84, Math.toRadians(0));
+    private final Pose pickup4PoseEnd = new Pose(90, 15, Math.toRadians(0));
+    private final Pose parkNearPose3 = new Pose(103, 60, Math.toRadians(0));
 
     private Path scorePreload;
-    private PathChain grabPickup1, scorePickup1, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
+    private PathChain grabPickup4, scorePickup4, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
     private FieldManager field;
 
     public void buildPaths() {
@@ -64,19 +64,19 @@ public class RedOppositeNew extends OpMode {
                 .setLinearHeadingInterpolation(drinkPoseEnd.getHeading(), scorePose.getHeading())
                 .build();
 
-        grabPickup1 = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, pickup1PoseCP, pickup1PoseEnd ))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup1PoseEnd.getHeading(), .1)
+        grabPickup4 = follower.pathBuilder()
+                .addPath(new BezierCurve(scorePose, pickup4PoseCP, pickup4PoseEnd ))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup4PoseEnd.getHeading(), .1)
                 .build();
 
         gatePark = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, pickup1PoseCP, gateAfterPose1 ))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), gateAfterPose1.getHeading(), .1)
+                .addPath(new BezierCurve(scorePose,parkNearPose3 ))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), parkNearPose3.getHeading(), .1)
                 .build();
 
-        scorePickup1 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup1PoseEnd, scorePose))
-                .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), scorePose.getHeading())
+        scorePickup4 = follower.pathBuilder()
+                .addPath(new BezierLine(pickup4PoseEnd, scorePose))
+                .setLinearHeadingInterpolation(pickup4PoseEnd.getHeading(), scorePose.getHeading())
                 .build();
 
         grabPickup2 = follower.pathBuilder()
@@ -105,7 +105,7 @@ public class RedOppositeNew extends OpMode {
         switch (pathState) {
             case 0 -> {
                 // go to score preload location
-                intakeLauncher.powerOnLauncher(launchPower-0.02);
+                intakeLauncher.powerOnLauncher(launchPower);
                 follower.followPath(scorePreload);
                 setPathState(1);
             }
@@ -218,7 +218,7 @@ public class RedOppositeNew extends OpMode {
                         intakeLauncher.stopShooting();
                         intakeLauncher.runIntake(1, transferPower);
                         intakeLauncher.powerOnLauncher(launchPower);
-                        follower.followPath(grabPickup1, true);
+                        follower.followPath(grabPickup4, true);
                         setPathState(8);
                     }
                 }
@@ -228,7 +228,7 @@ public class RedOppositeNew extends OpMode {
                 if (!follower.isBusy()) {
                     intakeLauncher.runIntake(1, transferPower);
                     intakeLauncher.powerOnLauncher(launchPower);
-                    follower.followPath(scorePickup1);
+                    follower.followPath(scorePickup4);
                     setPathState(9);
                 }
             }
@@ -247,6 +247,7 @@ public class RedOppositeNew extends OpMode {
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
                         intakeLauncher.runIntake(1, transferPower);
+                        intakeLauncher.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup3);
                         setPathState(10);
                     }
