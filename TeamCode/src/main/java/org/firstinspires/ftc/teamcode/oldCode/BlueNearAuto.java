@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.auto;
+package org.firstinspires.ftc.teamcode.oldCode;
 
 import static org.firstinspires.ftc.teamcode.teleop.BlueTeleOp.GOAL_X;
 import static org.firstinspires.ftc.teamcode.teleop.BlueTeleOp.GOAL_Y;

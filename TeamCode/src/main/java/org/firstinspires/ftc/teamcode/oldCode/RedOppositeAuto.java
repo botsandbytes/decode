@@ -1,7 +1,7 @@
-package org.firstinspires.ftc.teamcode.auto;
+package org.firstinspires.ftc.teamcode.oldCode;
 
-import static org.firstinspires.ftc.teamcode.teleop.BlueTeleOp.GOAL_X;
-import static org.firstinspires.ftc.teamcode.teleop.BlueTeleOp.GOAL_Y;
+import static org.firstinspires.ftc.teamcode.teleop.RedTeleOp.GOAL_X;
+import static org.firstinspires.ftc.teamcode.teleop.RedTeleOp.GOAL_Y;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.field.FieldManager;
@@ -18,12 +18,13 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
+import org.firstinspires.ftc.teamcode.robot.LaunchParameters;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 
 @Configurable
 @Disabled
-@Autonomous(name = "Blue Opposite Auto", group = "Blue Auto")
-public class BlueOppositeAuto extends OpMode {
+@Autonomous(name = "Red Opposite Auto", group = "Red Auto")
+public class RedOppositeAuto extends OpMode {
 
     public static boolean pickupLine2 = false;
     private final double shootPower = 0.905;
@@ -37,20 +38,19 @@ public class BlueOppositeAuto extends OpMode {
 
     private int pathState;
 
-    // Mirrored Poses
-    private final Pose startPose = new Pose(87, 8, Math.toRadians(90)).mirror();
-    private final Pose scorePose = new Pose(87, 21, Math.toRadians(70)).mirror();
-    private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0)).mirror();
-    private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0)).mirror();
-    private final Pose pickup2Pose = new Pose(125, 13, Math.toRadians(0)).mirror();
-    private final Pose pickup2PoseEnd = new Pose(131, 13, Math.toRadians(0)).mirror();
-    private final Pose pickup2PoseEnd2 = new Pose(125, 9.5, Math.toRadians(0)).mirror();
-    private final Pose pickup2PoseEnd3 = new Pose(131, 9.5, Math.toRadians(0)).mirror();
+    private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
+    private final Pose scorePose = new Pose(87, 21, Math.toRadians(68));
+    private final Pose pickup1Pose = new Pose(96, 36, Math.toRadians(0));
+    private final Pose pickup1PoseEnd = new Pose(132, 36, Math.toRadians(0));
+    private final Pose pickup2Pose = new Pose(125, 13, Math.toRadians(0));
+    private final Pose pickup2PoseEnd = new Pose(131, 13, Math.toRadians(0));
+    private final Pose pickup2PoseEnd2 = new Pose(125, 9.5, Math.toRadians(0));
+    private final Pose pickup2PoseEnd3 = new Pose(131, 9.5, Math.toRadians(0));
 
-    private final Pose pickup3Pose = new Pose(94, 60, Math.toRadians(0)).mirror();
-    private final Pose pickup3PoseEnd = new Pose(134, 58, Math.toRadians(0)).mirror();
-    private final Pose pickup4Pose = new Pose(133, 26, Math.toRadians(0)).mirror();
-    private final Pose pickup5Pose = new Pose(133, 42, Math.toRadians(0)).mirror();
+    private final Pose pickup3Pose = new Pose(94, 60, Math.toRadians(0));
+    private final Pose pickup3PoseEnd = new Pose(134, 58, Math.toRadians(0));
+    private final Pose pickup4Pose = new Pose(133, 26, Math.toRadians(0));
+    private final Pose pickup5Pose = new Pose(133, 42, Math.toRadians(0));
 
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3, grabPickup4, scorePickup4, grabPickup5, scorePickup5;
@@ -272,7 +272,8 @@ public class BlueOppositeAuto extends OpMode {
         follower.update();
         autonomousPathUpdate();
 
-        intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
+        LaunchParameters lp = intakeLauncher.calculateLaunchParameters(follower.getPose());
+        intakeLauncher.setTargetTurnAngle(lp.launchAngle());
         intakeLauncher.updateTurret(follower.getPose());
 
         Pose currentPose = follower.getPose();
