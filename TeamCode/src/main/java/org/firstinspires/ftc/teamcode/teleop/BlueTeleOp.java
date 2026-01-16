@@ -45,6 +45,8 @@ public class BlueTeleOp extends OpMode {
 
     // State
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90)).mirror();
+    public static final Pose drinkPose = new Pose(129, 60.5, Math.toRadians(42)).mirror();
+    public static final Pose parkPose = new Pose(37.5, 32, -Math.PI / 2).mirror();
     private final Pose scorePose = RedTeleOp.scorePose.mirror();
     private boolean automatedDrive = false;
     private boolean isTurning = false;
@@ -64,9 +66,9 @@ public class BlueTeleOp extends OpMode {
         Double poseY = (Double) blackboard.getOrDefault("POSE_Y",  startPose.getY());
         Double poseHeading = (Double) blackboard.getOrDefault("POSE_HEADING",  startPose.getHeading());
         follower.setStartingPose(new Pose(poseX, poseY, poseHeading));
-
-        //follower.setStartingPose(startPose);
-        intakeLauncher.setInitialHeading(follower.getHeading());
+        intakeLauncher.setShooterPIDFCoefficients();
+//        follower.setStartingPose(startPose);
+//        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     private void initializeField() {
@@ -95,6 +97,7 @@ public class BlueTeleOp extends OpMode {
     @Override
     public void start() {
         follower.startTeleopDrive();
+        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     @Override
@@ -123,7 +126,7 @@ public class BlueTeleOp extends OpMode {
             double xInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(gamepad1.left_stick_x, 3)));
             double rInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.right_stick_x, 3)));
 
-            double[] robotCentric = BorderPatrol.adjustDriveInput(                follower.getPose(),
+            double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(),
                 follower.getVelocity(),
                 xInput, yInput, rInput);
             follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
@@ -222,13 +225,17 @@ public class BlueTeleOp extends OpMode {
         }
 
         // Auto Drive Override
-        if (gamepad2.dpadLeftWasPressed()) {
+        if (gamepad1.dpadLeftWasPressed()) {
             automatedDrive = true;
-            follower.holdPoint(new Pose(37.497382198952884, 31.929319371727757, -Math.PI / 2).mirror());
+            follower.holdPoint(parkPose);
         }
 
         if (gamepad1.right_trigger > 0.5 && !follower.isBusy()) {
             follower.holdPoint(scorePose);
+        }
+
+        if (gamepad1.left_trigger > 0.5 && !follower.isBusy()) {
+            follower.holdPoint(drinkPose);
         }
 
         if (gamepad2.dpadRightWasPressed() || gamepad1.dpadRightWasPressed()) {

@@ -47,6 +47,8 @@ public class RedTeleOp extends OpMode {
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
 
     public static final Pose scorePose = IntakeLauncher.AlignPose(61, 21, GOAL_X, GOAL_Y);
+    public static final Pose drinkPose = new Pose(129, 60.5, Math.toRadians(42));
+    public static final Pose parkPose = new Pose(37.5, 32, -Math.PI / 2);
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
@@ -66,9 +68,9 @@ public class RedTeleOp extends OpMode {
         Double poseY = (Double) blackboard.getOrDefault("POSE_Y",  startPose.getY());
         Double poseHeading = (Double) blackboard.getOrDefault("POSE_HEADING",  startPose.getHeading());
         follower.setStartingPose(new Pose(poseX, poseY, poseHeading));
-
+        intakeLauncher.setShooterPIDFCoefficients();
         //follower.setStartingPose(startPose);
-        intakeLauncher.setInitialHeading(follower.getHeading());
+//        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     private void initializeField() {
@@ -98,7 +100,7 @@ public class RedTeleOp extends OpMode {
     public void start() {
 //        follower.setStartingPose(startPose);
         follower.startTeleopDrive();
-//        intakeLauncher.setInitialHeading(follower.getHeading());
+        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     @Override
@@ -224,13 +226,17 @@ public class RedTeleOp extends OpMode {
         }
 
         // Auto Drive Override
-        if (gamepad2.dpadLeftWasPressed()) {
+        if (gamepad1.dpadLeftWasPressed()) {
             automatedDrive = true;
-            follower.holdPoint(new Pose(37.497382198952884, 31.929319371727757, -Math.PI / 2));
+            follower.holdPoint(parkPose);
         }
 
         if (gamepad1.right_trigger > 0.5 && !follower.isBusy()) {
             follower.holdPoint(scorePose);
+        }
+
+        if (gamepad1.left_trigger > 0.5 && !follower.isBusy()) {
+            follower.holdPoint(drinkPose);
         }
 
         if (gamepad2.dpadRightWasPressed() || gamepad1.dpadRightWasPressed()) {
