@@ -34,7 +34,7 @@ public class IntakeLauncher {
     // Constants
     private static final int MAX_RPM = 1450;
     private static final double INTAKE_TRANSFER_POWER = 1.0;
-    public static double HOOD_LONG_POSITION = 0.4;
+    public static double HOOD_LONG_POSITION = 0.5;
 
     public static double minTransferThreashhold = .95;
 
@@ -225,7 +225,7 @@ public class IntakeLauncher {
         double targetVel = MAX_RPM * launchPower;
         shooter.setVelocity(targetVel);
         shooter2.setVelocity(targetVel);
-        if (shooter.getVelocity() > minTransferThreashhold) {
+        if (shooter.getVelocity() > (targetVel * minTransferThreashhold)) {
             intakeMid.setPower(INTAKE_TRANSFER_POWER);
             intakeFront.setPower(INTAKE_TRANSFER_POWER);
         } else {
@@ -268,7 +268,7 @@ public class IntakeLauncher {
 
         // Feed ball when shooter is ready (98% of target velocity) AND turret is within dynamic tolerance
         boolean velocityReady = Math.abs(shooter.getVelocity()) > Math.abs(targetVel) * minTransferThreashhold &&
-                                Math.abs(shooter.getVelocity()) < Math.abs(targetVel) * 1.02;
+                                Math.abs(shooter.getVelocity()) < Math.abs(targetVel) * 1.05;
         boolean turretAligned = Math.abs(error) < dynamicTolerance;
 
         telemetry.addData("Turret Error (deg)", error);
@@ -297,7 +297,7 @@ public class IntakeLauncher {
             launchPower = 0.57;
             waitTime = 2000;
         } else {
-            launchPower = 0.57 + ((distance - 33) / 300.0);
+            launchPower = 0.58 + ((distance - 33) / 300.0);
             waitTime = distance * 68;
         }
 
