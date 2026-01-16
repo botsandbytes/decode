@@ -73,7 +73,7 @@ public class DrawingUtil {
         field.update();
     }
 
-    public static void drawBorderPatrolZones(FieldManager field) {
+    public static void drawCasablancaZones(FieldManager field) {
         if (field == null) return;
         // ... (Rest of the file remains unchanged) ...
         // --- RED PROTECTED ZONE (Right Wall) ---

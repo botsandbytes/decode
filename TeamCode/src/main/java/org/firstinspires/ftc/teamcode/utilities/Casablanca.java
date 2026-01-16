@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.utilities.Sentinel.Point;
 import org.firstinspires.ftc.teamcode.utilities.Sentinel.RectangularZone;
 
 @Configurable
-public class BorderPatrol {
+public class Casablanca {
 
     public enum Alliance { RED, BLUE }
     public static Alliance CURRENT_ALLIANCE = Alliance.RED;
@@ -108,7 +108,7 @@ public class BorderPatrol {
         double adjFieldY = inputField.getYComponent();
 
         // ------------------------------------------------------------------
-        // 3. BORDER PATROL LOGIC
+        // 3. Zone Protection LOGIC
         // ------------------------------------------------------------------
 
         double forwardZeroPowerAccel = Constants.followerConstants.getForwardZeroPowerAcceleration();
