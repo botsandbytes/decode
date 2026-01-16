@@ -97,7 +97,7 @@ public class BlueAutoNew extends OpMode {
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierCurve(pickup3PoseEnd, scorePose))
+                .addPath(new BezierLine(pickup3PoseEnd, scorePose))
                 .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), scorePose.getHeading())
                 .build();
     }

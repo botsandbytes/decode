@@ -75,7 +75,7 @@ public class RedAutoNew extends OpMode {
                 .build();
 
         scorePickup1 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup1PoseEnd, scorePose))
+                .addPath(new BezierCurve(pickup1PoseEnd, pickup1PoseCP, scorePose))
                 .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), scorePose.getHeading())
                 .build();
 
@@ -96,7 +96,7 @@ public class RedAutoNew extends OpMode {
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierCurve(pickup3PoseEnd, scorePose))
+                .addPath(new BezierCurve(pickup3PoseEnd, pickup3PoseCP, scorePose))
                 .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), scorePose.getHeading())
                 .build();
     }
@@ -105,7 +105,7 @@ public class RedAutoNew extends OpMode {
         switch (pathState) {
             case 0 -> {
                 // go to score preload location
-                intakeLauncher.powerOnLauncher(launchPower-0.02);
+                intakeLauncher.powerOnLauncher(launchPower);
                 follower.followPath(scorePreload);
                 setPathState(1);
             }

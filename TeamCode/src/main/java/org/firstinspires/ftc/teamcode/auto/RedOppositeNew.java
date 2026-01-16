@@ -35,15 +35,15 @@ public class RedOppositeNew extends OpMode {
     private final double transferPower = 0.12;
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
-    private final Pose scorePose = new Pose(85, 20, Math.toRadians(70));
+    private final Pose scorePose = new Pose(85, 20, Math.toRadians(71));
     private final Pose drinkPoseCP = new Pose(90, 50, Math.toRadians(42));
     private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(42));
     private final Pose pickup2PoseCP = new Pose(84, 68, Math.toRadians(0));
     private final Pose pickup2PoseEnd = new Pose(131, 58, Math.toRadians(0));
     private final Pose pickup3PoseCP = new Pose(84, 40, Math.toRadians(0));
-    private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
+    private final Pose pickup3PoseEnd = new Pose(131, 36, Math.toRadians(0));
     private final Pose pickup4PoseCP = new Pose(94, 20, Math.toRadians(350));
-    private final Pose pickup4PoseEnd = new Pose(130, 12, Math.toRadians(350));
+    private final Pose pickup4PoseEnd = new Pose(131, 13, Math.toRadians(350));
     private final Pose parkNearPose3 = new Pose(103, 20, Math.toRadians(0));
 
     private Path scorePreload;
@@ -105,7 +105,7 @@ public class RedOppositeNew extends OpMode {
         switch (pathState) {
             case 0 -> {
                 // go to score preload location
-                intakeLauncher.powerOnLauncher(launchPower);
+                intakeLauncher.powerOnLauncher(launchPower+0.01);
                 follower.followPath(scorePreload);
                 setPathState(1);
             }
@@ -217,7 +217,7 @@ public class RedOppositeNew extends OpMode {
                     if (intakeLauncher.getShootingDuration() > (shootWaitTime-500)) {
                         intakeLauncher.stopShooting();
                         intakeLauncher.runIntake(1, transferPower);
-//                        intakeLauncher.powerOnLauncher(launchPower);
+                        intakeLauncher.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup3, true);
                         setPathState(8);
                     }
@@ -237,6 +237,7 @@ public class RedOppositeNew extends OpMode {
                 // score line 1 & go to line 3
                 if (!follower.isBusy()) {
                     intakeLauncher.stopIntake();
+                    intakeLauncher.updateTurret(follower.getPose());
                     // score line 1
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
@@ -248,7 +249,7 @@ public class RedOppositeNew extends OpMode {
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
                         intakeLauncher.runIntake(1, transferPower);
-//                        intakeLauncher.powerOnLauncher(launchPower);
+                        intakeLauncher.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup4, true);
                         setPathState(10);
                     }
@@ -267,6 +268,7 @@ public class RedOppositeNew extends OpMode {
                 // score the line 3 and go to line 1 for park
                 if (!follower.isBusy()) {
                     intakeLauncher.stopIntake();
+                    intakeLauncher.updateTurret(follower.getPose());
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
                     }
