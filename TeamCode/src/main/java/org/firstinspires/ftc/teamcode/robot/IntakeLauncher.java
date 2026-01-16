@@ -34,7 +34,7 @@ public class IntakeLauncher {
     // Constants
     private static final int MAX_RPM = 1450;
     private static final double INTAKE_TRANSFER_POWER = 1.0;
-    public static double HOOD_LONG_POSITION = 0.5;
+    public static double HOOD_LONG_POSITION = 0.4;
 
     public static double minTransferThreashhold = .95;
 
