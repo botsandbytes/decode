@@ -17,13 +17,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
-import org.firstinspires.ftc.teamcode.utilities.BorderPatrol;
+import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 
 import java.util.List;
 
-@TeleOp(name = "Border Patrol Test", group = "Test")
-public class BorderPatrolTest extends OpMode {
+@TeleOp(name = "Casablanca Test", group = "Test")
+public class CasablancaTest extends OpMode {
 
     private Follower follower;
     private FieldManager field;
@@ -90,15 +90,15 @@ public class BorderPatrolTest extends OpMode {
                 pedroPose.getHeading()
         );
 
-        // Adjust inputs using BorderPatrol
+        // Adjust inputs using Casablanca
         // Passing 0 for current velocity as it seems unused or we don't have it easily
-        double[] adjusted = BorderPatrol.adjustDriveInput(
+        double[] adjusted = Casablanca.adjustDriveInput(
                 follower.getPose(),
                 follower.getVelocity(),
                 strafe, forward, turn
         );
 
-        // BorderPatrol returns [strafe, forward, turn]
+        // Casablanca returns [strafe, forward, turn]
         // Follower expects [forward, strafe, turn]
         follower.setTeleOpDrive(adjusted[1], adjusted[0], adjusted[2], true);
 
@@ -119,7 +119,7 @@ public class BorderPatrolTest extends OpMode {
 
     private void drawField() {
         if (field != null) {
-            DrawingUtil.drawBorderPatrolZones(field);
+            DrawingUtil.drawCasablancaZones(field);
         DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
                 follower.getPose().getHeading(), Math.toRadians(new IntakeLauncher(hardwareMap, telemetry, follower).getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         }

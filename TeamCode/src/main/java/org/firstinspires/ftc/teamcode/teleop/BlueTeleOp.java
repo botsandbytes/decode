@@ -17,7 +17,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
 import org.firstinspires.ftc.teamcode.robot.LaunchParameters;
-import org.firstinspires.ftc.teamcode.utilities.BorderPatrol;
+import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 import org.firstinspires.ftc.teamcode.utilities.VisionUtil;
@@ -60,8 +60,8 @@ public class BlueTeleOp extends OpMode {
         initializeField();
         initializeHardware();
         initializeSubsystems();
-        BorderPatrol.reset();
-        BorderPatrol.CURRENT_ALLIANCE = BorderPatrol.Alliance.BLUE;
+        Casablanca.reset();
+        Casablanca.CURRENT_ALLIANCE = Casablanca.Alliance.BLUE;
         Double poseX = (Double) blackboard.getOrDefault("POSE_X",  startPose.getX());
         Double poseY = (Double) blackboard.getOrDefault("POSE_Y",  startPose.getY());
         Double poseHeading = (Double) blackboard.getOrDefault("POSE_HEADING",  startPose.getHeading());
@@ -126,7 +126,7 @@ public class BlueTeleOp extends OpMode {
             double xInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(gamepad1.left_stick_x, 3)));
             double rInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.right_stick_x, 3)));
 
-            double[] robotCentric = BorderPatrol.adjustDriveInput(follower.getPose(),
+            double[] robotCentric = Casablanca.adjustDriveInput(follower.getPose(),
                 follower.getVelocity(),
                 xInput, yInput, rInput);
             follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
@@ -295,7 +295,7 @@ public class BlueTeleOp extends OpMode {
     private void drawField() {
         DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
                 follower.getPose().getHeading(), Math.toRadians(intakeLauncher.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
-        DrawingUtil.drawBorderPatrolZones(field);
+        DrawingUtil.drawCasablancaZones(field);
     }
 
     private void updateTelemetry() {
