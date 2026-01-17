@@ -44,7 +44,7 @@ public class BlueOppositeNew extends OpMode {
     private final Pose pickup3PoseEnd = new Pose(12, 36, Math.toRadians(180));
     private final Pose pickup4PoseCP = new Pose(50, 20, Math.toRadians(190));
     private final Pose pickup4PoseEnd = new Pose(12, 11, Math.toRadians(190));
-    private final Pose parkNearPose3 = new Pose(41, 20, Math.toRadians(180));
+    private final Pose parkPose = new Pose(45, 20, Math.toRadians(180));
 
     private Path scorePreload;
     private PathChain grabPickup4, scorePickup4, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
@@ -65,8 +65,8 @@ public class BlueOppositeNew extends OpMode {
                 .build();
 
         gatePark = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose, parkNearPose3 ))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), parkNearPose3.getHeading(), .1)
+                .addPath(new BezierLine(scorePose, parkPose ))
+                .setLinearHeadingInterpolation(scorePose.getHeading(), parkPose.getHeading(), .1)
                 .build();
 
         grabPickup4 = follower.pathBuilder()
@@ -308,7 +308,10 @@ public class BlueOppositeNew extends OpMode {
 
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
         intakeLauncher.updateTurret(follower.getPose());
-
+        if (opmodeTimer.getElapsedTime() > 29000) {
+            intakeLauncher.stopShooting();
+            follower.followPath(gatePark, true);
+        }
         blackboard.put("BLUE_POSE", follower.getPose());
 
         telemetry.addData("path state", pathState);
