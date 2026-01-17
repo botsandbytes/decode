@@ -1,0 +1,72 @@
+=== COMPLETE ===
+
+
+--- TYREUS-LUYBEN (RECOMMENDED) ---
+
+No overshoot, best for turret aiming:
+
+Kp_TL: 0.018026716344634156
+
+Ki_TL: 0.017539534532614472
+
+Kd_TL: 0.0013367554272337562
+
+
+--- ZIEGLER-NICHOLS (AGGRESSIVE) ---
+
+Faster but may overshoot:
+
+Kp_ZN: 0.024035621792845543
+
+Ki_ZN: 0.10289860259133823
+
+Kd_ZN: 0.0014035931985954442
+
+
+Ku: 0.04005936965474257
+
+Pu: 0.467171005
+
+
+RECOMMENDED (Tyreus-Luyben):
+
+PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.0180, 0.017540, 0.001337, 0);
+
+Keep: double f = 0.08;
+
+
+=== COMPLETE ===
+
+
+--- TYREUS-LUYBEN (RECOMMENDED) ---
+
+No overshoot, best for turret aiming:
+
+Kp_TL: 0.018168028427142116
+
+Ki_TL: 0.01782990984418737
+
+Kd_TL: 0.0013356824633816706
+
+
+--- ZIEGLER-NICHOLS (AGGRESSIVE) ---
+
+Faster but may overshoot:
+
+Kp_ZN: 0.02422403790285615
+
+Ki_ZN: 0.1046021377525659
+
+Kd_ZN: 0.0014024665865507541
+
+
+Ku: 0.04037339650476025
+
+Pu: 0.46316525499999994
+
+
+RECOMMENDED (Tyreus-Luyben):
+
+PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.0182, 0.017830, 0.001336, 0);
+
+Keep: double f = 0.08;

@@ -42,7 +42,9 @@ public class IntakeLauncher {
     public static boolean AUTO_SHOOT_MODE = true; // true = right trigger does full sequence, false = two-button mode (X then trigger)
 
     // PIDF Constants (original working values)
-    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01, 0.0005, 0.003, 0);
+//    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01, 0.0005, 0.003, 0);
+    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01835, 0, 0.00135, 0);
+
     double f = 0.08;
     // PIDF f doesn't work, set to 0, and adjust f value above
     PIDFController pidfController = new PIDFController(pidfCoefficients);
@@ -164,6 +166,18 @@ public class IntakeLauncher {
     public void setGoal(double x, double y) {
         this.goalX = x;
         this.goalY = y;
+    }
+
+    public void setTurretPowerRaw(double power) {
+        if (power > 0) {
+            turnServo.setDirection(CRServo.Direction.FORWARD);
+            turnServo.setPower(Math.abs(power));
+        } else if (power < 0) {
+            turnServo.setDirection(CRServo.Direction.REVERSE);
+            turnServo.setPower(Math.abs(power));
+        } else {
+            turnServo.setPower(0);
+        }
     }
 
     public void setInitialHeading(double heading) {
@@ -498,6 +512,20 @@ public class IntakeLauncher {
         rightFront.setPower(min);
         leftBack.setPower(-min);
         rightBack.setPower(min);
+    }
+
+    public void tunemin(double min) {
+        leftFront.setPower(min);
+        rightFront.setPower(min);
+        leftBack.setPower(min);
+        rightBack.setPower(min);
+    }
+
+    public void tuneminside(double min) {
+        leftFront.setPower(-min);
+        rightFront.setPower(min);
+        leftBack.setPower(min);
+        rightBack.setPower(-min);
     }
 
     public void tuneMinTurretPower(double min) {
