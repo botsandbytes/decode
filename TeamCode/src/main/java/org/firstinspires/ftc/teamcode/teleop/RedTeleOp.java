@@ -64,13 +64,10 @@ public class RedTeleOp extends OpMode {
         Casablanca.reset();
         Casablanca.CURRENT_ALLIANCE = Casablanca.Alliance.RED;
 
-        Double poseX = (Double) blackboard.getOrDefault("POSE_X",  startPose.getX());
-        Double poseY = (Double) blackboard.getOrDefault("POSE_Y",  startPose.getY());
-        Double poseHeading = (Double) blackboard.getOrDefault("POSE_HEADING",  startPose.getHeading());
-        follower.setStartingPose(new Pose(poseX, poseY, poseHeading));
+        follower.setStartingPose((Pose) blackboard.get("POSE"));
         intakeLauncher.setShooterPIDFCoefficients();
         //follower.setStartingPose(startPose);
-//        intakeLauncher.setInitialHeading(follower.getHeading());
+        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     private void initializeField() {
@@ -100,7 +97,6 @@ public class RedTeleOp extends OpMode {
     public void start() {
 //        follower.setStartingPose(startPose);
         follower.startTeleopDrive();
-        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     @Override
@@ -115,6 +111,8 @@ public class RedTeleOp extends OpMode {
 
         drawField();
         updateTelemetry();
+
+        blackboard.put("POSE", follower.getPose());
     }
 
     private void clearBulkCache() {
