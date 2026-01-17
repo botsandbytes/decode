@@ -47,7 +47,7 @@ public class BlueTeleOp extends OpMode {
     private final Pose startPose = new Pose(57, 8, Math.toRadians(90));
     public static final Pose drinkPose = new Pose(12, 60.5, Math.toRadians(140));
     public static final Pose parkPose = new Pose(105.5, 31, Math.toRadians(270));
-    private final Pose scorePose = new Pose(83, 21, Math.toRadians(121));; //RedTeleOp.scorePose.mirror();
+    private final Pose scorePose = new Pose(81, 21, Math.toRadians(121));; //RedTeleOp.scorePose.mirror();
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
