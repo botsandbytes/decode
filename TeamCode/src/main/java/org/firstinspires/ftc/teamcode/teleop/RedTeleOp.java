@@ -112,7 +112,7 @@ public class RedTeleOp extends OpMode {
         drawField();
         updateTelemetry();
 
-        blackboard.put("POSE", follower.getPose());
+        blackboard.put("RED_POSE", follower.getPose());
     }
 
     private void clearBulkCache() {

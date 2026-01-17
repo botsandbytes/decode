@@ -225,7 +225,7 @@ public class IntakeLauncher {
     }
 
     public double calculateDynamicTolerance(double distanceInches) {
-        final double MAX_DRIFT_ALLOWED = 6.0;
+        final double MAX_DRIFT_ALLOWED = 4.0;
 
         if (distanceInches < 1.0) return 45.0;
 
@@ -311,7 +311,7 @@ public class IntakeLauncher {
             launchPower = 0.59;
             waitTime = 2000;
         } else {
-            launchPower = 0.62 + ((distance - 33) / 300.0);
+            launchPower = 0.6 + ((distance - 33) / 300.0);
             waitTime = distance * 68;
         }
 
@@ -343,7 +343,7 @@ public class IntakeLauncher {
         double turretWorldAngle = turnIMU.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES) + Math.toDegrees(initialHeadingOffset);
 
         // FIX: targetTurnAngle is now already in degrees
-        double targetWorldAngle = targetTurnAngle+2.5;
+        double targetWorldAngle = targetTurnAngle;
 
         // Convert to robot-relative coordinates
         double relativeTurretAngle = (turretWorldAngle - robotWorldHeading + 360) % 360;

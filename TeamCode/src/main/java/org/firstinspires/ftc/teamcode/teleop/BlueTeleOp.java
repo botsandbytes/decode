@@ -31,7 +31,7 @@ import java.util.List;
 @Configurable
 @TeleOp(name = "TeleOp BLUE", group = "!")
 public class BlueTeleOp extends OpMode {
-    public static double GOAL_X = 15;
+    public static double GOAL_X = 144 - RedTeleOp.GOAL_X;
     public static double GOAL_Y = RedTeleOp.GOAL_Y;
 
     private Follower follower;
