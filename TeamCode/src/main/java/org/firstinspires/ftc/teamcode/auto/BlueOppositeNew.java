@@ -22,7 +22,7 @@ import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 
 @Configurable
-@Autonomous(name = "Red Opposite NEW", group = "Red Auto")
+@Autonomous(name = "Blue Opposite NEW", group = "Blue Auto")
 public class BlueOppositeNew extends OpMode {
     public static long drinkWaitTime = 1250;
     public static double shootWaitTime = 2500;
