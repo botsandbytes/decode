@@ -15,13 +15,15 @@ public class Casablanca {
     public enum Alliance { RED, BLUE }
     public static Alliance CURRENT_ALLIANCE = Alliance.RED;
 
+    // --- FRICTION COMPENSATION (kS) ---
+    public static boolean ENABLE_FRICTION_COMP = true;
+    public static double FRICTION_X = 0.10;   // Forward/Back
+    public static double FRICTION_Y = 0.20;   // Strafe (High resistance)
+    public static double FRICTION_ROT = 0.12; // Turn
+
     // --- SMOOTHING CONFIGURATION ---
     public static boolean ENABLE_INPUT_SMOOTHING = true;
-
-    // Increased smooth time slightly to help with pod lifting
     public static double SMOOTH_TIME = 0.22;
-
-    // Aggressive anti-wheelie protection
     public static boolean EXTRA_SMOOTH_BACK_LIFT = true;
     public static double BACK_LIFT_MULTIPLIER = 2.5;
 
@@ -38,7 +40,6 @@ public class Casablanca {
     public static double SIDE_HARD_STOP = 3.0;
 
     public static double LANE_BLEND_DISTANCE = 12.0;
-
     private static final double ROTATION_LOOKAHEAD_RAD = 0.45;
 
     // --- STATE VARIABLES ---
@@ -47,9 +48,6 @@ public class Casablanca {
     private static double currentStrafe = 0;
     private static double currentTurn = 0;
 
-    /**
-     * Resets the smoothing state. CALL THIS IN TELEOP INIT!
-     */
     public static void reset() {
         timer.resetTimer();
         currentForward = 0;
@@ -57,37 +55,45 @@ public class Casablanca {
         currentTurn = 0;
     }
 
-    /**
-     * Adjusts drive input. Returns [strafe, forward, turn]
-     */
     public static double[] adjustDriveInput(Pose pose, Vector currentVelocity, double strafe, double forward, double turn) {
 
         // ------------------------------------------------------------------
-        // 1. INPUT SMOOTHING (Fixed Startup Freeze)
+        // 1. FRICTION COMPENSATION (Moved to START)
+        // ------------------------------------------------------------------
+        // We apply the "boost" here. Stick 0.01 becomes Motor 0.20.
+        // This creates a "Jump", but we will smooth it in the next step.
+        if (ENABLE_FRICTION_COMP) {
+            forward = applyFriction(forward, FRICTION_X);
+            strafe = applyFriction(strafe, FRICTION_Y);
+            turn = applyFriction(turn, FRICTION_ROT);
+        }
+
+        // ------------------------------------------------------------------
+        // 2. INPUT SMOOTHING (Now handles the kS Jump)
         // ------------------------------------------------------------------
         if (ENABLE_INPUT_SMOOTHING) {
             double dt = timer.getElapsedTimeSeconds();
             timer.resetTimer();
-
-            // FIX: If dt is too large (startup lag), clamp it instead of zeroing it.
             if (dt > 0.2) dt = 0.05;
 
             double maxChange = (1.0 / SMOOTH_TIME) * dt;
 
-            // --- FORWARD SMOOTHING (Anti-Wheelie) ---
+            // --- FORWARD SMOOTHING ---
             double forwardDiff = forward - currentForward;
             double allowedForwardChange = maxChange;
 
-            // If decelerating or reversing (Front pitching down, Back lifting up)
+            // Anti-wheelie logic
             if (EXTRA_SMOOTH_BACK_LIFT && forwardDiff < 0) {
                 allowedForwardChange = maxChange / BACK_LIFT_MULTIPLIER;
             }
 
+            // The slew limiter now sees the jump from 0 -> 0.20 and ramps it
+            // safely over several frames.
             currentForward = applySlewLimit(currentForward, forward, allowedForwardChange);
 
             // --- STRAFE & TURN ---
             currentStrafe = applySlewLimit(currentStrafe, strafe, maxChange);
-            currentTurn = applySlewLimit(currentTurn, turn, maxChange * 2.5); // Snappy turning
+            currentTurn = applySlewLimit(currentTurn, turn, maxChange * 2.5);
 
             forward = currentForward;
             strafe = currentStrafe;
@@ -95,21 +101,14 @@ public class Casablanca {
         }
 
         // ------------------------------------------------------------------
-        // 2. VECTOR CONSTRUCTION (API COMPLIANT FIX)
+        // 3. VECTOR & ZONE LOGIC (Standard)
         // ------------------------------------------------------------------
-
-        // FIX: Used setOrthogonalComponents instead of non-existent setters
         Vector inputRobot = new Vector();
-        inputRobot.setOrthogonalComponents(forward, strafe); // X=Forward, Y=Strafe in Pedro
+        inputRobot.setOrthogonalComponents(forward, strafe);
 
         Vector inputField = rotateVector(inputRobot, pose.getHeading());
-
         double adjFieldX = inputField.getXComponent();
         double adjFieldY = inputField.getYComponent();
-
-        // ------------------------------------------------------------------
-        // 3. Zone Protection LOGIC
-        // ------------------------------------------------------------------
 
         double forwardZeroPowerAccel = Constants.followerConstants.getForwardZeroPowerAcceleration();
         double lateralZeroPowerAccel = Constants.followerConstants.getLateralZeroPowerAcceleration();
@@ -134,7 +133,7 @@ public class Casablanca {
             protectedZone.minX(), protectedZone.maxX(), LANE_BLEND_DISTANCE
         );
 
-        // --- X AXIS (Depth) ---
+        // Zone Protection logic...
         if (ENABLE_DEPTH_PROTECTION && laneFadeY > 0) {
             AxisState xState = calculateAxisState(
                 robotBounds.minX, robotBounds.maxX,
@@ -152,7 +151,6 @@ public class Casablanca {
             }
         }
 
-        // --- Y AXIS (Side) ---
         if (ENABLE_SIDE_PROTECTION && laneFadeX > 0) {
             AxisState yState = calculateAxisState(
                 robotBounds.minY, robotBounds.maxY,
@@ -170,29 +168,32 @@ public class Casablanca {
             }
         }
 
-        // Rotation Protection
         if (turn != 0 && !isRotationSafe(pose, turn, protectedZone)) {
             turn = 0;
         }
 
         // Convert Back to Robot Centric
-        // FIX: Correct API usage
         Vector adjField = new Vector();
         adjField.setOrthogonalComponents(adjFieldX, adjFieldY);
-
         Vector adjRobot = rotateVector(adjField, -pose.getHeading());
 
-        // Return [Strafe, Forward, Turn] for TeleOp consumption
         return new double[]{adjRobot.getYComponent(), adjRobot.getXComponent(), turn};
     }
 
     // --- HELPER METHODS ---
+
+    private static double applyFriction(double input, double kS) {
+        if (Math.abs(input) < 0.01) return 0;
+        return Math.signum(input) * (kS + Math.abs(input) * (1.0 - kS));
+    }
 
     private static double applySlewLimit(double current, double target, double maxChange) {
         double diff = target - current;
         if (Math.abs(diff) <= maxChange) return target;
         return current + Math.signum(diff) * maxChange;
     }
+
+    // ... (Keep remaining helper methods: calculateLaneFade, calculateAxisState, rotateVector, etc.) ...
 
     private static double calculateLaneFade(double botMin, double botMax, double zoneMin, double zoneMax, double buffer) {
         double distToStrict = Math.max(zoneMin - botMax, botMin - zoneMax);
@@ -206,7 +207,6 @@ public class Casablanca {
                                                 double heading, double axisAngle,
                                                 double fwdAccel, double latAccel,
                                                 double slowDownDist, double hardStopDist) {
-
         AxisState state = new AxisState();
         double distToStop = -1.0;
         boolean movingTowards = false;
@@ -216,16 +216,14 @@ public class Casablanca {
             distToStop = zoneMin - botMax;
             repulsionDir = -1.0;
             if (currentVel > 0 || inputVel > 0) movingTowards = true;
-        }
-        else if (botMin >= zoneMax) {
+        } else if (botMin >= zoneMax) {
             distToStop = botMin - zoneMax;
             repulsionDir = 1.0;
             if (currentVel < 0 || inputVel < 0) movingTowards = true;
-        }
-        else {
+        } else {
+            state.triggerRepulsion = true;
             double zoneCenter = (zoneMin + zoneMax) / 2.0;
             double botCenter = (botMin + botMax) / 2.0;
-            state.triggerRepulsion = true;
             state.repulsionDir = (botCenter < zoneCenter) ? -1.0 : 1.0;
             state.scale = 0.0;
             return state;
@@ -244,30 +242,22 @@ public class Casablanca {
             return state;
         }
 
-        // --- LIMIT 1: PROXIMITY (Only applies when close) ---
         double proximityScale = 1.0;
         if (distToStop < slowDownDist) {
             proximityScale = (distToStop - hardStopDist) / (slowDownDist - hardStopDist);
         }
 
-        // --- LIMIT 2: PHYSICS (Always applies) ---
-        // This was previously hidden inside the "if (distToStop < slowDownDist)" block.
-        // Moving it out allows it to catch high-speed approaches from far away.
         double physicsScale = 1.0;
         if (Math.abs(currentVel) > 0.2) {
             double decel = calculateEffectiveDecel(heading, axisAngle, fwdAccel, latAccel);
             decel *= DECEL_SAFETY_FACTOR;
             if (decel < 1e-6) decel = 0.1;
-
             double brakingDistance = Math.max(0, distToStop - hardStopDist);
             double maxSafeSpeed = Math.sqrt(2 * decel * brakingDistance);
-
             if (Math.abs(currentVel) > maxSafeSpeed) {
                 physicsScale = maxSafeSpeed / Math.abs(currentVel);
             }
         }
-
-        // Take the most restrictive limit
         state.scale = Math.min(proximityScale, physicsScale);
         return state;
     }
@@ -276,11 +266,7 @@ public class Casablanca {
         double predictedDelta = Math.signum(turnInput) * ROTATION_LOOKAHEAD_RAD;
         Pose futurePose = new Pose(currentPose.getX(), currentPose.getY(), currentPose.getHeading() + predictedDelta);
         Point[] futureFootprint = Sentinel.calculateRobotFootprint(futurePose);
-
-        boolean willViolate = (zone == Sentinel.BLUE_GOAL_ZONE)
-            ? Sentinel.doesViolateBlueGoal(futureFootprint)
-            : Sentinel.doesViolateRedGoal(futureFootprint);
-
+        boolean willViolate = (zone == Sentinel.BLUE_GOAL_ZONE) ? Sentinel.doesViolateBlueGoal(futureFootprint) : Sentinel.doesViolateRedGoal(futureFootprint);
         return !willViolate || ((zone == Sentinel.BLUE_GOAL_ZONE) ? Sentinel.doesViolateBlueGoal(Sentinel.calculateRobotFootprint(currentPose)) : Sentinel.doesViolateRedGoal(Sentinel.calculateRobotFootprint(currentPose)));
     }
 
@@ -291,7 +277,6 @@ public class Casablanca {
         return Math.max(fwdComponent, latComponent);
     }
 
-    // FIX: Updated to use setOrthogonalComponents to match Vector API
     private static Vector rotateVector(Vector v, double angleRadians) {
         Vector ret = new Vector();
         double newX = v.getXComponent() * Math.cos(angleRadians) - v.getYComponent() * Math.sin(angleRadians);
