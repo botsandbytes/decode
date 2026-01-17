@@ -36,8 +36,8 @@ public class RedOppositeNew extends OpMode {
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
     private final Pose scorePose = new Pose(85, 20, Math.toRadians(71));
-    private final Pose drinkPoseCP = new Pose(90, 50, Math.toRadians(42));
-    private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(42));
+    private final Pose drinkPoseCP = new Pose(90, 50, Math.toRadians(40));
+    private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(40));
     private final Pose pickup2PoseCP = new Pose(84, 68, Math.toRadians(0));
     private final Pose pickup2PoseEnd = new Pose(131, 58, Math.toRadians(0));
     private final Pose pickup3PoseCP = new Pose(84, 40, Math.toRadians(0));
@@ -309,10 +309,7 @@ public class RedOppositeNew extends OpMode {
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
         intakeLauncher.updateTurret(follower.getPose());
 
-        Pose currentPose = follower.getPose();
-        blackboard.put("POSE_X", currentPose.getX());
-        blackboard.put("POSE_Y", currentPose.getY());
-        blackboard.put("POSE_HEADING", currentPose.getHeading());
+        blackboard.put("RED_POSE", follower.getPose());
 
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());
@@ -328,7 +325,7 @@ public class RedOppositeNew extends OpMode {
         pathTimer = new Timer();
         opmodeTimer = new Timer();
         opmodeTimer.resetTimer();
-
+        blackboard.clear();
         follower = Constants.createFollower(hardwareMap);
         intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setInitialHeading(startPose.getHeading());

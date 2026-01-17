@@ -23,7 +23,7 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Configurable
 @Autonomous(name = "Red Auto NEW", group = "Red Auto")
 public class RedAutoNew extends OpMode {
-    public static double slowVelocity = 5;
+    public static boolean drinTwice = true;
     public static long drinkWaitTime = 1250;
     public static double shootWaitTime = 1250;
     private IntakeLauncher intakeLauncher;
@@ -140,7 +140,7 @@ public class RedAutoNew extends OpMode {
             }
             case 3 -> {
                 // score line 2 & go to drink gate start round 1
-                if (follower.atPose(scorePose, 1, 1)) {
+                if (follower.atPose(scorePose, 1, 1) && drinTwice) {
                     intakeLauncher.stopIntake();
                     // score preload
                     if (!intakeLauncher.isShooting()) {
@@ -159,7 +159,7 @@ public class RedAutoNew extends OpMode {
             }
             case 4 -> {
                 // drink balls and go to score pose
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() && drinTwice) {
                     // drink
                     try {
                         sleep(drinkWaitTime);

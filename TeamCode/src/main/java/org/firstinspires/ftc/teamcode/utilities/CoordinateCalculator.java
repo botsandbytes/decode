@@ -5,7 +5,7 @@ import java.util.Scanner;
 public class CoordinateCalculator {
 
     // Define the fixed goal coordinates
-    private static final double GOAL_X = 127.0;
+    private static final double GOAL_X = 15.0;
     private static final double GOAL_Y = 135.0;
 
     public static void main(String[] args) {

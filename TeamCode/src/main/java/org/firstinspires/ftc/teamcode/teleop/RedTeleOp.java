@@ -48,7 +48,7 @@ public class RedTeleOp extends OpMode {
 
     public static final Pose scorePose = IntakeLauncher.AlignPose(61, 21, GOAL_X, GOAL_Y);
     public static final Pose drinkPose = new Pose(129, 60.5, Math.toRadians(42));
-    public static final Pose parkPose = new Pose(37.5, 32, -Math.PI / 2);
+    public static final Pose parkPose = new Pose(37.5, 32, Math.toRadians(270));
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
@@ -230,6 +230,7 @@ public class RedTeleOp extends OpMode {
         }
 
         if (gamepad1.right_trigger > 0.5 && !follower.isBusy()) {
+            intakeLauncher.setHoodLongShotPosition();
             follower.holdPoint(scorePose);
         }
 

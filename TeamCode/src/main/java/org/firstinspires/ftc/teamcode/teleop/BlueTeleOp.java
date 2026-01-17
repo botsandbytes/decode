@@ -31,7 +31,7 @@ import java.util.List;
 @Configurable
 @TeleOp(name = "TeleOp BLUE", group = "!")
 public class BlueTeleOp extends OpMode {
-    public static double GOAL_X = 144 - RedTeleOp.GOAL_X-3;
+    public static double GOAL_X = 15;
     public static double GOAL_Y = RedTeleOp.GOAL_Y;
 
     private Follower follower;
@@ -44,10 +44,10 @@ public class BlueTeleOp extends OpMode {
     private IntakeLauncher intakeLauncher;
 
     // State
-    private final Pose startPose = new Pose(87, 8, Math.toRadians(90)).mirror();
-    public static final Pose drinkPose = new Pose(129, 60.5, Math.toRadians(42)).mirror();
-    public static final Pose parkPose = new Pose(37.5, 32, -Math.PI / 2).mirror();
-    private final Pose scorePose = IntakeLauncher.AlignPose(144-61, 21, GOAL_X, GOAL_Y); //RedTeleOp.scorePose.mirror();
+    private final Pose startPose = new Pose(57, 8, Math.toRadians(90));
+    public static final Pose drinkPose = new Pose(12, 60.5, Math.toRadians(140));
+    public static final Pose parkPose = new Pose(105.5, 31, Math.toRadians(270));
+    private final Pose scorePose = new Pose(83, 21, Math.toRadians(121));; //RedTeleOp.scorePose.mirror();
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
@@ -111,7 +111,7 @@ public class BlueTeleOp extends OpMode {
         drawField();
         updateTelemetry();
 
-        blackboard.put("POSE", follower.getPose());
+        blackboard.put("BLUE_POSE", follower.getPose());
     }
 
     private void clearBulkCache() {
@@ -231,6 +231,7 @@ public class BlueTeleOp extends OpMode {
         }
 
         if (gamepad1.right_trigger > 0.5 && !follower.isBusy()) {
+            intakeLauncher.setHoodLongShotPosition();
             follower.holdPoint(scorePose);
         }
 
