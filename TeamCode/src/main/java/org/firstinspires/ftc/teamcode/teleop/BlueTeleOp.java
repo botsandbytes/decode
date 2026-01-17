@@ -31,7 +31,7 @@ import java.util.List;
 @Configurable
 @TeleOp(name = "TeleOp BLUE", group = "!")
 public class BlueTeleOp extends OpMode {
-    public static double GOAL_X = 144 - RedTeleOp.GOAL_X;
+    public static double GOAL_X = 144 - RedTeleOp.GOAL_X-3;
     public static double GOAL_Y = RedTeleOp.GOAL_Y;
 
     private Follower follower;
@@ -47,7 +47,7 @@ public class BlueTeleOp extends OpMode {
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90)).mirror();
     public static final Pose drinkPose = new Pose(129, 60.5, Math.toRadians(42)).mirror();
     public static final Pose parkPose = new Pose(37.5, 32, -Math.PI / 2).mirror();
-    private final Pose scorePose = RedTeleOp.scorePose.mirror();
+    private final Pose scorePose = IntakeLauncher.AlignPose(144-61, 21, GOAL_X, GOAL_Y); //RedTeleOp.scorePose.mirror();
     private boolean automatedDrive = false;
     private boolean isTurning = false;
     private Pose holdPose;
@@ -62,13 +62,11 @@ public class BlueTeleOp extends OpMode {
         initializeSubsystems();
         Casablanca.reset();
         Casablanca.CURRENT_ALLIANCE = Casablanca.Alliance.BLUE;
-        Double poseX = (Double) blackboard.getOrDefault("POSE_X",  startPose.getX());
-        Double poseY = (Double) blackboard.getOrDefault("POSE_Y",  startPose.getY());
-        Double poseHeading = (Double) blackboard.getOrDefault("POSE_HEADING",  startPose.getHeading());
-        follower.setStartingPose(new Pose(poseX, poseY, poseHeading));
+
+        follower.setStartingPose((Pose) blackboard.get("BLUE_POSE"));
         intakeLauncher.setShooterPIDFCoefficients();
-//        follower.setStartingPose(startPose);
-//        intakeLauncher.setInitialHeading(follower.getHeading());
+        //follower.setStartingPose(startPose);
+        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     private void initializeField() {
@@ -112,6 +110,8 @@ public class BlueTeleOp extends OpMode {
 
         drawField();
         updateTelemetry();
+
+        blackboard.put("POSE", follower.getPose());
     }
 
     private void clearBulkCache() {

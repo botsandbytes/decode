@@ -25,7 +25,7 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 public class RedAutoNew extends OpMode {
     public static double slowVelocity = 5;
     public static long drinkWaitTime = 1250;
-    public static double shootWaitTime = 1300;
+    public static double shootWaitTime = 1250;
     private IntakeLauncher intakeLauncher;
     private Follower follower;
     private Timer pathTimer;
@@ -36,8 +36,9 @@ public class RedAutoNew extends OpMode {
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45));
     private final Pose scorePose = new Pose(88, 80, Math.toRadians(52));
+    private final Pose endScorePose = new Pose(87, 104, Math.toRadians(45));
     private final Pose drinkPoseCP = new Pose(96, 72, Math.toRadians(40));
-    private final Pose drinkPoseEnd = new Pose(129, 60, Math.toRadians(40));
+    private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(40));
     private final Pose pickup1PoseCP = new Pose(100, 84, Math.toRadians(0));
     private final Pose pickup1PoseEnd = new Pose(123, 84, Math.toRadians(0));
     private final Pose gateAfterPose1 = new Pose(103, 76, Math.toRadians(0));
@@ -96,8 +97,8 @@ public class RedAutoNew extends OpMode {
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierCurve(pickup3PoseEnd, pickup3PoseCP, scorePose))
-                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), scorePose.getHeading())
+                .addPath(new BezierCurve(pickup3PoseEnd, pickup3PoseCP, endScorePose))
+                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), endScorePose.getHeading())
                 .build();
     }
 
@@ -274,7 +275,7 @@ public class RedAutoNew extends OpMode {
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
 //                        intakeLauncher.runIntake(1, transferPower);
-                        follower.followPath(gatePark, true);
+//                        follower.followPath(gatePark, true);
                         setPathState(12);
                     }
                 }
@@ -305,7 +306,11 @@ public class RedAutoNew extends OpMode {
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
         intakeLauncher.updateTurret(follower.getPose());
 
-        blackboard.put("POSE", follower.getPose());
+        blackboard.put("RED_POSE", follower.getPose());
+//
+//        if (opmodeTimer.getElapsedTime() > 29000) {
+//            follower.followPath(gatePark, true);
+//        }
 
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());
@@ -321,11 +326,11 @@ public class RedAutoNew extends OpMode {
         pathTimer = new Timer();
         opmodeTimer = new Timer();
         opmodeTimer.resetTimer();
-
+        blackboard.clear();
         follower = Constants.createFollower(hardwareMap);
         intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setInitialHeading(startPose.getHeading());
-        IntakeLauncher.minTransferThreashhold = 0.95;
+        IntakeLauncher.minTransferThreashhold = 0.93;
         intakeLauncher.setGoal(GOAL_X, GOAL_Y);
         buildPaths();
         follower.setStartingPose(startPose);

@@ -25,6 +25,8 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Autonomous(name = "Blue Auto NEW", group = "Blue Auto")
 public class BlueAutoNew extends OpMode {
     public static double slowVelocity = 5;
+
+    public static double blueAdjustment = 144;
     public static long drinkWaitTime = 1250;
     public static double shootWaitTime = 1250;
     private IntakeLauncher intakeLauncher;
@@ -35,17 +37,18 @@ public class BlueAutoNew extends OpMode {
     public static final double launchPower = 0.7;
     private final double transferPower = 0.12;
 
-    private final Pose startPose = new Pose(117, 128, Math.toRadians(45)).mirror();
-    private final Pose scorePose = new Pose(88, 80, Math.toRadians(52)).mirror();
-    private final Pose drinkPoseCP = new Pose(96, 72, Math.toRadians(42)).mirror();
-    private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(42)).mirror();
-    private final Pose pickup1PoseCP = new Pose(100, 84, Math.toRadians(0)).mirror();
-    private final Pose pickup1PoseEnd = new Pose(123, 84, Math.toRadians(0)).mirror();
-    private final Pose gateAfterPose1 = new Pose(103, 76, Math.toRadians(0)).mirror();
-    private final Pose pickup2PoseCP = new Pose(84, 55, Math.toRadians(0)).mirror();
-    private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0)).mirror();
-    private final Pose pickup3PoseCP = new Pose(88, 25, Math.toRadians(0)).mirror();
-    private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0)).mirror();
+    private final Pose startPose = new Pose(blueAdjustment-117, 128, Math.toRadians(180-45));
+    private final Pose scorePose = new Pose(blueAdjustment-88, 80, Math.toRadians(180-52));
+    private final Pose endScorePose = new Pose(blueAdjustment-87, 104, Math.toRadians(180-45));
+    private final Pose drinkPoseCP = new Pose(blueAdjustment-96, 72, Math.toRadians(180-40));
+    private final Pose drinkPoseEnd = new Pose(blueAdjustment-129-3, 60.5, Math.toRadians(180-40));
+    private final Pose pickup1PoseCP = new Pose(blueAdjustment-100, 84, Math.toRadians(180-0));
+    private final Pose pickup1PoseEnd = new Pose(blueAdjustment - 123-2, 84, Math.toRadians(180-0));
+    private final Pose gateAfterPose1 = new Pose(blueAdjustment - 103, 76, Math.toRadians(180-0));
+    private final Pose pickup2PoseCP = new Pose(blueAdjustment - 84, 55, Math.toRadians(180-0));
+    private final Pose pickup2PoseEnd = new Pose(blueAdjustment - 130-2, 60, Math.toRadians(180-0));
+    private final Pose pickup3PoseCP = new Pose(blueAdjustment - 88, 25, Math.toRadians(180-0));
+    private final Pose pickup3PoseEnd = new Pose(blueAdjustment - 130-2, 36, Math.toRadians(180-0));
 
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
@@ -97,8 +100,8 @@ public class BlueAutoNew extends OpMode {
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup3PoseEnd, scorePose))
-                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), scorePose.getHeading())
+                .addPath(new BezierLine(pickup3PoseEnd, endScorePose))
+                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), endScorePose.getHeading())
                 .build();
     }
 
@@ -202,7 +205,7 @@ public class BlueAutoNew extends OpMode {
                     // go to score pose
                     intakeLauncher.powerOnLauncher(launchPower);
                     follower.followPath(drinkPickupScore);
-                    setPathState(7);
+                    setPathState(12);
                 }
             }
             case 7 -> {
@@ -275,7 +278,7 @@ public class BlueAutoNew extends OpMode {
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
 //                        intakeLauncher.runIntake(1, transferPower);
-                        follower.followPath(gatePark, true);
+//                        follower.followPath(gatePark, true);
                         setPathState(12);
                     }
                 }
@@ -306,10 +309,11 @@ public class BlueAutoNew extends OpMode {
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
         intakeLauncher.updateTurret(follower.getPose());
 
-        Pose currentPose = follower.getPose();
-        blackboard.put("POSE_X", currentPose.getX());
-        blackboard.put("POSE_Y", currentPose.getY());
-        blackboard.put("POSE_HEADING", currentPose.getHeading());
+        blackboard.put("BLUE_POSE", follower.getPose());
+
+//        if (opmodeTimer.getElapsedTime() > 29000) {
+//            follower.followPath(gatePark, true);
+//        }
 
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());
@@ -325,11 +329,11 @@ public class BlueAutoNew extends OpMode {
         pathTimer = new Timer();
         opmodeTimer = new Timer();
         opmodeTimer.resetTimer();
-
+        blackboard.clear();
         follower = Constants.createFollower(hardwareMap);
         intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
         intakeLauncher.setInitialHeading(startPose.getHeading());
-        IntakeLauncher.minTransferThreashhold = 0.95;
+        IntakeLauncher.minTransferThreashhold = 0.93;
         intakeLauncher.setGoal(GOAL_X, GOAL_Y);
         buildPaths();
         follower.setStartingPose(startPose);

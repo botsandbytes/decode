@@ -64,7 +64,7 @@ public class RedTeleOp extends OpMode {
         Casablanca.reset();
         Casablanca.CURRENT_ALLIANCE = Casablanca.Alliance.RED;
 
-        follower.setStartingPose((Pose) blackboard.get("POSE"));
+        follower.setStartingPose((Pose) blackboard.get("RED_POSE"));
         intakeLauncher.setShooterPIDFCoefficients();
         //follower.setStartingPose(startPose);
         intakeLauncher.setInitialHeading(follower.getHeading());
@@ -95,8 +95,8 @@ public class RedTeleOp extends OpMode {
 
     @Override
     public void start() {
-//        follower.setStartingPose(startPose);
         follower.startTeleopDrive();
+        intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
     @Override
