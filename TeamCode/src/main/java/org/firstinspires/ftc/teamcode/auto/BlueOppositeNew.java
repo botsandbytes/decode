@@ -313,7 +313,7 @@ public class BlueOppositeNew extends OpMode {
 
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
         intakeLauncher.updateTurret(follower.getPose());
-        if (opmodeTimer.getElapsedTime() > 280500) {
+        if (opmodeTimer.getElapsedTime() > 28500) {
             intakeLauncher.stopShooting();
             follower.followPath(gatePark, true);
         }
