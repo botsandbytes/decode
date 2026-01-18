@@ -63,9 +63,14 @@ public class BlueTeleOp extends OpMode {
         Casablanca.reset();
         Casablanca.CURRENT_ALLIANCE = Casablanca.Alliance.BLUE;
 
-        follower.setStartingPose((Pose) blackboard.get("BLUE_POSE"));
+        Pose blackboardPose = (Pose) blackboard.get("BLUE_POSE");
+        if (blackboardPose != null) {
+            follower.setStartingPose(blackboardPose);
+        } else {
+            follower.setStartingPose(startPose);
+        }
+
         intakeLauncher.setShooterPIDFCoefficients();
-        //follower.setStartingPose(startPose);
         intakeLauncher.setInitialHeading(follower.getHeading());
     }
 
@@ -279,15 +284,16 @@ public class BlueTeleOp extends OpMode {
 
     private void handleVision() {
         if (gamepad2.dpad_down) {
-            Pose2D visionPose = vision.updateAprilTagPose();
+            Pose visionPose = vision.updateAprilTagPose();
             if (vision.isTagFound()) {
-                Pose pedroPose = PoseConverter.pose2DToPose(visionPose, InvertedFTCCoordinates.INSTANCE)
-                        .getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-                Pose newPose = new Pose(pedroPose.getX(), pedroPose.getY(), follower.getHeading());
-                follower.setPose(newPose);
+                follower.setPose(visionPose);
+                telemetryM.addLine("Field Pose is: X: " + visionPose.getX() + " Y: " + visionPose.getY() + "Heading: " + visionPose.getHeading());
+                telemetry.addLine("Camera Pose UPDATED");
+                telemetry.addLine("Field Pose is: X: " + visionPose.getX() + " Y: " + visionPose.getY() + "Heading: " + visionPose.getHeading());
+                telemetry.update();
             }
             else {
-                telemetry.addData("Vision", "No Tag Found");
+                telemetryM.addData("Vision", "No Tag Found");
             }
             vision.stopStreaming();
         }

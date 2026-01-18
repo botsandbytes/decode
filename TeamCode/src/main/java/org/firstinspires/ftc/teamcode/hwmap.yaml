@@ -1,10 +1,10 @@
 Robot:
   Control Hub:
     Motors (5202/3/4):
-      0: rightBack
-      1: leftBack
-      2: rightFront
-      3: leftFront
+      0: leftFront
+      1: rightFront
+      2: leftBack
+      3: rightBack
     Servos:
     Digital Devices:
     Analog Input Devices:
@@ -15,22 +15,22 @@ Robot:
       3:
   Expansion Hub:
     Motors (5202/2/4):
-      0:
-      1: intakeFront
-      2: intakeMid
+      0:intakeFront
+      1: intakeMid
+      2: shooter2
       3: shooter
     Servos:
       0:
       1:
       2:
-      3 (CR SERVO): turn
-      4 (SERVO): hood
-      5 (SERVO): light
+      3 (SERVO): hood
+      4 (CR SERVO): turn
+      5 (SERVO): gate
     Digital Devices:
     Analog Input Devices:
     I2C:
       0 (REV 2M Distance Sensor): inputD
-      1:
-      2 (9-axis IMU): turnImu
+      1: turnImu
+      2 (9-axis IMU):
       3:
   Webcam: Webcam 1

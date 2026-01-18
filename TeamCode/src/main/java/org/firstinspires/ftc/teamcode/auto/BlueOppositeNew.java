@@ -31,7 +31,7 @@ public class BlueOppositeNew extends OpMode {
     private Timer pathTimer;
     private Timer opmodeTimer;
     private int pathState;
-    public static final double launchPower = 0.88;
+    public static final double launchPower = 0.86;
     private final double transferPower = 0.12;
 
     private final Pose startPose = new Pose(57, 8, Math.toRadians(90));
@@ -105,7 +105,7 @@ public class BlueOppositeNew extends OpMode {
         switch (pathState) {
             case 0 -> {
                 // go to score preload location
-                intakeLauncher.powerOnLauncher(launchPower+0.01);
+                intakeLauncher.powerOnLauncher(launchPower+0.02);
                 follower.followPath(scorePreload);
                 setPathState(1);
             }
@@ -133,7 +133,7 @@ public class BlueOppositeNew extends OpMode {
             case 2 -> {
                 // go to score pose for line 2
                 if (!follower.isBusy()) {
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    intakeLauncher.powerOnLauncher(launchPower+0.02);
                     follower.followPath(scorePickup2);
                     setPathState(5);
                 }
@@ -202,7 +202,7 @@ public class BlueOppositeNew extends OpMode {
                         throw new RuntimeException(e);
                     }
                     // go to score pose
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    intakeLauncher.powerOnLauncher(launchPower+0.02);
                     follower.followPath(drinkPickupScore);
                     setPathState(7);
                 }
@@ -265,7 +265,7 @@ public class BlueOppositeNew extends OpMode {
                 if (!follower.isBusy()) {
                     intakeLauncher.runIntake(1, transferPower);
                     follower.followPath(scorePickup4);
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    intakeLauncher.powerOnLauncher(launchPower+0.02);
                     setPathState(11);
                 }
             }
@@ -313,7 +313,7 @@ public class BlueOppositeNew extends OpMode {
 
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
         intakeLauncher.updateTurret(follower.getPose());
-        if (opmodeTimer.getElapsedTime() > 29000) {
+        if (opmodeTimer.getElapsedTime() > 280500) {
             intakeLauncher.stopShooting();
             follower.followPath(gatePark, true);
         }

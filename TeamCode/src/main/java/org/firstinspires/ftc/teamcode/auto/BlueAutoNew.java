@@ -38,7 +38,7 @@ public class BlueAutoNew extends OpMode {
     private final Pose scorePose = new Pose(56, 80, Math.toRadians(127));
     private final Pose endScorePose = new Pose(57, 104, Math.toRadians(144));
     private final Pose drinkPoseCP = new Pose(45, 72, Math.toRadians(140));
-    public static final Pose drinkPoseEnd = new Pose(12, 61, Math.toRadians(140));
+    public static final Pose drinkPoseEnd = new Pose(11.5, 61, Math.toRadians(140));
     private final Pose pickup1PoseCP = new Pose(41, 84, Math.toRadians(180));
     private final Pose pickup1PoseEnd = new Pose(18, 84, Math.toRadians(180));
     private final Pose pickup2PoseCP = new Pose(56, 55, Math.toRadians(180));

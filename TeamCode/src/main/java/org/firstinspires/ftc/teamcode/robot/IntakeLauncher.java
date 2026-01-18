@@ -225,7 +225,7 @@ public class IntakeLauncher {
     }
 
     public double calculateDynamicTolerance(double distanceInches) {
-        final double MAX_DRIFT_ALLOWED = 4.0;
+        final double MAX_DRIFT_ALLOWED = 3.0;
 
         if (distanceInches < 1.0) return 45.0;
 
@@ -311,7 +311,7 @@ public class IntakeLauncher {
             launchPower = 0.59;
             waitTime = 2000;
         } else {
-            launchPower = 0.6 + ((distance - 33) / 300.0);
+            launchPower = 0.58 + ((distance - 33) / 300.0);
             waitTime = distance * 68;
         }
 

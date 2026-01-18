@@ -24,17 +24,14 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Configurable
 @Autonomous(name = "Red Opposite NEW", group = "Red Auto")
 public class RedOppositeNew extends OpMode {
-    public static long drinkWaitTime = 1300;
-    public static double shootWaitTime = 2500;
+    public static long drinkWaitTime = 1250;
+    public static double shootWaitTime = 2450;
     private IntakeLauncher intakeLauncher;
     private Follower follower;
     private Timer pathTimer;
     private Timer opmodeTimer;
     private int pathState;
-
-//    private final Pose scorePose = IntakeLauncher.AlignPose(85, 20, GOAL_X, GOAL_Y);
-
-    public static double launchPower;
+    public static double launchPower = 0.86; //intakeLauncher.calculateLaunchParameters(scorePose).launchPower();
     private final double transferPower = 0.12;
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
@@ -126,6 +123,7 @@ public class RedOppositeNew extends OpMode {
                     // stop shooting and go for drink pick up 1
                     if (intakeLauncher.getShootingDuration() > (shootWaitTime + 500)) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(grabPickup2);
                         setPathState(2);
@@ -153,6 +151,7 @@ public class RedOppositeNew extends OpMode {
                     // stop shooting and go for drink pick up 1
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(4);
@@ -186,6 +185,7 @@ public class RedOppositeNew extends OpMode {
 
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(6);
@@ -219,6 +219,7 @@ public class RedOppositeNew extends OpMode {
 
                     if (intakeLauncher.getShootingDuration() > (shootWaitTime-500)) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         intakeLauncher.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup3, true);
@@ -251,6 +252,7 @@ public class RedOppositeNew extends OpMode {
                     // stop shooting and go for drink pick up 3
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         intakeLauncher.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup4, true);
@@ -311,7 +313,10 @@ public class RedOppositeNew extends OpMode {
 
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
         intakeLauncher.updateTurret(follower.getPose());
-
+        if (opmodeTimer.getElapsedTime() > 28500) {
+            intakeLauncher.stopShooting();
+            follower.followPath(gatePark, true);
+        }
         blackboard.put("RED_POSE", follower.getPose());
 
         telemetry.addData("path state", pathState);
@@ -338,8 +343,6 @@ public class RedOppositeNew extends OpMode {
         follower.setStartingPose(startPose);
         intakeLauncher.setShooterPIDFCoefficients();
         intakeLauncher.setHoodLongShotPosition();
-
-        launchPower = 0.86; //intakeLauncher.calculateLaunchParameters(scorePose).launchPower();
     }
 
     @Override

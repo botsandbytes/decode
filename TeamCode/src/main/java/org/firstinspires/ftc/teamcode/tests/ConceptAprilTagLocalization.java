@@ -255,7 +255,7 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
                     } else {
                         pose_y = 72-pedroPose.getY();
                     }
-                    Pose newPose = new Pose(pedroPose.getX(), pedroPose.getY(), h_deg);
+                    Pose newPose = new Pose(pose_x, pose_y, Math.toRadians(h_deg));
 
                     telemetryM.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
                             detection.robotPose.getPosition().x,
@@ -265,8 +265,8 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
                             detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
                             detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
                             detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
-                    telemetryM.addLine("Field Pose is: X: " + pedroPose.getX() + " Y: " + pedroPose.getY());
-                    telemetryM.addLine("Field Pose is: X: " + pose_x + " Y: " + pose_y);
+//                    telemetryM.addLine("Field Pose is: X: " + pedroPose.getX() + " Y: " + pedroPose.getY());
+                    telemetryM.addLine("Field Pose is: X: " + newPose.getX() + " Y: " + newPose.getY() + "Heading: " + Math.toDegrees(newPose.getHeading()));
                 }
             } else {
                 telemetryM.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
