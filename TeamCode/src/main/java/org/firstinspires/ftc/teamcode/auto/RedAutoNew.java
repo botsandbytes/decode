@@ -24,28 +24,28 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Autonomous(name = "Red Auto NEW", group = "Red Auto")
 public class RedAutoNew extends OpMode {
     public static boolean drinTwice = true;
-    public static long drinkWaitTime = 1250;
-    public static double shootWaitTime = 1250;
+    public static long drinkWaitTime = 1300;
+    public static double shootWaitTime = 1300;
     private IntakeLauncher intakeLauncher;
     private Follower follower;
     private Timer pathTimer;
     private Timer opmodeTimer;
     private int pathState;
-    public static final double launchPower = 0.7;
+    public static final double launchPower = 0.71;
     private final double transferPower = 0.12;
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45));
     private final Pose scorePose = new Pose(88, 80, Math.toRadians(52));
     private final Pose endScorePose = new Pose(87, 104, Math.toRadians(45));
     private final Pose drinkPoseCP = new Pose(96, 72, Math.toRadians(40));
-    private final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(40));
+    public static final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(40));
     private final Pose pickup1PoseCP = new Pose(100, 84, Math.toRadians(0));
     private final Pose pickup1PoseEnd = new Pose(123, 84, Math.toRadians(0));
     private final Pose gateAfterPose1 = new Pose(103, 76, Math.toRadians(0));
     private final Pose pickup2PoseCP = new Pose(84, 55, Math.toRadians(0));
-    private final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
+    public static final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
     private final Pose pickup3PoseCP = new Pose(88, 25, Math.toRadians(0));
-    private final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
+    public static final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
 
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;

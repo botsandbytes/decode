@@ -25,7 +25,7 @@ public class VisionUtil {
     private Pose2D lastKnownPose = new Pose2D(DistanceUnit.INCH, 0, 0, AngleUnit.DEGREES, 0);
 
     // Camera Config
-    private final Position cameraPosition = new Position(DistanceUnit.CM, -12, 15.2, 20.75, 0);
+    private final Position cameraPosition = new Position(DistanceUnit.CM, -12, 9, 19.5, 0);
     private final YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -90, 180, 0);
 
     public void initAprilTag(HardwareMap hardwareMap, boolean useWebcam) {
