@@ -24,10 +24,8 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Configurable
 @Autonomous(name = "Blue Auto NEW", group = "Blue Auto")
 public class BlueAutoNew extends OpMode {
-
-    public static boolean drinTwice = false;
-    public static long drinkWaitTime = 1300;
-    public static double shootWaitTime = 1450;
+    public static long drinkWaitTime = 1200;
+    public static double shootWaitTime = 1300;
     private IntakeLauncher intakeLauncher;
     private Follower follower;
     private Timer pathTimer;
@@ -40,7 +38,7 @@ public class BlueAutoNew extends OpMode {
     private final Pose scorePose = new Pose(56, 80, Math.toRadians(127));
     private final Pose endScorePose = new Pose(57, 104, Math.toRadians(144));
     private final Pose drinkPoseCP = new Pose(45, 72, Math.toRadians(140));
-    public static final Pose drinkPoseEnd = new Pose(11.5, 61.5, Math.toRadians(140));
+    public static final Pose drinkPoseEnd = new Pose(12, 61, Math.toRadians(140));
     private final Pose pickup1PoseCP = new Pose(41, 84, Math.toRadians(180));
     private final Pose pickup1PoseEnd = new Pose(18, 84, Math.toRadians(180));
     private final Pose pickup2PoseCP = new Pose(56, 55, Math.toRadians(180));
@@ -72,7 +70,7 @@ public class BlueAutoNew extends OpMode {
                 .build();
 
         scorePickup1 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup1PoseEnd, scorePose))
+                .addPath(new BezierCurve(pickup1PoseEnd, pickup1PoseCP, scorePose))
                 .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), scorePose.getHeading())
                 .build();
 
@@ -93,7 +91,7 @@ public class BlueAutoNew extends OpMode {
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup3PoseEnd, endScorePose))
+                .addPath(new BezierCurve(pickup3PoseEnd, pickup3PoseCP, endScorePose))
                 .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), endScorePose.getHeading())
                 .build();
     }
@@ -108,7 +106,7 @@ public class BlueAutoNew extends OpMode {
             }
             case 1 -> {
                 // score preload & go to pick up line 2
-                if (!follower.isBusy()) {
+                if (follower.atPose(scorePose, 1, 1)) {
                     intakeLauncher.stopIntake();
                     // score preload
                     if (!intakeLauncher.isShooting()) {
@@ -120,6 +118,7 @@ public class BlueAutoNew extends OpMode {
                     // stop shooting and go for drink pick up 1
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(grabPickup2, true);
                         setPathState(2);
@@ -131,7 +130,7 @@ public class BlueAutoNew extends OpMode {
                 if (!follower.isBusy()) {
                     intakeLauncher.powerOnLauncher(launchPower);
                     follower.followPath(scorePickup2);
-                    setPathState(5);
+                    setPathState(3);
                 }
             }
             case 3 -> {
@@ -147,6 +146,7 @@ public class BlueAutoNew extends OpMode {
                     // stop shooting and go for drink pick up 1
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(4);
@@ -180,6 +180,7 @@ public class BlueAutoNew extends OpMode {
 
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(6);
@@ -213,6 +214,7 @@ public class BlueAutoNew extends OpMode {
 
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         intakeLauncher.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup1, true);
@@ -231,18 +233,19 @@ public class BlueAutoNew extends OpMode {
             }
             case 9 -> {
                 // score line 1 & go to line 3
-                if (!follower.isBusy()) {
+                if (follower.atPose(scorePose, 1, 1)) {
                     intakeLauncher.stopIntake();
                     // score line 1
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower + 0.03);
+                    intakeLauncher.takeShot(launchPower + 0.02);
 //                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
 
                     // stop shooting and go for drink pick up 3
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(grabPickup3);
                         setPathState(10);
@@ -260,7 +263,7 @@ public class BlueAutoNew extends OpMode {
             }
             case 11 -> {
                 // score the line 3 and go to line 1 for park
-                if (!follower.isBusy()) {
+                if (follower.atPose(scorePose, 1, 1)) {
                     intakeLauncher.stopIntake();
                     if (!intakeLauncher.isShooting()) {
                         intakeLauncher.startShooting();
@@ -270,7 +273,8 @@ public class BlueAutoNew extends OpMode {
 
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
-                        setPathState(12);
+                        intakeLauncher.runShooterRaw(launchPower / 2);
+setPathState(12);
                     }
                 }
             }
@@ -301,10 +305,6 @@ public class BlueAutoNew extends OpMode {
         intakeLauncher.updateTurret(follower.getPose());
 
         blackboard.put("BLUE_POSE", follower.getPose());
-
-//        if (opmodeTimer.getElapsedTime() > 29000) {
-//            follower.followPath(gatePark, true);
-//        }
 
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());

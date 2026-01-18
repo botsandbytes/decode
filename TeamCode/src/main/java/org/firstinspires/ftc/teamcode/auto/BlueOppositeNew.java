@@ -37,14 +37,14 @@ public class BlueOppositeNew extends OpMode {
     private final Pose startPose = new Pose(57, 8, Math.toRadians(90));
     private final Pose scorePose = new Pose(59, 20, Math.toRadians(111));
     private final Pose drinkPoseCP = new Pose(50, 50, Math.toRadians(140));
-    private final Pose drinkPoseEnd = BlueAutoNew.drinkPoseEnd;//new Pose(13, 60.5, Math.toRadians(140));
+    private final Pose drinkPoseEnd = new Pose(13, 60.5, Math.toRadians(140));
     private final Pose pickup2PoseCP = new Pose(60, 68, Math.toRadians(180));
-    private final Pose pickup2PoseEnd = BlueAutoNew.pickup2PoseEnd;//new Pose(12, 58, Math.toRadians(180));
+    private final Pose pickup2PoseEnd = new Pose(12, 58, Math.toRadians(180));
     private final Pose pickup3PoseCP = new Pose(60, 40, Math.toRadians(180));
-    private final Pose pickup3PoseEnd = BlueAutoNew.pickup3PoseEnd;;//new Pose(12, 36, Math.toRadians(180));
+    private final Pose pickup3PoseEnd = new Pose(12, 36, Math.toRadians(180));
     private final Pose pickup4PoseCP = new Pose(50, 20, Math.toRadians(190));
     private final Pose pickup4PoseEnd = new Pose(12, 10, Math.toRadians(190));
-    private final Pose parkPose = new Pose(45, 20, Math.toRadians(111));
+    private final Pose parkPose = new Pose(40, 20, Math.toRadians(111));
 
     private Path scorePreload;
     private PathChain grabPickup4, scorePickup4, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
@@ -123,6 +123,7 @@ public class BlueOppositeNew extends OpMode {
                     // stop shooting and go for drink pick up 1
                     if (intakeLauncher.getShootingDuration() > (shootWaitTime + 500)) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(grabPickup2);
                         setPathState(2);
@@ -150,6 +151,7 @@ public class BlueOppositeNew extends OpMode {
                     // stop shooting and go for drink pick up 1
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(4);
@@ -183,6 +185,7 @@ public class BlueOppositeNew extends OpMode {
 
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(6);
@@ -216,6 +219,7 @@ public class BlueOppositeNew extends OpMode {
 
                     if (intakeLauncher.getShootingDuration() > (shootWaitTime-500)) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         intakeLauncher.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup3, true);
@@ -248,6 +252,7 @@ public class BlueOppositeNew extends OpMode {
                     // stop shooting and go for drink pick up 3
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
+                        intakeLauncher.runShooterRaw(launchPower / 2);
                         intakeLauncher.runIntake(1, transferPower);
                         intakeLauncher.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup4, true);

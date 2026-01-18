@@ -23,7 +23,6 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Configurable
 @Autonomous(name = "Red Auto NEW", group = "Red Auto")
 public class RedAutoNew extends OpMode {
-    public static boolean drinTwice = true;
     public static long drinkWaitTime = 1300;
     public static double shootWaitTime = 1300;
     private IntakeLauncher intakeLauncher;
@@ -41,14 +40,13 @@ public class RedAutoNew extends OpMode {
     public static final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(40));
     private final Pose pickup1PoseCP = new Pose(100, 84, Math.toRadians(0));
     private final Pose pickup1PoseEnd = new Pose(123, 84, Math.toRadians(0));
-    private final Pose gateAfterPose1 = new Pose(103, 76, Math.toRadians(0));
     private final Pose pickup2PoseCP = new Pose(84, 55, Math.toRadians(0));
     public static final Pose pickup2PoseEnd = new Pose(130, 60, Math.toRadians(0));
     private final Pose pickup3PoseCP = new Pose(88, 25, Math.toRadians(0));
     public static final Pose pickup3PoseEnd = new Pose(130, 36, Math.toRadians(0));
 
     private Path scorePreload;
-    private PathChain grabPickup1, scorePickup1, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
+    private PathChain grabPickup1, scorePickup1, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
     private FieldManager field;
 
     public void buildPaths() {
@@ -68,11 +66,6 @@ public class RedAutoNew extends OpMode {
         grabPickup1 = follower.pathBuilder()
                 .addPath(new BezierCurve(scorePose, pickup1PoseCP, pickup1PoseEnd ))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup1PoseEnd.getHeading(), .1)
-                .build();
-
-        gatePark = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, pickup1PoseCP, gateAfterPose1 ))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), gateAfterPose1.getHeading(), .1)
                 .build();
 
         scorePickup1 = follower.pathBuilder()
@@ -140,7 +133,7 @@ public class RedAutoNew extends OpMode {
             }
             case 3 -> {
                 // score line 2 & go to drink gate start round 1
-                if (follower.atPose(scorePose, 1, 1) && drinTwice) {
+                if (follower.atPose(scorePose, 1, 1)) {
                     intakeLauncher.stopIntake();
                     // score preload
                     if (!intakeLauncher.isShooting()) {
@@ -159,7 +152,7 @@ public class RedAutoNew extends OpMode {
             }
             case 4 -> {
                 // drink balls and go to score pose
-                if (!follower.isBusy() && drinTwice) {
+                if (!follower.isBusy()) {
                     // drink
                     try {
                         sleep(drinkWaitTime);
@@ -274,8 +267,6 @@ public class RedAutoNew extends OpMode {
 
                     if (intakeLauncher.getShootingDuration() > shootWaitTime) {
                         intakeLauncher.stopShooting();
-//                        intakeLauncher.runIntake(1, transferPower);
-//                        follower.followPath(gatePark, true);
                         setPathState(12);
                     }
                 }
@@ -307,10 +298,6 @@ public class RedAutoNew extends OpMode {
         intakeLauncher.updateTurret(follower.getPose());
 
         blackboard.put("RED_POSE", follower.getPose());
-//
-//        if (opmodeTimer.getElapsedTime() > 29000) {
-//            follower.followPath(gatePark, true);
-//        }
 
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());

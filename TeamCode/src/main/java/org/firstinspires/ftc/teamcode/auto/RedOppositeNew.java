@@ -24,18 +24,21 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 @Configurable
 @Autonomous(name = "Red Opposite NEW", group = "Red Auto")
 public class RedOppositeNew extends OpMode {
-    public static long drinkWaitTime = 1250;
-    public static double shootWaitTime = 2450;
+    public static long drinkWaitTime = 1300;
+    public static double shootWaitTime = 2500;
     private IntakeLauncher intakeLauncher;
     private Follower follower;
     private Timer pathTimer;
     private Timer opmodeTimer;
     private int pathState;
-    public static final double launchPower = 0.88;
+
+//    private final Pose scorePose = IntakeLauncher.AlignPose(85, 20, GOAL_X, GOAL_Y);
+
+    public static double launchPower;
     private final double transferPower = 0.12;
 
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
-    private final Pose scorePose = new Pose(85, 20, Math.toRadians(71));
+    private final Pose scorePose = new Pose(85, 20, Math.toRadians(70));
     private final Pose drinkPoseCP = new Pose(90, 50, Math.toRadians(40));
     private final Pose drinkPoseEnd = RedAutoNew.drinkPoseEnd; // new Pose(129, 60.5, Math.toRadians(40));
     private final Pose pickup2PoseCP = new Pose(84, 68, Math.toRadians(0));
@@ -44,7 +47,7 @@ public class RedOppositeNew extends OpMode {
     private final Pose pickup3PoseEnd = RedAutoNew.pickup3PoseEnd; // new Pose(131, 36, Math.toRadians(0));
     private final Pose pickup4PoseCP = new Pose(94, 20, Math.toRadians(350));
     private final Pose pickup4PoseEnd = new Pose(131, 13, Math.toRadians(350));
-    private final Pose parkPose = new Pose(99, 20, Math.toRadians(71));
+    private final Pose parkPose = new Pose(103, 20, Math.toRadians(70));
 
     private Path scorePreload;
     private PathChain grabPickup4, scorePickup4, drinkPickupStart, drinkPickupScore, grabPickup2, scorePickup2, grabPickup3, scorePickup3, gatePark;
@@ -105,7 +108,7 @@ public class RedOppositeNew extends OpMode {
         switch (pathState) {
             case 0 -> {
                 // go to score preload location
-                intakeLauncher.powerOnLauncher(launchPower+0.01);
+                intakeLauncher.powerOnLauncher(launchPower+0.02);
                 follower.followPath(scorePreload);
                 setPathState(1);
             }
@@ -132,7 +135,7 @@ public class RedOppositeNew extends OpMode {
             case 2 -> {
                 // go to score pose for line 2
                 if (!follower.isBusy()) {
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    intakeLauncher.powerOnLauncher(launchPower+0.02);
                     follower.followPath(scorePickup2);
                     setPathState(5);
                 }
@@ -199,7 +202,7 @@ public class RedOppositeNew extends OpMode {
                         throw new RuntimeException(e);
                     }
                     // go to score pose
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    intakeLauncher.powerOnLauncher(launchPower+0.02);
                     follower.followPath(drinkPickupScore);
                     setPathState(7);
                 }
@@ -260,7 +263,7 @@ public class RedOppositeNew extends OpMode {
                 if (!follower.isBusy()) {
                     intakeLauncher.runIntake(1, transferPower);
                     follower.followPath(scorePickup4);
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    intakeLauncher.powerOnLauncher(launchPower+0.02);
                     setPathState(11);
                 }
             }
@@ -309,10 +312,6 @@ public class RedOppositeNew extends OpMode {
         intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
         intakeLauncher.updateTurret(follower.getPose());
 
-        if (opmodeTimer.getElapsedTime() > 29000) {
-            intakeLauncher.stopShooting();
-            follower.followPath(gatePark, true);
-        }
         blackboard.put("RED_POSE", follower.getPose());
 
         telemetry.addData("path state", pathState);
@@ -339,6 +338,8 @@ public class RedOppositeNew extends OpMode {
         follower.setStartingPose(startPose);
         intakeLauncher.setShooterPIDFCoefficients();
         intakeLauncher.setHoodLongShotPosition();
+
+        launchPower = 0.86; //intakeLauncher.calculateLaunchParameters(scorePose).launchPower();
     }
 
     @Override
