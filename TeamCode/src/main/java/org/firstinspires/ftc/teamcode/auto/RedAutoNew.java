@@ -34,10 +34,11 @@ public class RedAutoNew extends OpMode {
     private final double transferPower = 0.12;
 
     private final Pose startPose = new Pose(117, 128, Math.toRadians(45));
-    private final Pose scorePose = new Pose(88, 80, Math.toRadians(52));
-    private final Pose endScorePose = new Pose(87, 104, Math.toRadians(45));
+    private final Pose scorePose = new Pose(88, 80, Math.toRadians(50));
+    private final Pose scorePose2 = new Pose(88, 80, Math.toRadians(47));
+    private final Pose endScorePose = new Pose(87, 104, Math.toRadians(39));
     private final Pose drinkPoseCP = new Pose(96, 72, Math.toRadians(40));
-    public static final Pose drinkPoseEnd = new Pose(129, 60.5, Math.toRadians(40));
+    public static final Pose drinkPoseEnd = new Pose(130, 60.5, Math.toRadians(40));
     private final Pose pickup1PoseCP = new Pose(100, 84, Math.toRadians(0));
     private final Pose pickup1PoseEnd = new Pose(123, 84, Math.toRadians(0));
     private final Pose pickup2PoseCP = new Pose(84, 55, Math.toRadians(0));
@@ -69,8 +70,8 @@ public class RedAutoNew extends OpMode {
                 .build();
 
         scorePickup1 = follower.pathBuilder()
-                .addPath(new BezierCurve(pickup1PoseEnd, pickup1PoseCP, scorePose))
-                .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), scorePose.getHeading())
+                .addPath(new BezierCurve(pickup1PoseEnd, pickup1PoseCP, scorePose2))
+                .setLinearHeadingInterpolation(pickup1PoseEnd.getHeading(), scorePose2.getHeading())
                 .build();
 
         grabPickup2 = follower.pathBuilder()
@@ -85,13 +86,13 @@ public class RedAutoNew extends OpMode {
                 .build();
 
         grabPickup3 = follower.pathBuilder()
-                .addPath(new BezierCurve(scorePose, pickup3PoseCP, pickup3PoseEnd ))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup3PoseEnd.getHeading(), 0.5)
+                .addPath(new BezierCurve(scorePose2, pickup3PoseCP, pickup3PoseEnd ))
+                .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup3PoseEnd.getHeading(), 0.5)
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierCurve(pickup3PoseEnd, pickup3PoseCP, endScorePose))
-                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), endScorePose.getHeading())
+                .addPath(new BezierCurve(pickup3PoseEnd, pickup3PoseCP, scorePose2))
+                .setLinearHeadingInterpolation(pickup3PoseEnd.getHeading(), scorePose2.getHeading())
                 .build();
     }
 

@@ -29,7 +29,7 @@ import java.util.List;
 @Configurable
 @TeleOp(name = "TeleOp RED", group = "!")
 public class RedTeleOp extends OpMode {
-    public static double GOAL_X = 127;
+    public static double GOAL_X = 128.5;
     public static double GOAL_Y = 135;
 
     public static double MAXSPEED = 0.6;
@@ -46,7 +46,7 @@ public class RedTeleOp extends OpMode {
     // State
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
 
-    public static final Pose scorePose = IntakeLauncher.AlignPose(61, 21, GOAL_X, GOAL_Y);
+    public static final Pose scorePose = IntakeLauncher.AlignPose(61, 21, GOAL_X+2.5, GOAL_Y);
     public static final Pose drinkPose = new Pose(129, 60.5, Math.toRadians(42));
     public static final Pose parkPose = new Pose(37.5, 32, Math.toRadians(270));
     private boolean automatedDrive = false;
@@ -55,6 +55,8 @@ public class RedTeleOp extends OpMode {
     private LaunchParameters currentLaunchParams;
 
     private boolean isRotating = false;
+
+    private double turn;
 
     @Override
     public void init() {
@@ -69,6 +71,7 @@ public class RedTeleOp extends OpMode {
         } else {
             follower.setStartingPose(startPose);
         }
+
         intakeLauncher.setShooterPIDFCoefficients();
         intakeLauncher.setInitialHeading(follower.getHeading());
     }
@@ -130,7 +133,7 @@ public class RedTeleOp extends OpMode {
             double xInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.left_stick_x, 3)));
             double rInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.right_stick_x, 3)));
 
-            double[] robotCentric = Casablanca.adjustDriveInput(follower.getPose(), follower.getVelocity(), xInput, yInput, rInput );
+            double[] robotCentric = Casablanca.adjustDriveInput(follower.getPose(), follower.getVelocity(), xInput, yInput, rInput);
             follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
@@ -150,7 +153,7 @@ public class RedTeleOp extends OpMode {
 
     private void handleLauncher() {
         Pose currentPose = follower.getPose();
-        currentLaunchParams = intakeLauncher.calculateLaunchParameters(currentPose);
+        currentLaunchParams = intakeLauncher.REDcalculateLaunchParameters(currentPose);
 
         // Aiming Logic
         // In AUTO_SHOOT_MODE: right trigger does full sequence
@@ -170,7 +173,7 @@ public class RedTeleOp extends OpMode {
                 intakeLauncher.setHoodPosition(0);
             }
 
-            intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
+            turn = currentLaunchParams.launchAngle();
             isTurning = true;
             holdPose = follower.getPose();
         }
@@ -180,7 +183,7 @@ public class RedTeleOp extends OpMode {
             automatedDrive = isRotating || intakeLauncher.isShooting();
 
             if (!isRotating && !gamepad1.xWasPressed()) {
-                intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
+                turn = currentLaunchParams.launchAngle();
                 isTurning = true;
             }
         }
@@ -203,7 +206,7 @@ public class RedTeleOp extends OpMode {
         }
 
         if (isTurning) {
-            intakeLauncher.updateTurret(currentPose);
+            intakeLauncher.updateTurn(currentPose, turn);
             if (intakeLauncher.isTurnDone()) {
                 // Keep isTurning = true to maintain tracking/alignment
 
@@ -248,8 +251,7 @@ public class RedTeleOp extends OpMode {
 
 
         if (intakeLauncher.isShooting()) {
-            intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
-            intakeLauncher.updateTurret(currentPose);
+            turn = currentLaunchParams.launchAngle();
             intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower(), currentPose);
 
             if (intakeLauncher.getShootingDuration() > currentLaunchParams.waitTime() || !Sentinel.isLaunchAllowed(follower.getPose())) {

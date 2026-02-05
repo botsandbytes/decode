@@ -55,6 +55,8 @@ public class BlueTeleOp extends OpMode {
 
     private boolean isRotating = false;
 
+    private double turn;
+
     @Override
     public void init() {
         initializeField();
@@ -62,7 +64,6 @@ public class BlueTeleOp extends OpMode {
         initializeSubsystems();
         Casablanca.reset();
         Casablanca.CURRENT_ALLIANCE = Casablanca.Alliance.BLUE;
-
         Pose blackboardPose = (Pose) blackboard.get("BLUE_POSE");
         if (blackboardPose != null) {
             follower.setStartingPose(blackboardPose);
@@ -131,9 +132,7 @@ public class BlueTeleOp extends OpMode {
             double xInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(gamepad1.left_stick_x, 3)));
             double rInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.right_stick_x, 3)));
 
-            double[] robotCentric = Casablanca.adjustDriveInput(follower.getPose(),
-                follower.getVelocity(),
-                xInput, yInput, rInput);
+            double[] robotCentric = Casablanca.adjustDriveInput(follower.getPose(), follower.getVelocity(), xInput, yInput, rInput);
             follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
         } else if (holdPose != null && intakeLauncher.isShooting()) {
             follower.holdPoint(holdPose);
@@ -173,7 +172,7 @@ public class BlueTeleOp extends OpMode {
                 intakeLauncher.setHoodPosition(0);
             }
 
-            intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
+            turn = currentLaunchParams.launchAngle();
             isTurning = true;
             holdPose = follower.getPose();
         }
@@ -183,7 +182,7 @@ public class BlueTeleOp extends OpMode {
             automatedDrive = isRotating || intakeLauncher.isShooting();
 
             if (!isRotating && !gamepad1.xWasPressed()) {
-                intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
+                turn = currentLaunchParams.launchAngle();
                 isTurning = true;
             }
         }
@@ -206,7 +205,7 @@ public class BlueTeleOp extends OpMode {
         }
 
         if (isTurning) {
-            intakeLauncher.updateTurret(currentPose);
+            intakeLauncher.updateTurn(currentPose, turn);
             if (intakeLauncher.isTurnDone()) {
                 // Keep isTurning = true to maintain tracking/alignment
 
@@ -251,8 +250,7 @@ public class BlueTeleOp extends OpMode {
 
 
         if (intakeLauncher.isShooting()) {
-            intakeLauncher.setTargetTurnAngle(currentLaunchParams.launchAngle());
-            intakeLauncher.updateTurret(currentPose);
+            turn = currentLaunchParams.launchAngle();
             intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower(), currentPose);
 
             if (intakeLauncher.getShootingDuration() > currentLaunchParams.waitTime() || !Sentinel.isLaunchAllowed(follower.getPose())) {

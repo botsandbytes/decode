@@ -42,8 +42,8 @@ public class IntakeLauncher {
     public static boolean AUTO_SHOOT_MODE = true; // true = right trigger does full sequence, false = two-button mode (X then trigger)
 
     // PIDF Constants (original working values)
-//    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01, 0.0005, 0.003, 0);
-    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01835, 0, 0.00135, 0);
+    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01, 0.0005, 0.003, 0);
+//    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(0.01835, 0, 0.00135, 0);
 
     double f = 0.08;
     // PIDF f doesn't work, set to 0, and adjust f value above
@@ -297,7 +297,25 @@ public class IntakeLauncher {
             intakeFront.setPower(0);
         }
     }
+    public LaunchParameters REDcalculateLaunchParameters(Pose currentPose) {
+        double deltaX = goalX - currentPose.getX();
+        double deltaY = goalY - currentPose.getY();
+        double distance = Math.hypot(deltaX, deltaY);
+        double angleRadians = Math.atan2(deltaY, deltaX);
 
+        double launchPower;
+        double waitTime;
+
+        if (distance <= 33) {
+            launchPower = 0.59;
+            waitTime = 2000;
+        } else {
+            launchPower = 0.60 + ((distance - 33) / 300.0);
+            waitTime = distance * 68;
+        }
+
+        return new LaunchParameters(launchPower, waitTime, Math.toDegrees(angleRadians));
+    }
     public LaunchParameters calculateLaunchParameters(Pose currentPose) {
         double deltaX = goalX - currentPose.getX();
         double deltaY = goalY - currentPose.getY();
