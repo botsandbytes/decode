@@ -128,7 +128,7 @@ public class Turret {
     }
 
     public void updatePIDFCoefficients(double p, double i, double d, double f) {
-        pidfController.setPIDFCoefficients(new com.pedropathing.control.PIDFCoefficients(p, i, d, f));
+        pidfController.setCoefficients(new com.pedropathing.control.PIDFCoefficients(p, i, d, f));
     }
 
     public void setGoal(double x, double y) {
