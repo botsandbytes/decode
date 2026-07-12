@@ -1,134 +1,136 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
+import android.graphics.Path;
+import android.graphics.PointF;
+import android.graphics.RectF;
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
 
+@Configurable
 public class Sentinel {
-    // ... (Constants same as before) ...
-    public static final double ROBOT_WIDTH = 18.0;
-    public static final double ROBOT_WIDTH2 = 17.0;
+    public static double ROBOT_WIDTH = ConfigLoader.getDouble("sentinel.robot_width");
+    public static double ROBOT_WIDTH2 = ROBOT_WIDTH - 1.0;
 
-    // RED GOAL ZONE - Block Blue Alliance from entering
-    public static final RectangularZone RED_GOAL_ZONE = new RectangularZone(138.0, 144.0, 69.0, 75.0);
-    public static final RectangularZone BLUE_GOAL_ZONE = new RectangularZone(0.0, 6.0, 69.0, 75.0);
+    public static double GOAL_SIZE = ConfigLoader.getDouble("sentinel.goals.size");
+    public static double GOAL_MIN_Y = ConfigLoader.getDouble("sentinel.goals.min_y");
 
-    // ... (Launch Zones same as before) ...
-    private static final PolygonZone LEFT_BIG_LAUNCH_ZONE = new PolygonZone(
-        new Point(144, 144), new Point(0, 144), new Point(72, 72)
-    );
-    private static final PolygonZone RIGHT_SMALL_LAUNCH_ZONE = new PolygonZone(
-        new Point(96, 0), new Point(48, 0), new Point(72, 24)
+    public static RectF RED_GOAL_ZONE = new RectF(
+        (float) (144.0 - GOAL_SIZE),
+        (float) GOAL_MIN_Y,
+        144.0f,
+        (float) (GOAL_MIN_Y + GOAL_SIZE)
     );
 
-    // ... (Public Methods wrapper) ...
+    public static RectF BLUE_GOAL_ZONE = new RectF(
+        0.0f,
+        (float) GOAL_MIN_Y,
+        (float) GOAL_SIZE,
+        (float) (GOAL_MIN_Y + GOAL_SIZE)
+    );
+
+    private static PolygonZone LEFT_BIG_LAUNCH_ZONE = new PolygonZone(
+        new PointF(144f, 144f), new PointF(0f, 144f), new PointF(72f, 72f)
+    );
+    private static PolygonZone RIGHT_SMALL_LAUNCH_ZONE = new PolygonZone(
+        new PointF(96f, 0f), new PointF(48f, 0f), new PointF(72f, 24f)
+    );
+
+    private record PolygonZone(PointF... vertices) {}
+
     public static boolean isLaunchAllowed(Pose currentPose) {
-        Point[] robotFootprint = calculateSmallRobotFootprint(currentPose);
-        return isIntersectingPolygon(robotFootprint, LEFT_BIG_LAUNCH_ZONE.vertices()) ||
-               isIntersectingPolygon(robotFootprint, RIGHT_SMALL_LAUNCH_ZONE.vertices());
+        Path robot = createPath(calculateSmallRobotFootprint(currentPose));
+        return intersects(robot, createPath(LEFT_BIG_LAUNCH_ZONE.vertices)) ||
+               intersects(robot, createPath(RIGHT_SMALL_LAUNCH_ZONE.vertices));
     }
 
-    // ... (Other wrappers) ...
-
-    public static boolean doesViolateBlueGoal(Point[] robotFootprint) {
-        return isIntersectingRectangle(robotFootprint, BLUE_GOAL_ZONE);
+    public static boolean violatesActiveGoal(PointF[] footprint) {
+        return intersects(createPath(footprint), createPath(getProtectedZone()));
     }
 
-    public static boolean doesViolateRedGoal(Point[] robotFootprint) {
-        return isIntersectingRectangle(robotFootprint, RED_GOAL_ZONE);
+    public static boolean doesViolateBlueGoal(PointF[] robotFootprint) {
+        return intersects(createPath(robotFootprint), createPath(BLUE_GOAL_ZONE));
     }
 
-    // ... (Footprint calc same as before) ...
-
-    /**
-     * UPDATED: Checks for overlap by testing if points are inside each other.
-     * Handles "Donut" case where zone is fully inside robot.
-     */
-    private static boolean isIntersectingRectangle(Point[] robot, RectangularZone zone) {
-        // 1. Is any part of the robot inside the zone?
-        for (Point p : robot) {
-            if (p.x() >= zone.minX() && p.x() <= zone.maxX() &&
-                p.y() >= zone.minY() && p.y() <= zone.maxY()) return true;
-        }
-
-        // 2. Is the zone inside the robot? (The Donut Fix)
-        // We check the zone corners against the robot polygon
-        Point[] zoneCorners = {
-            new Point(zone.minX(), zone.minY()),
-            new Point(zone.maxX(), zone.minY()),
-            new Point(zone.maxX(), zone.maxY()),
-            new Point(zone.minX(), zone.maxY())
-        };
-
-        return isIntersectingPolygon(robot, zoneCorners);
+    public static boolean doesViolateRedGoal(PointF[] robotFootprint) {
+        return intersects(createPath(robotFootprint), createPath(RED_GOAL_ZONE));
     }
 
-    private static boolean isIntersectingPolygon(Point[] shapeA, Point[] shapeB) {
-        return isntSeparated(shapeA, shapeB) && isntSeparated(shapeB, shapeA);
+    public static RectF getProtectedZone() {
+        return Casablanca.CURRENT_ALLIANCE == Casablanca.Alliance.RED 
+            ? BLUE_GOAL_ZONE 
+            : RED_GOAL_ZONE;
     }
 
-    private static boolean isntSeparated(Point[] shapeA, Point[] shapeB) {
-        for (int i = 0; i < shapeA.length; i++) {
-            Point p1 = shapeA[i];
-            Point p2 = shapeA[(i + 1) % shapeA.length];
-            Point normal = new Point(-(p2.y() - p1.y()), p2.x() - p1.x());
-
-            Projection projA = projectShapeOnAxis(shapeA, normal);
-            Projection projB = projectShapeOnAxis(shapeB, normal);
-
-            if (projA.max() < projB.min() || projB.max() < projA.min()) return false;
-        }
-        return true;
+    public static boolean isRotationSafe(Pose currentPose, double turnInput, double lookaheadRad) {
+        double predictedDelta = Math.signum(turnInput) * lookaheadRad;
+        Pose futurePose = new Pose(currentPose.getX(), currentPose.getY(), currentPose.getHeading() + predictedDelta);
+        
+        PointF[] futureFootprint = calculateRobotFootprint(futurePose);
+        PointF[] currentFootprint = calculateRobotFootprint(currentPose);
+        
+        return !violatesActiveGoal(futureFootprint) || violatesActiveGoal(currentFootprint);
     }
 
-    private static Projection projectShapeOnAxis(Point[] shape, Point axis) {
-        double min = Double.MAX_VALUE;
-        double max = -Double.MAX_VALUE;
-        for (Point p : shape) {
-            double dotProduct = (p.x() * axis.x()) + (p.y() * axis.y());
-            min = Math.min(min, dotProduct);
-            max = Math.max(max, dotProduct);
-        }
-        return new Projection(min, max);
+    public static RectF getRobotBounds(Pose pose) {
+        return getProjectedBounds(calculateRobotFootprint(pose));
     }
 
-    public record Point(double x, double y) {}
-    public record RectangularZone(double minX, double maxX, double minY, double maxY) {}
-    private record PolygonZone(Point... vertices) {}
-    private record Projection(double min, double max) {}
+    public static PointF[] calculateRobotFootprint(Pose pose) {
+        return calculateFootprint(pose, ROBOT_WIDTH);
+    }
 
-    // Helper to keep the rest of your code working
-    public static Point[] calculateRobotFootprint(Pose pose) {
+    public static PointF[] calculateSmallRobotFootprint(Pose pose) {
+        return calculateFootprint(pose, ROBOT_WIDTH2);
+    }
+
+    private static PointF[] calculateFootprint(Pose pose, double width) {
         double heading = pose.getHeading();
         double centerX = pose.getX();
         double centerY = pose.getY();
         double cos = Math.cos(heading);
         double sin = Math.sin(heading);
-        double ROBOT_RADIUS = ROBOT_WIDTH / 2;
-        double[] xOffsets = {-ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS, -ROBOT_RADIUS};
-        double[] yOffsets = {-ROBOT_RADIUS, -ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS};
-        Point[] corners = new Point[4];
+        double radius = width / 2.0;
+
+        double[] xOffsets = {-radius, radius, radius, -radius};
+        double[] yOffsets = {-radius, -radius, radius, radius};
+        PointF[] corners = new PointF[4];
         for (int i = 0; i < 4; i++) {
             double rotatedX = (xOffsets[i] * cos) - (yOffsets[i] * sin);
             double rotatedY = (xOffsets[i] * sin) + (yOffsets[i] * cos);
-            corners[i] = new Point(centerX + rotatedX, centerY + rotatedY);
+            corners[i] = new PointF((float) (centerX + rotatedX), (float) (centerY + rotatedY));
         }
         return corners;
     }
 
-    public static Point[] calculateSmallRobotFootprint(Pose pose) {
-        double heading = pose.getHeading();
-        double centerX = pose.getX();
-        double centerY = pose.getY();
-        double cos = Math.cos(heading);
-        double sin = Math.sin(heading);
-        double ROBOT_RADIUS = ROBOT_WIDTH2 / 2;
-        double[] xOffsets = {-ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS, -ROBOT_RADIUS};
-        double[] yOffsets = {-ROBOT_RADIUS, -ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS};
-        Point[] corners = new Point[4];
-        for (int i = 0; i < 4; i++) {
-            double rotatedX = (xOffsets[i] * cos) - (yOffsets[i] * sin);
-            double rotatedY = (xOffsets[i] * sin) + (yOffsets[i] * cos);
-            corners[i] = new Point(centerX + rotatedX, centerY + rotatedY);
+    private static RectF getProjectedBounds(PointF[] footprint) {
+        float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        for (PointF p : footprint) {
+            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
         }
-        return corners;
+        return new RectF(minX, minY, maxX, maxY);
+    }
+
+    private static Path createPath(PointF[] points) {
+        Path path = new Path();
+        if (points.length == 0) return path;
+        path.moveTo(points[0].x, points[0].y);
+        for (int i = 1; i < points.length; i++) {
+            path.lineTo(points[i].x, points[i].y);
+        }
+        path.close();
+        return path;
+    }
+
+    private static Path createPath(RectF zone) {
+        Path path = new Path();
+        path.addRect(zone, Path.Direction.CW);
+        return path;
+    }
+
+    private static boolean intersects(Path pathA, Path pathB) {
+        Path intersection = new Path();
+        return intersection.op(pathA, pathB, Path.Op.INTERSECT) && !intersection.isEmpty();
     }
 }
