@@ -15,7 +15,7 @@ Robot:
       3:
   Expansion Hub:
     Motors (5202/2/4):
-      0:intakeFront
+      0: intakeFront
       1: intakeMid
       2: shooter2
       3: shooter
