@@ -16,7 +16,7 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
+import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.robot.TurretAutotuner;
 
 import java.util.List;
@@ -24,7 +24,7 @@ import java.util.List;
 @TeleOp(name = "Turret Autotune", group = "Tuning")
 public class TurretAutotuneOpMode extends OpMode {
 
-    private IntakeLauncher launcher;
+    private Turret turret;
     private TurretAutotuner autotuner;
     private Follower follower;
     private TelemetryManager telemetryM;
@@ -47,7 +47,7 @@ public class TurretAutotuneOpMode extends OpMode {
         field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
 
-        launcher = new IntakeLauncher(hardwareMap, telemetry, follower);
+        turret = new Turret(hardwareMap, telemetry, follower);
         autotuner = new TurretAutotuner();
 
         telemetryM.addLine("=== TURRET AUTOTUNE ===");
@@ -74,27 +74,27 @@ public class TurretAutotuneOpMode extends OpMode {
 
         // Start autotune
         if (gamepad1.a && !autotuneStarted) {
-            double currentAngle = launcher.getCurrentTurnAngle();
+            double currentAngle = turret.getCurrentTurnAngle();
             autotuner.startAutotune(currentAngle, 0.3);
             autotuneStarted = true;
         }
 
         // Run autotune
         if (autotuner.isRunning()) {
-            double currentAngle = launcher.getCurrentTurnAngle();
+            double currentAngle = turret.getCurrentTurnAngle();
             double power = autotuner.updateAutotune(currentAngle);
 
-            // Use IntakeLauncher's method to avoid hardware conflicts
-            launcher.setTurretPowerRaw(power);
+            // Use Turret's method to avoid hardware conflicts
+            turret.setTurretPowerRaw(power);
 
             updateRunningTelemetry(currentAngle);
 
         } else if (autotuner.isComplete()) {
-            launcher.setTurretPowerRaw(0);
+            turret.setTurretPowerRaw(0);
             updateCompleteTelemetry();
 
         } else if (autotuner.isFailed()) {
-            launcher.setTurretPowerRaw(0);
+            turret.setTurretPowerRaw(0);
             updateFailedTelemetry();
 
         } else {
@@ -106,7 +106,7 @@ public class TurretAutotuneOpMode extends OpMode {
 
     private void updateIdleTelemetry() {
         telemetryM.addLine("=== READY ===");
-        telemetryM.addData("Current Turret Angle", launcher.getCurrentTurnAngle());
+        telemetryM.addData("Current Turret Angle", turret.getCurrentTurnAngle());
         telemetryM.addLine("");
         telemetryM.addLine("Press [A] to start autotune");
     }
