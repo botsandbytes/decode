@@ -16,7 +16,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
+import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 
@@ -108,8 +108,8 @@ public class CasablancaTest extends OpMode {
         
         // Debug info
         if (Math.abs(forward) > 0.1 || Math.abs(strafe) > 0.1) {
-            double inputMag = Math.sqrt(forward*forward + strafe*strafe);
-            double outputMag = Math.sqrt(adjusted[1]*adjusted[1] + adjusted[0]*adjusted[0]);
+            double inputMag = Math.hypot(forward, strafe);
+            double outputMag = Math.hypot(adjusted[1], adjusted[0]);
             telemetry.addData("Magnitude", "In:%.2f Out:%.2f", inputMag, outputMag);
             if (inputMag > 0.1 && outputMag < 0.05) {
                 telemetry.addData("WARNING", "Movement blocked!");
@@ -121,7 +121,7 @@ public class CasablancaTest extends OpMode {
         if (field != null) {
             DrawingUtil.drawCasablancaZones(field);
         DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
-                follower.getPose().getHeading(), Math.toRadians(new IntakeLauncher(hardwareMap, telemetry, follower).getCurrentTurnAngle()), GOAL_X, GOAL_Y);
+                follower.getPose().getHeading(), Math.toRadians(new Turret(hardwareMap, telemetry, follower).getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         }
     }
 }
