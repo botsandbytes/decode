@@ -8,7 +8,6 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.MathFunctions;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
@@ -125,10 +124,6 @@ public class Turret {
 
         PIDFCoefficients pidfCoefficients = new PIDFCoefficients(PID_P, PID_I, PID_D, PID_F);
         pidfController = new PIDFController(pidfCoefficients);
-    }
-
-    public void updatePIDFCoefficients(double p, double i, double d, double f) {
-        pidfController.setCoefficients(new com.pedropathing.control.PIDFCoefficients(p, i, d, f));
     }
 
     public void setGoal(double x, double y) {
