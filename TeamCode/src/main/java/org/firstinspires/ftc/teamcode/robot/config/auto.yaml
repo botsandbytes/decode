@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=./config-schema.json
+auto:
+  drink_wait_ms: 1200
+  shoot_wait_ms: 1300
+  launch_power: 0.71
+  transfer_power: 0.12

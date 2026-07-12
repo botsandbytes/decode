@@ -1,0 +1,345 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Robot Configuration Unified Schema",
+  "anyOf": [
+    { "$ref": "#/definitions/subsystems" },
+    { "$ref": "#/definitions/safety" },
+    { "$ref": "#/definitions/tuning" },
+    { "$ref": "#/definitions/auto" }
+  ],
+  "definitions": {
+    "subsystems": {
+      "type": "object",
+      "properties": {
+        "caching": {
+          "type": "object",
+          "description": "Consolidated caching parameters that dictate the update threshold window for CachingHardware wrappers to drop redundant I2C writes.",
+          "properties": {
+            "intake_tolerance": {
+              "type": "number",
+              "description": "Power variance tolerance (0.0 to 1.0) for the front and mid intake rollers. If the new command is within this range of the previous write, it is skipped. Recommended: 0.01."
+            },
+            "flywheel_tolerance": {
+              "type": "number",
+              "description": "Velocity variance tolerance (in encoder ticks per second) below which new speed adjustment commands are dropped to prevent minor noise from saturating the I2C bus. Recommended: 0.005."
+            },
+            "hood_tolerance": {
+              "type": "number",
+              "description": "Servo position variance tolerance (0.0 to 1.0) below which new position commands are ignored. Reduces servo jitter. Recommended: 0.002."
+            },
+            "drivetrain_tolerance": {
+              "type": "number",
+              "description": "Motor power variance tolerance (0.0 to 1.0) for chassis wheels. Crucial for reducing loop times. Recommended: 0.02."
+            }
+          },
+          "required": ["intake_tolerance", "flywheel_tolerance", "hood_tolerance", "drivetrain_tolerance"]
+        },
+        "turret": {
+          "type": "object",
+          "description": "Turret system mechanical and hardware configuration.",
+          "properties": {
+            "max_turn_power": {
+              "type": "number",
+              "description": "Upper speed limit (0.0 to 1.0) allowed for chassis turn adjustments when auto-aligning to the goal. Recommended: 0.5."
+            },
+            "min_turn_power": {
+              "type": "number",
+              "description": "Minimum power (0.0 to 1.0) sent to the drivetrain during auto-turn corrections. Overcomes static wheel friction (stiction). If the robot stops turning before aligning, increase this. Recommended: 0.12."
+            },
+            "max_power_output": {
+              "type": "number",
+              "description": "Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret rotation speed. Recommended: 0.5."
+            },
+            "feed_forward": {
+              "type": "number",
+              "description": "Feedforward power component (0.0 to 1.0) added to turret rotation to overcome gear backlash and friction. Applied in the direction of movement. Recommended: 0.08."
+            },
+            "orientation": {
+              "type": "object",
+              "description": "Mounting directions of the Control Hub IMU orientation.",
+              "properties": {
+                "logo": {
+                  "type": "string",
+                  "description": "Mounting orientation direction of the hub's logo panel (e.g. RIGHT, LEFT, UP, DOWN, FORWARD, BACKWARD)."
+                },
+                "usb": {
+                  "type": "string",
+                  "description": "Mounting direction of the hub's USB ports."
+                }
+              },
+              "required": ["logo", "usb"]
+            },
+            "turn": {
+              "type": "object",
+              "description": "Mechanical rotation limits and offsets.",
+              "properties": {
+                "offset_const": {
+                  "type": "number",
+                  "description": "Encoder-to-angle mapping offset (degrees) to align the physical turret zero orientation with the chassis."
+                },
+                "limit_const": {
+                  "type": "number",
+                  "description": "Mechanical rotation boundary (degrees) measured from center. Prevents the turret from rotating past this limit and tearing internal wires."
+                }
+              },
+              "required": ["offset_const", "limit_const"]
+            }
+          },
+          "required": ["max_turn_power", "min_turn_power", "max_power_output", "feed_forward", "orientation", "turn"]
+        }
+      },
+      "required": ["caching", "turret"]
+    },
+    "safety": {
+      "type": "object",
+      "properties": {
+        "sentinel": {
+          "type": "object",
+          "description": "Robot physical footprint and score goal zone boundaries.",
+          "properties": {
+            "robot_width": {
+              "type": "number",
+              "description": "Total physical width of the robot (inches) used to build the collision footprint. Determines how close the robot can get to walls or goals."
+            },
+            "rotation_lookahead": {
+              "type": "number",
+              "description": "Angle (radians) used to project the robot's future rotation. If the robot would violate a goal zone at this lookahead angle, it prevents the turn. Recommended: 0.45."
+            },
+            "goals": {
+              "type": "object",
+              "description": "Dimensions of the square scoring zones.",
+              "properties": {
+                "size": {
+                  "type": "number",
+                  "description": "Length (inches) of one side of the square scoring goal zones on the field."
+                },
+                "min_y": {
+                  "type": "number",
+                  "description": "The Y-coordinate boundary (inches) on the field where the scoring zones begin. Used to calculate red/blue alliance goal boxes."
+                }
+              },
+              "required": ["size", "min_y"]
+            }
+          },
+          "required": ["robot_width", "rotation_lookahead", "goals"]
+        },
+        "casablanca": {
+          "type": "object",
+          "description": "Collision avoidance safety buffers and repulsion powers.",
+          "properties": {
+            "repulsion": {
+              "type": "object",
+              "description": "Repulsion power and safety scales.",
+              "properties": {
+                "power": {
+                  "type": "number",
+                  "description": "Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone boundary. Recommended: 0.12."
+                },
+                "decel_safety_factor": {
+                  "type": "number",
+                  "description": "Scale factor (0.0 to 1.0) for predictive braking. Lowering this makes braking engage sooner/more aggressively to guarantee the robot doesn't enter the goal zone. Recommended: 0.7."
+                }
+              },
+              "required": ["power", "decel_safety_factor"]
+            },
+            "depth": {
+              "type": "object",
+              "description": "Forward/backward safety boundaries.",
+              "properties": {
+                "slow_down": {
+                  "type": "number",
+                  "description": "Distance (inches) from the goal zone at which forward/backward speed reduction warning starts. Recommended: 8.0."
+                },
+                "hard_stop": {
+                  "type": "number",
+                  "description": "Distance (inches) from the goal zone where forward/backward drive power towards the zone is cut to zero. Recommended: 10.0."
+                }
+              },
+              "required": ["slow_down", "hard_stop"]
+            },
+            "side": {
+              "type": "object",
+              "description": "Lateral safety boundaries.",
+              "properties": {
+                "slow_down": {
+                  "type": "number",
+                  "description": "Distance (inches) from the goal zone at which lateral (strafing) speed reduction warning starts. Recommended: 4.0."
+                },
+                "hard_stop": {
+                  "type": "number",
+                  "description": "Distance (inches) from the goal zone where lateral (strafing) drive power towards the zone is cut to zero. Recommended: 3.0."
+                }
+              },
+              "required": ["slow_down", "hard_stop"]
+            },
+            "lane_blend_distance": {
+              "type": "number",
+              "description": "Distance (inches) over which safety slows downs are interpolated from 0% to 100% strength to prevent jerky speed changes. Recommended: 12.0."
+            }
+          },
+          "required": ["repulsion", "depth", "side", "lane_blend_distance"]
+        }
+      },
+      "required": ["sentinel", "casablanca"]
+    },
+    "tuning": {
+      "type": "object",
+      "properties": {
+        "shooter": {
+          "type": "object",
+          "description": "Shooter flywheel speed tuning, PIDF gains, and launch parameters.",
+          "properties": {
+            "max_rpm": {
+              "type": "number",
+              "description": "Maximum rotational speed (RPM) of the shooter motor. Used to scale power percentage to velocity."
+            },
+            "min_transfer_threshold": {
+              "type": "number",
+              "description": "Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed. Recommended: 0.93."
+            },
+            "pidf": {
+              "type": "object",
+              "description": "PIDF coefficients for the shooter motor velocity loop.",
+              "properties": {
+                "p": { "type": "number", "description": "Proportional gain. Corrects for instantaneous speed drops." },
+                "i": { "type": "number", "description": "Integral gain. Corrects steady-state speed errors." },
+                "d": { "type": "number", "description": "Derivative gain. Dampens speed oscillations." },
+                "f": { "type": "number", "description": "Feedforward gain. Crucial for matching target speed directly. Recommended: 22.8." }
+              },
+              "required": ["p", "i", "d", "f"]
+            },
+            "launch_params": {
+              "type": "object",
+              "description": "Distance tables and launch calculation coefficients.",
+              "properties": {
+                "threshold_distance": {
+                  "type": "number",
+                  "description": "Distance boundary (inches) separating close-range shots from long-range shots."
+                },
+                "near": {
+                  "type": "object",
+                  "description": "Launch settings for close-range shots.",
+                  "properties": {
+                    "launch_power": { "type": "number", "description": "Flywheel power ratio (0.0 to 1.0) used for close-range shots. Recommended: 0.59." },
+                    "wait_time": { "type": "number", "description": "Delay (milliseconds) to keep the flywheel running after firing a near shot. Recommended: 2000.0." }
+                  },
+                  "required": ["launch_power", "wait_time"]
+                },
+                "far": {
+                  "type": "object",
+                  "description": "Launch settings for long-range shots.",
+                  "properties": {
+                    "base_power": { "type": "number", "description": "Base flywheel power ratio (0.0 to 1.0) for Blue alliance shots beyond the threshold distance. Recommended: 0.58." },
+                    "red_base_power": { "type": "number", "description": "Base flywheel power ratio (0.0 to 1.0) for Red alliance shots beyond the threshold distance. Recommended: 0.60." },
+                    "power_scale": { "type": "number", "description": "Distance divisor (inches) to scale up flywheel power as distance increases (power = base_power + extra_distance / power_scale). Recommended: 300.0." },
+                    "wait_time_scale": { "type": "number", "description": "Multiplier converting distance to run-time (wait_time = distance * wait_time_scale) in milliseconds. Recommended: 68.0." }
+                  },
+                  "required": ["base_power", "red_base_power", "power_scale", "wait_time_scale"]
+                }
+              },
+              "required": ["threshold_distance", "near", "far"]
+            }
+          },
+          "required": ["max_rpm", "min_transfer_threshold", "pidf", "launch_params"]
+        },
+        "turret": {
+          "type": "object",
+          "description": "Turret targeting PIDF loop gains and tolerances.",
+          "properties": {
+            "pidf": {
+              "type": "object",
+              "description": "PIDF coefficients for the turret yaw control loop.",
+              "properties": {
+                "p": { "type": "number", "description": "Proportional gain." },
+                "i": { "type": "number", "description": "Integral gain." },
+                "d": { "type": "number", "description": "Derivative gain." },
+                "f": { "type": "number", "description": "Feedforward gain." }
+              },
+              "required": ["p", "i", "d", "f"]
+            },
+            "tolerance": {
+              "type": "object",
+              "description": "Dynamic alignment tolerances and limits.",
+              "properties": {
+                "max_drift": { "type": "number", "description": "Maximum allowed chassis drift (inches) from target pose before auto-corrective drive motions engage. Recommended: 3.0." },
+                "near_cutoff": { "type": "number", "description": "Distance boundary (inches) below which the target is considered close, switching to static tolerance. Recommended: 1.0." },
+                "near_val": { "type": "number", "description": "Target alignment tolerance (degrees) when within the near cutoff range. Recommended: 45.0." },
+                "min_deg": { "type": "number", "description": "Minimum dynamic alignment tolerance (degrees) allowed. Prevents the turret from hunting indefinitely when very close. Recommended: 0.5." },
+                "max_deg": { "type": "number", "description": "Maximum dynamic alignment tolerance (degrees) allowed. Prevents launching if the turret orientation error exceeds this. Recommended: 2.0." }
+              },
+              "required": ["max_drift", "near_cutoff", "near_val", "min_deg", "max_deg"]
+            }
+          },
+          "required": ["pidf", "tolerance"]
+        },
+        "casablanca": {
+          "type": "object",
+          "description": "Casablanca driver assistance, stiction compensation, and smoothing gains.",
+          "properties": {
+            "friction": {
+              "type": "object",
+              "description": "Static stiction compensation levels.",
+              "properties": {
+                "x": { "type": "number", "description": "Minimum forward/backward drive power (0.0 to 1.0) needed to overcome static wheel stiction. Calibrated using Friction Calibration OpMode. Recommended: 0.10." },
+                "y": { "type": "number", "description": "Minimum lateral/strafing drive power (0.0 to 1.0) needed to overcome static wheel stiction. Calibrated using Friction Calibration OpMode. Recommended: 0.20." },
+                "rot": { "type": "number", "description": "Minimum turn/yaw drive power (0.0 to 1.0) needed to overcome static wheel stiction. Calibrated using Friction Calibration OpMode. Recommended: 0.12." }
+              },
+              "required": ["x", "y", "rot"]
+            },
+            "smoothing": {
+              "type": "object",
+              "description": "Slew rate smoothing settings.",
+              "properties": {
+                "time": { "type": "number", "description": "Joystick input filter time constant (seconds). Higher values make acceleration and deceleration smoother but increase input lag. Recommended: 0.22." },
+                "back_lift_multiplier": { "type": "number", "description": "Divisor scaling factor for deceleration. Divides the deceleration rate when stopping to slow down the deceleration curve, preventing the robot from tipping forward and lifting its back wheels. Recommended: 2.5." }
+              },
+              "required": ["time", "back_lift_multiplier"]
+            },
+            "heading_lock": {
+              "type": "object",
+              "description": "Subtle heading lock assistant settings.",
+              "properties": {
+                "enabled": { "type": "boolean", "description": "Enable/disable automatic heading lock when the driver releases the turn joystick in TeleOp." },
+                "kp": { "type": "number", "description": "Proportional gain for the heading lock controller. Higher values correct heading errors more aggressively. Recommended: 0.8." },
+                "max_power": { "type": "number", "description": "Maximum motor power (0.0 to 1.0) the heading lock is allowed to command. Clamped to be completely imperceptible to the driver. Recommended: 0.04." },
+                "deadband": { "type": "number", "description": "Joystick threshold (0.0 to 1.0) below which the heading lock engages. Recommended: 0.01." }
+              },
+              "required": ["enabled", "kp", "max_power", "deadband"]
+            }
+          },
+          "required": ["friction", "smoothing", "heading_lock"]
+        }
+      },
+      "required": ["friction", "smoothing", "heading_lock"]
+    },
+    "auto": {
+      "type": "object",
+      "properties": {
+        "auto": {
+          "type": "object",
+          "description": "Autonomous routine constants and parameters.",
+          "properties": {
+            "drink_wait_ms": {
+              "type": "integer",
+              "description": "Wait delay (milliseconds) at the drink gate when intake gathers rings. Recommended: 1200."
+            },
+            "shoot_wait_ms": {
+              "type": "integer",
+              "description": "Wait time (milliseconds) allowed to fire a shot before ending the shoot command. Recommended: 1300."
+            },
+            "launch_power": {
+              "type": "number",
+              "description": "Target power coefficient (0.0 to 1.0) for autonomous launcher velocity scaling. Recommended: 0.71."
+            },
+            "transfer_power": {
+              "type": "number",
+              "description": "Target power coefficient (0.0 to 1.0) for autonomous transfer motor. Recommended: 0.12."
+            }
+          },
+          "required": ["drink_wait_ms", "shoot_wait_ms", "launch_power", "transfer_power"]
+        }
+      },
+      "required": ["auto"]
+    }
+  }
+}

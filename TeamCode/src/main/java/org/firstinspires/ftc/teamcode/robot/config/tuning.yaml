@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=./config-schema.json
+shooter:
+  max_rpm: 1500.0
+  min_transfer_threshold: 0.93
+  pidf:
+    p: 150.0
+    i: 0.0
+    d: 0.0
+    f: 22.8
+  launch_params:
+    threshold_distance: 33.0
+    near:
+      launch_power: 0.59
+      wait_time: 2000.0
+    far:
+      base_power: 0.58
+      red_base_power: 0.60
+      power_scale: 300.0
+      wait_time_scale: 68.0
+
+turret:
+  pidf:
+    p: 0.01
+    i: 0.0005
+    d: 0.003
+    f: 0.0
+  tolerance:
+    max_drift: 3.0
+    near_cutoff: 1.0
+    near_val: 45.0
+    min_deg: 0.5
+    max_deg: 2.0
+
+casablanca:
+  friction:
+    x: 0.10
+    y: 0.20
+    rot: 0.12
+  smoothing:
+    time: 0.22
+    back_lift_multiplier: 2.5
+  heading_lock:
+    enabled: true
+    kp: 0.8
+    max_power: 0.04
+    deadband: 0.01
