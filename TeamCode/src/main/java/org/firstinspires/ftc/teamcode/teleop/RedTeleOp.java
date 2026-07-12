@@ -13,12 +13,21 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
+import org.firstinspires.ftc.teamcode.robot.Intake;
+import org.firstinspires.ftc.teamcode.robot.Shooter;
+import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.robot.LaunchParameters;
 import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 import org.firstinspires.ftc.teamcode.utilities.VisionUtil;
+import org.firstinspires.ftc.teamcode.utilities.ConfigLoader;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
+import dev.frozenmilk.dairy.pasteurized.Pasteurized;
+import dev.frozenmilk.dairy.pasteurized.PasteurizedGamepad;
+import dev.frozenmilk.dairy.core.util.supplier.logical.EnhancedBooleanSupplier;
+import dev.frozenmilk.dairy.core.util.supplier.numeric.EnhancedDoubleSupplier;
 
 import com.pedropathing.ftc.InvertedFTCCoordinates;
 import com.pedropathing.ftc.PoseConverter;
@@ -41,12 +50,17 @@ public class RedTeleOp extends OpMode {
     private TelemetryManager telemetryM;
 
     // Robot Subsystems
-    private IntakeLauncher intakeLauncher;
+    private Intake intake;
+    private Shooter shooter;
+    private Turret turret;
+
+    private PasteurizedGamepad<EnhancedDoubleSupplier, EnhancedBooleanSupplier> driverGamepad;
+    private PasteurizedGamepad<EnhancedDoubleSupplier, EnhancedBooleanSupplier> operatorGamepad;
 
     // State
     private final Pose startPose = new Pose(87, 8, Math.toRadians(90));
 
-    public static final Pose scorePose = IntakeLauncher.AlignPose(61, 21, GOAL_X+2.5, GOAL_Y);
+    public static final Pose scorePose = Turret.AlignPose(61, 21, GOAL_X+2.5, GOAL_Y);
     public static final Pose drinkPose = new Pose(129, 60.5, Math.toRadians(42));
     public static final Pose parkPose = new Pose(37.5, 32, Math.toRadians(270));
     private boolean automatedDrive = false;
@@ -72,8 +86,11 @@ public class RedTeleOp extends OpMode {
             follower.setStartingPose(startPose);
         }
 
-        intakeLauncher.setShooterPIDFCoefficients();
-        intakeLauncher.setInitialHeading(follower.getHeading());
+        driverGamepad = Pasteurized.gamepad1();
+        operatorGamepad = Pasteurized.gamepad2();
+
+        shooter.setShooterPIDFCoefficients();
+        turret.setInitialHeading(follower.getHeading());
     }
 
     private void initializeField() {
@@ -87,14 +104,32 @@ public class RedTeleOp extends OpMode {
             module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
 
+        double drivetrainTolerance = ConfigLoader.getDouble("caching.drivetrain_tolerance");
+        CachingDcMotorEx lf = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "leftFront"));
+        CachingDcMotorEx lb = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "leftBack"));
+        CachingDcMotorEx rf = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "rightFront"));
+        CachingDcMotorEx rb = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "rightBack"));
+
+        lf.setCachingTolerance(drivetrainTolerance);
+        lb.setCachingTolerance(drivetrainTolerance);
+        rf.setCachingTolerance(drivetrainTolerance);
+        rb.setCachingTolerance(drivetrainTolerance);
+
+        hardwareMap.put("leftFront", lf);
+        hardwareMap.put("leftBack", lb);
+        hardwareMap.put("rightFront", rf);
+        hardwareMap.put("rightBack", rb);
+
         follower = Constants.createFollower(hardwareMap);
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
     }
 
     private void initializeSubsystems() {
-        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
-        intakeLauncher.setGoal(GOAL_X, GOAL_Y);
-        intakeLauncher.setInitialHeading(startPose.getHeading());
+        intake = new Intake(hardwareMap);
+        shooter = new Shooter(hardwareMap);
+        turret = new Turret(hardwareMap, telemetry, follower);
+        turret.setGoal(GOAL_X, GOAL_Y);
+        turret.setInitialHeading(startPose.getHeading());
         vision = new VisionUtil();
         vision.initAprilTag(hardwareMap, true);
     }
@@ -102,7 +137,7 @@ public class RedTeleOp extends OpMode {
     @Override
     public void start() {
         follower.startTeleopDrive();
-        intakeLauncher.setInitialHeading(follower.getHeading());
+        turret.setInitialHeading(follower.getHeading());
     }
 
     @Override
@@ -129,48 +164,39 @@ public class RedTeleOp extends OpMode {
 
     private void handleDrive() {
         if (!automatedDrive) {
-            double yInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.left_stick_y, 3)));
-            double xInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.left_stick_x, 3)));
-            double rInput = Math.max(-MAXSPEED, Math.min(MAXSPEED, Math.pow(-gamepad1.right_stick_x, 3)));
+            double yInput = Math.clamp(Math.pow(-driverGamepad.leftStickY().state(), 3), -MAXSPEED, MAXSPEED);
+            double xInput = Math.clamp(Math.pow(-driverGamepad.leftStickX().state(), 3), -MAXSPEED, MAXSPEED);
+            double rInput = Math.clamp(Math.pow(-driverGamepad.rightStickX().state(), 3), -MAXSPEED, MAXSPEED);
 
             double[] robotCentric = Casablanca.adjustDriveInput(follower.getPose(), follower.getVelocity(), xInput, yInput, rInput);
             follower.setTeleOpDrive(robotCentric[1], robotCentric[0], robotCentric[2], false);
-        } else if (holdPose != null && intakeLauncher.isShooting()) {
+        } else if (holdPose != null && shooter.isShooting()) {
             follower.holdPoint(holdPose);
         }
     }
 
     private void handleIntake() {
-        if (gamepad2.aWasPressed()) {
-            intakeLauncher.runIntake(1, 0.1);
+        if (operatorGamepad.a().onTrue()) {
+            intake.run(1.0, 0.1);
         }
 
-        if (gamepad2.bWasPressed()) {
-            intakeLauncher.stopIntake();
-            intakeLauncher.runShooterRaw(0.6);
+        if (operatorGamepad.b().onTrue()) {
+            intake.stop();
+            shooter.runShooterRaw(0.6);
         }
     }
 
     private void handleLauncher() {
         Pose currentPose = follower.getPose();
-        currentLaunchParams = intakeLauncher.REDcalculateLaunchParameters(currentPose);
+        currentLaunchParams = shooter.REDcalculateLaunchParameters(currentPose, GOAL_X, GOAL_Y);
 
-        // Aiming Logic
-        // In AUTO_SHOOT_MODE: right trigger does full sequence
-        // In two-button mode: gamepad2.x aims, then right trigger shoots
-        boolean shouldAim;
-        if (IntakeLauncher.AUTO_SHOOT_MODE) {
-            shouldAim = gamepad2.right_trigger > 0.5;
-        } else {
-            shouldAim = gamepad2.x;
-        }
+        boolean shouldAim = Shooter.AUTO_SHOOT_MODE ? (operatorGamepad.rightTrigger().state() > 0.5) : operatorGamepad.x().state();
 
-        if (shouldAim && !intakeLauncher.isShooting() && !isRotating && !isTurning && Sentinel.isLaunchAllowed(follower.getPose())) {
-            // Set hood position based on launch power
+        if (shouldAim && !shooter.isShooting() && !isRotating && !isTurning && Sentinel.isLaunchAllowed(follower.getPose())) {
             if (currentLaunchParams.launchPower() > 0.7) {
-                intakeLauncher.setHoodLongShotPosition();
+                shooter.setHoodLongShotPosition();
             } else {
-                intakeLauncher.setHoodPosition(0);
+                shooter.setHoodPosition(0);
             }
 
             turn = currentLaunchParams.launchAngle();
@@ -178,111 +204,97 @@ public class RedTeleOp extends OpMode {
             holdPose = follower.getPose();
         }
 
-        if ((gamepad1.xWasPressed() || isRotating) && Sentinel.isLaunchAllowed(follower.getPose())) {
-            isRotating = intakeLauncher.updateTurn(currentPose, currentLaunchParams.launchAngle());
-            automatedDrive = isRotating || intakeLauncher.isShooting();
+        if ((driverGamepad.x().onTrue() || isRotating) && Sentinel.isLaunchAllowed(follower.getPose())) {
+            isRotating = turret.updateTurn(currentPose, currentLaunchParams.launchAngle());
+            automatedDrive = isRotating || shooter.isShooting();
 
-            if (!isRotating && !gamepad1.xWasPressed()) {
+            if (!isRotating && !driverGamepad.x().onTrue()) {
                 turn = currentLaunchParams.launchAngle();
                 isTurning = true;
             }
         }
 
-        // Emergency Stop Launcher - MUST be checked first to override everything else
-        if (gamepad2.left_trigger > 0.5) {
+        if (operatorGamepad.leftTrigger().state() > 0.5) {
             stopShootingSequence();
-            intakeLauncher.stopLauncher(); // Ensure shooter is completely stopped
-            isTurning = false; // Stop turret tracking
-            isRotating = false; // Stop robot rotation
-        }
-        // Auto rev-up logic: Keep shooter spinning at target velocity if it's already on
-        else if (intakeLauncher.getShooterPower() > 0 && !intakeLauncher.isShooting()) {
-            intakeLauncher.powerOnLauncher(currentLaunchParams.launchPower());
+            shooter.stop();
+            isTurning = false;
+            isRotating = false;
+        } else if (shooter.getShooterPower() > 0 && !shooter.isShooting()) {
+            shooter.powerOnLauncher(currentLaunchParams.launchPower());
         }
 
-        if (gamepad1.yWasPressed()) {
+        if (driverGamepad.y().onTrue()) {
             isRotating = false;
-            isTurning = false; // Allow cancelling turret aim manually
+            isTurning = false;
         }
 
         if (isTurning) {
-            intakeLauncher.updateTurn(currentPose, turn);
-            if (intakeLauncher.isTurnDone()) {
-                // Keep isTurning = true to maintain tracking/alignment
-
-                // Auto-start shooting in AUTO_SHOOT_MODE when turret is done and trigger is held
-                if (IntakeLauncher.AUTO_SHOOT_MODE && gamepad2.right_trigger > 0.5 && !intakeLauncher.isShooting()) {
+            turret.updateTurn(currentPose, turn);
+            if (turret.isTurnDone()) {
+                if (Shooter.AUTO_SHOOT_MODE && operatorGamepad.rightTrigger().state() > 0.5 && !shooter.isShooting()) {
                     startShootingSequence();
                 }
             }
         }
 
-        // Shooting Trigger
-        // In AUTO_SHOOT_MODE: handled automatically after aiming
-        // In two-button mode: right trigger manually starts shooting after aiming with X
-        if (!IntakeLauncher.AUTO_SHOOT_MODE && gamepad2.right_trigger > 0.5 && !intakeLauncher.isShooting() && !isTurning) {
+        if (!Shooter.AUTO_SHOOT_MODE && operatorGamepad.rightTrigger().state() > 0.5 && !shooter.isShooting() && !isTurning) {
             startShootingSequence();
         }
 
-        // Manual Shoot Trigger
-        if (gamepad2.dpadUpWasPressed()) {
+        if (operatorGamepad.dpadUp().onTrue()) {
             startShootingSequence();
         }
 
-        // Auto Drive Override
-        if (gamepad1.dpadLeftWasPressed()) {
+        if (driverGamepad.dpadLeft().onTrue()) {
             automatedDrive = true;
             follower.holdPoint(parkPose);
         }
 
-        if (gamepad1.right_trigger > 0.5 && !follower.isBusy()) {
-            intakeLauncher.setHoodLongShotPosition();
+        if (driverGamepad.rightTrigger().state() > 0.5 && !follower.isBusy()) {
+            shooter.setHoodLongShotPosition();
             follower.holdPoint(scorePose);
         }
 
-        if (gamepad1.left_trigger > 0.5 && !follower.isBusy()) {
+        if (driverGamepad.leftTrigger().state() > 0.5 && !follower.isBusy()) {
             follower.holdPoint(drinkPose);
         }
 
-        if (gamepad2.dpadRightWasPressed() || gamepad1.dpadRightWasPressed()) {
+        if (operatorGamepad.dpadRight().onTrue() || driverGamepad.dpadRight().onTrue()) {
             automatedDrive = false;
             follower.startTeleopDrive();
         }
 
-
-        if (intakeLauncher.isShooting()) {
+        if (shooter.isShooting()) {
             turn = currentLaunchParams.launchAngle();
-            intakeLauncher.updateShootingLogic(currentLaunchParams.launchPower(), currentPose);
+            shooter.updateShootingLogic(currentLaunchParams.launchPower(), currentPose, intake, turret, telemetry);
 
-            if (intakeLauncher.getShootingDuration() > currentLaunchParams.waitTime() || !Sentinel.isLaunchAllowed(follower.getPose())) {
+            if (shooter.getShootingDuration() > currentLaunchParams.waitTime() || !Sentinel.isLaunchAllowed(follower.getPose())) {
                 stopShootingSequence();
-                // Return drive control immediately after shooting completes
                 automatedDrive = false;
                 follower.startTeleopDrive();
             }
         }
 
-        // Manual Power On
-        if (gamepad2.yWasPressed()) {
-            intakeLauncher.runShooterRaw(0.6);
+        if (operatorGamepad.y().onTrue()) {
+            shooter.runShooterRaw(0.6);
         }
     }
 
     private void startShootingSequence() {
         isTurning = false;
-        intakeLauncher.startShooting();
+        shooter.startShooting();
         automatedDrive = true;
         holdPose = follower.getPose();
     }
 
     private void stopShootingSequence() {
-        intakeLauncher.stopShooting();
+        shooter.stopShooting();
         automatedDrive = false;
         follower.startTeleopDrive();
     }
 
     private void handleVision() {
-        if (gamepad2.dpad_down) {
+        if (operatorGamepad.dpadDown().state()) {
             Pose visionPose = vision.updateAprilTagPose();
             if (vision.isTagFound()) {
                 follower.setPose(visionPose);
@@ -290,8 +302,7 @@ public class RedTeleOp extends OpMode {
                 telemetry.addLine("Camera Pose UPDATED");
                 telemetry.addLine("Field Pose is: X: " + visionPose.getX() + " Y: " + visionPose.getY() + "Heading: " + visionPose.getHeading());
                 telemetry.update();
-            }
-            else {
+            } else {
                 telemetryM.addData("Vision", "No Tag Found");
             }
             vision.stopStreaming();
@@ -300,7 +311,7 @@ public class RedTeleOp extends OpMode {
 
     private void drawField() {
         DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
-                follower.getPose().getHeading(), Math.toRadians(intakeLauncher.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
+                follower.getPose().getHeading(), Math.toRadians(turret.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         DrawingUtil.drawCasablancaZones(field);
     }
 
@@ -311,8 +322,8 @@ public class RedTeleOp extends OpMode {
             telemetryM.addData("Launch Power", currentLaunchParams.launchPower());
         }
         telemetryM.addData("Current Heading", follower.getHeading());
-        telemetryM.addData("Turret Angle", intakeLauncher.getCurrentTurnAngle());
-        telemetryM.addData("Is Shooting", intakeLauncher.isShooting());
+        telemetryM.addData("Turret Angle", turret.getCurrentTurnAngle());
+        telemetryM.addData("Is Shooting", shooter.isShooting());
         telemetryM.addData("Automated Drive", automatedDrive);
         telemetryM.update();
     }

@@ -18,7 +18,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
+import org.firstinspires.ftc.teamcode.robot.Intake;
+import org.firstinspires.ftc.teamcode.robot.Shooter;
+import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 
 @Configurable
@@ -26,7 +28,9 @@ import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 public class RedOppositeNew extends OpMode {
     public static long drinkWaitTime = 1250;
     public static double shootWaitTime = 2450;
-    private IntakeLauncher intakeLauncher;
+    private Intake intake;
+    private Shooter shooter;
+    private Turret turret;
     private Follower follower;
     private Timer pathTimer;
     private Timer opmodeTimer;
@@ -105,26 +109,24 @@ public class RedOppositeNew extends OpMode {
         switch (pathState) {
             case 0 -> {
                 // go to score preload location
-                intakeLauncher.powerOnLauncher(launchPower+0.02);
+                shooter.powerOnLauncher(launchPower+0.02);
                 follower.followPath(scorePreload);
                 setPathState(1);
             }
             case 1 -> {
                 // score preload & go to pick up line 2
                 if (!follower.isBusy()) {
-//                    intakeLauncher.stopIntake();
                     // score preload
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
-//                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
+                    shooter.takeShot(launchPower, intake);
 
                     // stop shooting and go for drink pick up 1
-                    if (intakeLauncher.getShootingDuration() > (shootWaitTime + 500)) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runShooterRaw(launchPower / 2);
-                        intakeLauncher.runIntake(1, transferPower);
+                    if (shooter.getShootingDuration() > (shootWaitTime + 500)) {
+                        shooter.stopShooting();
+                        shooter.runShooterRaw(launchPower / 2);
+                        intake.run(1, transferPower);
                         follower.followPath(grabPickup2);
                         setPathState(2);
                     }
@@ -133,7 +135,7 @@ public class RedOppositeNew extends OpMode {
             case 2 -> {
                 // go to score pose for line 2
                 if (!follower.isBusy()) {
-                    intakeLauncher.powerOnLauncher(launchPower+0.02);
+                    shooter.powerOnLauncher(launchPower+0.02);
                     follower.followPath(scorePickup2);
                     setPathState(5);
                 }
@@ -141,18 +143,18 @@ public class RedOppositeNew extends OpMode {
             case 3 -> {
                 // score line 2 & go to drink gate start round 1
                 if (follower.atPose(scorePose, 1, 1)) {
-                    intakeLauncher.stopIntake();
+                    intake.stop();
                     // score preload
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
+                    shooter.takeShot(launchPower, intake);
 
                     // stop shooting and go for drink pick up 1
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runShooterRaw(launchPower / 2);
-                        intakeLauncher.runIntake(1, transferPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
+                        shooter.runShooterRaw(launchPower / 2);
+                        intake.run(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(4);
                     }
@@ -169,7 +171,7 @@ public class RedOppositeNew extends OpMode {
                     }
 
                     // go to score pose
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    shooter.powerOnLauncher(launchPower);
                     follower.followPath(drinkPickupScore);
                     setPathState(5);
                 }
@@ -177,16 +179,16 @@ public class RedOppositeNew extends OpMode {
             case 5 -> {
                 // score drink 1  & go to drink gate start round 2
                 if (!follower.isBusy()) {
-                    intakeLauncher.stopIntake();
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    intake.stop();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
+                    shooter.takeShot(launchPower, intake);
 
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runShooterRaw(launchPower / 2);
-                        intakeLauncher.runIntake(1, transferPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
+                        shooter.runShooterRaw(launchPower / 2);
+                        intake.run(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(6);
                     }
@@ -202,7 +204,7 @@ public class RedOppositeNew extends OpMode {
                         throw new RuntimeException(e);
                     }
                     // go to score pose
-                    intakeLauncher.powerOnLauncher(launchPower+0.02);
+                    shooter.powerOnLauncher(launchPower+0.02);
                     follower.followPath(drinkPickupScore);
                     setPathState(7);
                 }
@@ -210,18 +212,17 @@ public class RedOppositeNew extends OpMode {
             case 7 -> {
                 // score the drink 2 and go to line 1 for pick up
                 if (!follower.isBusy()) {
-                    intakeLauncher.stopIntake();
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    intake.stop();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
-//                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
+                    shooter.takeShot(launchPower, intake);
 
-                    if (intakeLauncher.getShootingDuration() > (shootWaitTime-500)) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runShooterRaw(launchPower / 2);
-                        intakeLauncher.runIntake(1, transferPower);
-                        intakeLauncher.powerOnLauncher(launchPower);
+                    if (shooter.getShootingDuration() > (shootWaitTime-500)) {
+                        shooter.stopShooting();
+                        shooter.runShooterRaw(launchPower / 2);
+                        intake.run(1, transferPower);
+                        shooter.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup3, true);
                         setPathState(8);
                     }
@@ -230,9 +231,8 @@ public class RedOppositeNew extends OpMode {
             case 8 -> {
                 // go to score pose for line 1
                 if (!follower.isBusy()) {
-//                if (follower.atPose(scorePose, 1, 1)) {
-                    intakeLauncher.runIntake(1, transferPower);
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    intake.run(1, transferPower);
+                    shooter.powerOnLauncher(launchPower);
                     follower.followPath(scorePickup3);
                     setPathState(9);
                 }
@@ -240,21 +240,20 @@ public class RedOppositeNew extends OpMode {
             case 9 -> {
                 // score line 1 & go to line 3
                 if (!follower.isBusy()) {
-                    intakeLauncher.stopIntake();
-                    intakeLauncher.updateTurret(follower.getPose());
+                    intake.stop();
+                    turret.updateTurret(follower.getPose());
                     // score line 1
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
-//                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
+                    shooter.takeShot(launchPower, intake);
 
                     // stop shooting and go for drink pick up 3
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runShooterRaw(launchPower / 2);
-                        intakeLauncher.runIntake(1, transferPower);
-                        intakeLauncher.powerOnLauncher(launchPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
+                        shooter.runShooterRaw(launchPower / 2);
+                        intake.run(1, transferPower);
+                        shooter.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup4, true);
                         setPathState(10);
                     }
@@ -263,26 +262,24 @@ public class RedOppositeNew extends OpMode {
             case 10 -> {
                 // go to score pose for line 3
                 if (!follower.isBusy()) {
-                    intakeLauncher.runIntake(1, transferPower);
+                    intake.run(1, transferPower);
                     follower.followPath(scorePickup4);
-                    intakeLauncher.powerOnLauncher(launchPower+0.02);
+                    shooter.powerOnLauncher(launchPower+0.02);
                     setPathState(11);
                 }
             }
             case 11 -> {
                 // score the line 3 and go to line 1 for park
                 if (!follower.isBusy()) {
-                    intakeLauncher.stopIntake();
-                    intakeLauncher.updateTurret(follower.getPose());
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    intake.stop();
+                    turret.updateTurret(follower.getPose());
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
-//                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
+                    shooter.takeShot(launchPower, intake);
 
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-//                        intakeLauncher.runIntake(1, transferPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
                         follower.followPath(gatePark, true);
                         setPathState(12);
                     }
@@ -290,8 +287,8 @@ public class RedOppositeNew extends OpMode {
             }
             case 12 -> {
                 if (!follower.isBusy()) {
-                    intakeLauncher.stopIntake();
-                    intakeLauncher.stopShooting();
+                    intake.stop();
+                    shooter.stopShooting();
                     setPathState(-1);
                 }
             }
@@ -306,15 +303,14 @@ public class RedOppositeNew extends OpMode {
     @Override
     public void loop() {
         DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
-                follower.getPose().getHeading(), Math.toRadians(intakeLauncher.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
+                follower.getPose().getHeading(), Math.toRadians(turret.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         follower.update();
         autonomousPathUpdate();
-//        intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
 
-        intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
-        intakeLauncher.updateTurret(follower.getPose());
+        turret.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
+        turret.updateTurret(follower.getPose());
         if (opmodeTimer.getElapsedTime() > 28500) {
-            intakeLauncher.stopShooting();
+            shooter.stopShooting();
             follower.followPath(gatePark, true);
         }
         blackboard.put("RED_POSE", follower.getPose());
@@ -335,19 +331,20 @@ public class RedOppositeNew extends OpMode {
         opmodeTimer.resetTimer();
         blackboard.clear();
         follower = Constants.createFollower(hardwareMap);
-        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
-        intakeLauncher.setInitialHeading(startPose.getHeading());
-        IntakeLauncher.minTransferThreashhold = 0.95;
-        intakeLauncher.setGoal(GOAL_X, GOAL_Y);
+        intake = new Intake(hardwareMap);
+        shooter = new Shooter(hardwareMap);
+        turret = new Turret(hardwareMap, telemetry, follower);
+        turret.setInitialHeading(startPose.getHeading());
+        Shooter.minTransferThreashhold = 0.95;
+        turret.setGoal(GOAL_X, GOAL_Y);
         buildPaths();
         follower.setStartingPose(startPose);
-        intakeLauncher.setShooterPIDFCoefficients();
-        intakeLauncher.setHoodLongShotPosition();
+        shooter.setShooterPIDFCoefficients();
+        shooter.setHoodLongShotPosition();
     }
 
     @Override
     public void start() {
-//        intakeLauncher.powerOnLauncher(launchPower);
         opmodeTimer.resetTimer();
         setPathState(0);
     }

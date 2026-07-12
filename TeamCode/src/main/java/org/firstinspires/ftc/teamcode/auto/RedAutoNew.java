@@ -16,16 +16,23 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
+import org.firstinspires.ftc.teamcode.robot.Intake;
+import org.firstinspires.ftc.teamcode.robot.Shooter;
+import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.robot.LaunchParameters;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
+import org.firstinspires.ftc.teamcode.utilities.ConfigLoader;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
 
 @Configurable
 @Autonomous(name = "Red Auto NEW", group = "Red Auto")
 public class RedAutoNew extends OpMode {
     public static long drinkWaitTime = 1300;
     public static double shootWaitTime = 1300;
-    private IntakeLauncher intakeLauncher;
+    private Intake intake;
+    private Shooter shooter;
+    private Turret turret;
     private Follower follower;
     private Timer pathTimer;
     private Timer opmodeTimer;
@@ -100,25 +107,24 @@ public class RedAutoNew extends OpMode {
         switch (pathState) {
             case 0 -> {
                 // go to score preload location
-                intakeLauncher.powerOnLauncher(launchPower);
+                shooter.powerOnLauncher(launchPower);
                 follower.followPath(scorePreload);
                 setPathState(1);
             }
             case 1 -> {
                 // score preload & go to pick up line 2
                 if (follower.atPose(scorePose, 1, 1)) {
-                    intakeLauncher.stopIntake();
+                    intake.stop();
                     // score preload
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
-//                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
+                    shooter.takeShot(launchPower, intake);
 
                     // stop shooting and go for drink pick up 1
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runIntake(1, transferPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
+                        intake.run(1, transferPower);
                         follower.followPath(grabPickup2, true);
                         setPathState(2);
                     }
@@ -127,7 +133,7 @@ public class RedAutoNew extends OpMode {
             case 2 -> {
                 // go to score pose for line 2
                 if (!follower.isBusy()) {
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    shooter.powerOnLauncher(launchPower);
                     follower.followPath(scorePickup2);
                     setPathState(3);
                 }
@@ -135,17 +141,17 @@ public class RedAutoNew extends OpMode {
             case 3 -> {
                 // score line 2 & go to drink gate start round 1
                 if (follower.atPose(scorePose, 1, 1)) {
-                    intakeLauncher.stopIntake();
+                    intake.stop();
                     // score preload
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
+                    shooter.takeShot(launchPower, intake);
 
                     // stop shooting and go for drink pick up 1
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runIntake(1, transferPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
+                        intake.run(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(4);
                     }
@@ -162,7 +168,7 @@ public class RedAutoNew extends OpMode {
                     }
 
                     // go to score pose
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    shooter.powerOnLauncher(launchPower);
                     follower.followPath(drinkPickupScore);
                     setPathState(5);
                 }
@@ -170,15 +176,15 @@ public class RedAutoNew extends OpMode {
             case 5 -> {
                 // score drink 1  & go to drink gate start round 2
                 if (follower.atPose(scorePose, 1, 1)) {
-                    intakeLauncher.stopIntake();
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    intake.stop();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
+                    shooter.takeShot(launchPower, intake);
 
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runIntake(1, transferPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
+                        intake.run(1, transferPower);
                         follower.followPath(drinkPickupStart);
                         setPathState(6);
                     }
@@ -194,7 +200,7 @@ public class RedAutoNew extends OpMode {
                         throw new RuntimeException(e);
                     }
                     // go to score pose
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    shooter.powerOnLauncher(launchPower);
                     follower.followPath(drinkPickupScore);
                     setPathState(7);
                 }
@@ -202,17 +208,16 @@ public class RedAutoNew extends OpMode {
             case 7 -> {
                 // score the drink 2 and go to line 1 for pick up
                 if (follower.atPose(scorePose, 1, 1)) {
-                    intakeLauncher.stopIntake();
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    intake.stop();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
-//                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
+                    shooter.takeShot(launchPower, intake);
 
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runIntake(1, transferPower);
-                        intakeLauncher.powerOnLauncher(launchPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
+                        intake.run(1, transferPower);
+                        shooter.powerOnLauncher(launchPower);
                         follower.followPath(grabPickup1, true);
                         setPathState(8);
                     }
@@ -221,8 +226,8 @@ public class RedAutoNew extends OpMode {
             case 8 -> {
                 // go to score pose for line 1
                 if (!follower.isBusy()) {
-                    intakeLauncher.runIntake(1, transferPower);
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    intake.run(1, transferPower);
+                    shooter.powerOnLauncher(launchPower);
                     follower.followPath(scorePickup1);
                     setPathState(9);
                 }
@@ -230,18 +235,17 @@ public class RedAutoNew extends OpMode {
             case 9 -> {
                 // score line 1 & go to line 3
                 if (follower.atPose(scorePose, 1, 1)) {
-                    intakeLauncher.stopIntake();
+                    intake.stop();
                     // score line 1
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower + 0.03);
-//                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
+                    shooter.takeShot(launchPower + 0.03, intake);
 
                     // stop shooting and go for drink pick up 3
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
-                        intakeLauncher.runIntake(1, transferPower);
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
+                        intake.run(1, transferPower);
                         follower.followPath(grabPickup3);
                         setPathState(10);
                     }
@@ -250,32 +254,31 @@ public class RedAutoNew extends OpMode {
             case 10 -> {
                 // go to score pose for line 3
                 if (!follower.isBusy()) {
-                    intakeLauncher.runIntake(1, transferPower);
+                    intake.run(1, transferPower);
                     follower.followPath(scorePickup3);
-                    intakeLauncher.powerOnLauncher(launchPower);
+                    shooter.powerOnLauncher(launchPower);
                     setPathState(11);
                 }
             }
             case 11 -> {
                 // score the line 3 and go to line 1 for park
                 if (follower.atPose(scorePose, 1, 1)) {
-                    intakeLauncher.stopIntake();
-                    if (!intakeLauncher.isShooting()) {
-                        intakeLauncher.startShooting();
+                    intake.stop();
+                    if (!shooter.isShooting()) {
+                        shooter.startShooting();
                     }
-                    intakeLauncher.takeShot(launchPower);
-//                    intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
+                    shooter.takeShot(launchPower, intake);
 
-                    if (intakeLauncher.getShootingDuration() > shootWaitTime) {
-                        intakeLauncher.stopShooting();
+                    if (shooter.getShootingDuration() > shootWaitTime) {
+                        shooter.stopShooting();
                         setPathState(12);
                     }
                 }
             }
             case 12 -> {
                 if (!follower.isBusy()) {
-                    intakeLauncher.stopIntake();
-                    intakeLauncher.stopShooting();
+                    intake.stop();
+                    shooter.stopShooting();
                     setPathState(-1);
                 }
             }
@@ -290,13 +293,12 @@ public class RedAutoNew extends OpMode {
     @Override
     public void loop() {
         DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
-                follower.getPose().getHeading(), Math.toRadians(intakeLauncher.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
+                follower.getPose().getHeading(), Math.toRadians(turret.getCurrentTurnAngle()), GOAL_X, GOAL_Y);
         follower.update();
         autonomousPathUpdate();
-//        intakeLauncher.updateShootingLogic(launchPower, follower.getPose());
 
-        intakeLauncher.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
-        intakeLauncher.updateTurret(follower.getPose());
+        turret.setTargetTurnAngle(Math.toDegrees(follower.getHeading()));
+        turret.updateTurret(follower.getPose());
 
         blackboard.put("RED_POSE", follower.getPose());
 
@@ -315,19 +317,36 @@ public class RedAutoNew extends OpMode {
         opmodeTimer = new Timer();
         opmodeTimer.resetTimer();
         blackboard.clear();
+        double drivetrainTolerance = ConfigLoader.getDouble("caching.drivetrain_tolerance");
+        CachingDcMotorEx lf = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "leftFront"));
+        CachingDcMotorEx lb = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "leftBack"));
+        CachingDcMotorEx rf = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "rightFront"));
+        CachingDcMotorEx rb = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "rightBack"));
+
+        lf.setCachingTolerance(drivetrainTolerance);
+        lb.setCachingTolerance(drivetrainTolerance);
+        rf.setCachingTolerance(drivetrainTolerance);
+        rb.setCachingTolerance(drivetrainTolerance);
+
+        hardwareMap.put("leftFront", lf);
+        hardwareMap.put("leftBack", lb);
+        hardwareMap.put("rightFront", rf);
+        hardwareMap.put("rightBack", rb);
+
         follower = Constants.createFollower(hardwareMap);
-        intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
-        intakeLauncher.setInitialHeading(startPose.getHeading());
-        IntakeLauncher.minTransferThreashhold = 0.93;
-        intakeLauncher.setGoal(GOAL_X, GOAL_Y);
+        intake = new Intake(hardwareMap);
+        shooter = new Shooter(hardwareMap);
+        turret = new Turret(hardwareMap, telemetry, follower);
+        turret.setInitialHeading(startPose.getHeading());
+        Shooter.minTransferThreashhold = 0.93;
+        turret.setGoal(GOAL_X, GOAL_Y);
         buildPaths();
         follower.setStartingPose(startPose);
-        intakeLauncher.setShooterPIDFCoefficients();
+        shooter.setShooterPIDFCoefficients();
     }
 
     @Override
     public void start() {
-//        intakeLauncher.powerOnLauncher(launchPower);
         opmodeTimer.resetTimer();
         setPathState(0);
     }
