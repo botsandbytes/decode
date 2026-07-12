@@ -79,12 +79,6 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
-pedro-docs/
-pedro-repo/
-nextftc-docs/
-dairy-docs/
-dairy-sloth/
-dairy-cachinghardware/
 
 # BEGIN ai-rulez (DO NOT EDIT - managed by ai-rulez)
 .agents/
