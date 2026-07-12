@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
+import org.firstinspires.ftc.teamcode.robot.Turret;
 
 import java.util.List;
 
@@ -26,14 +26,14 @@ public class TuneForwardPower extends LinearOpMode {
 
         Follower follower = Constants.createFollower(hardwareMap);
         follower.startTeleopDrive();
-        IntakeLauncher intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
+        Turret turret = new Turret(hardwareMap, telemetry, follower);
 
 
 
         if (isStopRequested()) return;
 
         while (opModeIsActive()) {
-            intakeLauncher.tunemin(min);
+            turret.tunemin(min);
         }
     }
 }

@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.IntakeLauncher;
+import org.firstinspires.ftc.teamcode.robot.Turret;
 
 import java.util.List;
 
@@ -30,14 +30,14 @@ public class TuneTurningPower extends LinearOpMode {
 
         Follower follower = Constants.createFollower(hardwareMap);
         follower.startTeleopDrive();
-        IntakeLauncher intakeLauncher = new IntakeLauncher(hardwareMap, telemetry, follower);
+        Turret turret = new Turret(hardwareMap, telemetry, follower);
 
 
 
         if (isStopRequested()) return;
 
         while (opModeIsActive()) {
-            intakeLauncher.tuneMinTurnPower(min);
+            turret.tuneMinTurnPower(min);
         }
     }
 }
