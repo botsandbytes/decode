@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.robot;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoImplEx;
+import com.qualcomm.robotcore.hardware.PwmControl;
 
 /**
  * Lumos - Control class for goBILDA RGB Indicator Light (3118-0808-0002)
@@ -24,7 +26,6 @@ import com.qualcomm.robotcore.hardware.Servo;
  * Violet: 0.722
  * White: 1.0
  */
-// TODO: for some reason this code isn't working, but the light works with the Servo programmer.
 public class Lumos {
 
     // RGB Indicator Light
@@ -49,6 +50,11 @@ public class Lumos {
      */
     public Lumos(HardwareMap hardwareMap) {
         light = hardwareMap.get(Servo.class, "light");
+        if (light instanceof ServoImplEx) {
+            ServoImplEx lightEx = (ServoImplEx) light;
+            lightEx.setPwmRange(new PwmControl.PwmRange(500, 2500));
+            lightEx.setPwmEnable();
+        }
     }
 
     /**
