@@ -32,11 +32,9 @@ package org.firstinspires.ftc.robotcontroller.external.samples;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import org.firstinspires.ftc.robotcore.external.ClassFactory;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.VisionPortal.CameraState;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
@@ -44,21 +42,30 @@ import java.util.List;
 
 /*
  * This OpMode illustrates the basics of AprilTag recognition and pose estimation, using
- * two webcams.
+ * the easy way.
+ *
+ * For an introduction to AprilTags, see the FTC-DOCS link below:
+ * https://ftc-docs.firstinspires.org/en/latest/apriltag/vision_portal/apriltag_intro/apriltag-intro.html
+ *
+ * In this sample, any visible tag ID will be detected and displayed, but only tags that are included in the default
+ * "TagLibrary" will have their position and orientation information displayed.  This default TagLibrary contains
+ * the current Season's AprilTags and a small set of "test Tags" in the high number range.
+ *
+ * When an AprilTag in the TagLibrary is detected, the SDK provides location and orientation of the tag, relative to the camera.
+ * This information is provided in the "ftcPose" member of the returned "detection", and is explained in the ftc-docs page linked below.
+ * https://ftc-docs.firstinspires.org/apriltag-detection-values
+ *
+ * To experiment with using AprilTags to navigate, try out these two driving samples:
+ * RobotAutoDriveToAprilTagOmni and RobotAutoDriveToAprilTagTank
  *
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
-@TeleOp(name = "Concept: AprilTag Switchable Cameras", group = "Concept")
+@TeleOp(name = "Concept: AprilTag Easy", group = "Concept")
 @Disabled
-public class ConceptAprilTagSwitchableCameras extends LinearOpMode {
+public class ConceptAprilTagEasy extends LinearOpMode {
 
-    /*
-     * Variables used for switching cameras.
-     */
-    private WebcamName webcam1, webcam2;
-    private boolean oldLeftBumper;
-    private boolean oldRightBumper;
+    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
 
     /**
      * The variable to store our instance of the AprilTag processor.
@@ -83,7 +90,6 @@ public class ConceptAprilTagSwitchableCameras extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            telemetryCameraSwitching();
             telemetryAprilTag();
 
             // Push telemetry to the Driver Station.
@@ -96,8 +102,6 @@ public class ConceptAprilTagSwitchableCameras extends LinearOpMode {
                 visionPortal.resumeStreaming();
             }
 
-            doCameraSwitching();
-
             // Share the CPU.
             sleep(20);
         }
@@ -105,43 +109,26 @@ public class ConceptAprilTagSwitchableCameras extends LinearOpMode {
         // Save more CPU resources when camera is no longer needed.
         visionPortal.close();
 
-    }   // end runOpMode()
+    }   // end method runOpMode()
 
     /**
      * Initialize the AprilTag processor.
      */
     private void initAprilTag() {
 
-        // Create the AprilTag processor by using a builder.
-        aprilTag = new AprilTagProcessor.Builder().build();
+        // Create the AprilTag processor the easy way.
+        aprilTag = AprilTagProcessor.easyCreateWithDefaults();
 
-        webcam1 = hardwareMap.get(WebcamName.class, "Webcam 1");
-        webcam2 = hardwareMap.get(WebcamName.class, "Webcam 2");
-        CameraName switchableCamera = ClassFactory.getInstance()
-            .getCameraManager().nameForSwitchableCamera(webcam1, webcam2);
-
-        // Create the vision portal by using a builder.
-        visionPortal = new VisionPortal.Builder()
-            .setCamera(switchableCamera)
-            .addProcessor(aprilTag)
-            .build();
-
-    }   // end method initAprilTag()
-
-    /**
-     * Add telemetry about camera switching.
-     */
-    private void telemetryCameraSwitching() {
-
-        if (visionPortal.getActiveCamera().equals(webcam1)) {
-            telemetry.addData("activeCamera", "Webcam 1");
-            telemetry.addData("Press RightBumper", "to switch to Webcam 2");
+        // Create the vision portal the easy way.
+        if (USE_WEBCAM) {
+            visionPortal = VisionPortal.easyCreateWithDefaults(
+                hardwareMap.get(WebcamName.class, "Webcam 1"), aprilTag);
         } else {
-            telemetry.addData("activeCamera", "Webcam 2");
-            telemetry.addData("Press LeftBumper", "to switch to Webcam 1");
+            visionPortal = VisionPortal.easyCreateWithDefaults(
+                BuiltinCameraDirection.BACK, aprilTag);
         }
 
-    }   // end method telemetryCameraSwitching()
+    }   // end method initAprilTag()
 
     /**
      * Add telemetry about AprilTag detections.
@@ -170,25 +157,5 @@ public class ConceptAprilTagSwitchableCameras extends LinearOpMode {
         telemetry.addLine("RBE = Range, Bearing & Elevation");
 
     }   // end method telemetryAprilTag()
-
-    /**
-     * Set the active camera according to input from the gamepad.
-     */
-    private void doCameraSwitching() {
-        if (visionPortal.getCameraState() == CameraState.STREAMING) {
-            // If the left bumper is pressed, use Webcam 1.
-            // If the right bumper is pressed, use Webcam 2.
-            boolean newLeftBumper = gamepad1.left_bumper;
-            boolean newRightBumper = gamepad1.right_bumper;
-            if (newLeftBumper && !oldLeftBumper) {
-                visionPortal.setActiveCamera(webcam1);
-            } else if (newRightBumper && !oldRightBumper) {
-                visionPortal.setActiveCamera(webcam2);
-            }
-            oldLeftBumper = newLeftBumper;
-            oldRightBumper = newRightBumper;
-        }
-
-    }   // end method doCameraSwitching()
 
 }   // end class
