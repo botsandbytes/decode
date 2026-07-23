@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectTasksOptions">
+    <TaskOptions isEnabled="true">
+      <option name="name" value="Generate Robot Config" />
+      <option name="description" value="Regenerates config.java and config-schema.json on YAML edits" />
+      <option name="fileExtension" value="yaml" />
+      <option name="scopeName" value="Project Files" />
+      <option name="program" value="python3" />
+      <option name="arguments" value="$ProjectFileDir$/scripts/generate_config.py" />
+      <option name="workingDir" value="$ProjectFileDir$" />
+      <option name="checkSyntaxErrors" value="false" />
+      <option name="immediateSync" value="true" />
+      <option name="saveAll" value="true" />
+      <option name="output" value="$ProjectFileDir$/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.java" />
+      <option name="outputFromStdout" value="false" />
+      <option name="outputFilters">
+        <list />
+      </option>
+    </TaskOptions>
+  </component>
+</project>
