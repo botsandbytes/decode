@@ -16,6 +16,8 @@ public class LumosTest extends LinearOpMode {
     while (opModeIsActive()) {
       lumos.setColor(Lumos.Color.RED);
       telemetry.addData("pos", lumos.getPosition());
+      telemetry.update();
+      idle();
     }
   }
 }
