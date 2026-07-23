@@ -1,0 +1,22 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace = 'org.firstinspires.ftc.teamcode.config'
+    compileSdk 37
+
+    defaultConfig {
+        minSdk 24
+    }
+}
+
+repositories {
+    mavenCentral()
+    google()
+    maven { url = "https://mymaven.bylazar.com/releases" }
+    maven { url = "https://repo.dairy.foundation/releases" }
+}
+
+dependencies {
+    implementation 'org.yaml:snakeyaml:2.6'
+    implementation 'com.pedropathing:ftc:2.1.2'
+}
