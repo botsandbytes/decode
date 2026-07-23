@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude Exposure of Internal Representation warnings since sharing hardware map and subsystems is standard FTC practice -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Exclude static field modifications since FTC dashboard configurables rely on non-final public static fields -->
+    <Match>
+        <Bug pattern="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"/>
+    </Match>
+    <Match>
+        <Bug pattern="MS_SHOULD_BE_FINAL"/>
+    </Match>
+    <Match>
+        <Bug pattern="MS_CANNOT_BE_FINAL"/>
+    </Match>
+
+    <!-- Exclude public field warnings in Pedro Pathing Tuning classes -->
+    <Match>
+        <Class name="~.*\.pedroPathing\.Tuning.*"/>
+    </Match>
+
+    <!-- Exclude config class because it uses reflection to populate fields and uses lowercase name -->
+    <Match>
+        <Class name="~.*\.robot\.config\.config.*"/>
+    </Match>
+
+    <!-- Exclude class naming conventions for config class -->
+    <Match>
+        <Class name="~.*\.robot\.config\.config.*"/>
+        <Bug pattern="NM_CLASS_NAMING_CONVENTION"/>
+    </Match>
+
+    <!-- Exclude Field.java null-dereference warnings since it reads config fields populated via reflection -->
+    <Match>
+        <Class name="org.firstinspires.ftc.teamcode.records.Field"/>
+    </Match>
+
+    <!-- Exclude unwritten field and null-pointer warnings related to reflection-filled config properties -->
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
+    </Match>
+    <Match>
+        <Bug pattern="NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
+    </Match>
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_FIELD"/>
+    </Match>
+    <Match>
+        <Bug pattern="NP_UNWRITTEN_FIELD"/>
+    </Match>
+</FindBugsFilter>
