@@ -37,7 +37,7 @@ public class FullMaxVelocityTest extends LinearOpMode {
       shooter.setPower(power);
       telemetry.addData("intake Front", intakeF.getVelocity());
       telemetry.addData("intake Mid", intakeM.getVelocity());
-      telemetry.addData("shooter", intakeM.getVelocity());
+      telemetry.addData("shooter", shooter.getVelocity());
       telemetry.update();
     }
   }
