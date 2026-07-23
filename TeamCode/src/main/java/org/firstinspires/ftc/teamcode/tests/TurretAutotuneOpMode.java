@@ -33,7 +33,9 @@ public class TurretAutotuneOpMode extends AutotuneOpMode {
 
   @Override
   protected void applyPower(double power) {
-    turret.setTurretPowerRaw(power);
+    turret.setAimMode(Turret.AimMode.MANUAL);
+    turret.setManualPower(power);
+    turret.periodic();
   }
 
   @SuppressLint("DefaultLocale")

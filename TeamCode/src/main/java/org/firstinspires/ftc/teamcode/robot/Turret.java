@@ -43,11 +43,13 @@ public class Turret {
   public enum AimMode {
     IDLE,
     HOLD,
-    AIM_AT_GOAL
+    AIM_AT_GOAL,
+    MANUAL
   }
 
   private AimMode mode = AimMode.IDLE;
   private double holdAngle = 0.0;
+  private double manualPower = 0.0;
 
   public Turret(HardwareMap hardwareMap, Telemetry telemetry, Follower follower) {
     this(hardwareMap, telemetry, follower::getPose);
@@ -372,6 +374,10 @@ public class Turret {
     return holdAngle;
   }
 
+  public void setManualPower(double power) {
+    this.manualPower = power;
+  }
+
   public void periodic() {
     switch (mode) {
       case IDLE:
@@ -389,6 +395,9 @@ public class Turret {
           this.targetTurnAngle = Math.toDegrees(Math.atan2(deltaY, deltaX));
           updateTurret(pose);
         }
+        break;
+      case MANUAL:
+        setTurretPowerRaw(manualPower);
         break;
     }
   }
