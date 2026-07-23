@@ -566,12 +566,12 @@
         "drink_wait_ms": {
           "description": "Wait delay (milliseconds) at the drink gate when intake gathers rings.",
           "type": "number",
-          "minimum": 0
+          "minimum": 0.0
         },
         "shoot_wait_ms": {
           "description": "Wait time (milliseconds) allowed to fire a shot before ending the shoot command.",
           "type": "number",
-          "minimum": 0
+          "minimum": 0.0
         },
         "launch_power": {
           "description": "Flywheel power ratio (0.0 to 1.0) used for close-range shots.",
@@ -594,12 +594,12 @@
         "opposite_drink_wait_ms": {
           "description": "Wait delay (milliseconds) at the drink gate for opposite alliance autonomous.",
           "type": "number",
-          "minimum": 0
+          "minimum": 0.0
         },
         "opposite_shoot_wait_ms": {
           "description": "Wait time (milliseconds) allowed to fire a shot for opposite alliance autonomous.",
           "type": "number",
-          "minimum": 0
+          "minimum": 0.0
         },
         "opposite_launch_power": {
           "description": "Target power coefficient (0.0 to 1.0) for opposite alliance autonomous launcher.",
@@ -651,89 +651,29 @@
                 "start": {
                   "description": "Starting position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "score": {
                   "description": "High goal target scoring position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink": {
                   "description": "Drink gate alignment coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "park": {
                   "description": "Parking destination coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 }
               },
@@ -750,89 +690,29 @@
                 "start": {
                   "description": "Starting position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "score": {
                   "description": "High goal target scoring position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink": {
                   "description": "Drink gate alignment coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "park": {
                   "description": "Parking destination coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 }
               },
@@ -867,243 +747,78 @@
                 "start": {
                   "description": "Starting position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "score": {
                   "description": "High goal target scoring position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "final_score": {
                   "description": "Final scoring target position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink_cp": {
                   "description": "Control point pose on path to drink gate.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink_end": {
                   "description": "Ending position coordinate pose at the drink gate.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup1_cp": {
                   "description": "Control point pose on path to first sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup1_end": {
                   "description": "Ending position coordinate pose for first sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup2_cp": {
                   "description": "Control point pose on path to second sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup2_end": {
                   "description": "Ending position coordinate pose for second sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup3_cp": {
                   "description": "Control point pose on path to third sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup3_end": {
                   "description": "Ending position coordinate pose for third sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 }
               },
@@ -1127,243 +842,78 @@
                 "start": {
                   "description": "Starting position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "score": {
                   "description": "High goal target scoring position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "mid_score": {
                   "description": "Mid-scoring target position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink_cp": {
                   "description": "Control point pose on path to drink gate.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink_end": {
                   "description": "Ending position coordinate pose at the drink gate.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup1_cp": {
                   "description": "Control point pose on path to first sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup1_end": {
                   "description": "Ending position coordinate pose for first sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup2_cp": {
                   "description": "Control point pose on path to second sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup2_end": {
                   "description": "Ending position coordinate pose for second sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup3_cp": {
                   "description": "Control point pose on path to third sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup3_end": {
                   "description": "Ending position coordinate pose for third sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 }
               },
@@ -1396,243 +946,78 @@
                 "start": {
                   "description": "Starting position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "score": {
                   "description": "High goal target scoring position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink_cp": {
                   "description": "Control point pose on path to drink gate.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink_end": {
                   "description": "Ending position coordinate pose at the drink gate.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup2_cp": {
                   "description": "Control point pose on path to second sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup2_end": {
                   "description": "Ending position coordinate pose for second sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup3_cp": {
                   "description": "Control point pose on path to third sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup3_end": {
                   "description": "Ending position coordinate pose for third sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup4_cp": {
                   "description": "Control point pose on path to fourth sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup4_end": {
                   "description": "Ending position coordinate pose for fourth sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "park": {
                   "description": "Parking destination coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 }
               },
@@ -1656,243 +1041,78 @@
                 "start": {
                   "description": "Starting position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "score": {
                   "description": "High goal target scoring position coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink_cp": {
                   "description": "Control point pose on path to drink gate.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "drink_end": {
                   "description": "Ending position coordinate pose at the drink gate.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup2_cp": {
                   "description": "Control point pose on path to second sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup2_end": {
                   "description": "Ending position coordinate pose for second sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup3_cp": {
                   "description": "Control point pose on path to third sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup3_end": {
                   "description": "Ending position coordinate pose for third sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup4_cp": {
                   "description": "Control point pose on path to fourth sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "pickup4_end": {
                   "description": "Ending position coordinate pose for fourth sample pickup.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 },
                 "park": {
                   "description": "Parking destination coordinate pose.",
                   "oneOf": [
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "number"
-                      },
-                      "minItems": 3,
-                      "maxItems": 3
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "m",
-                        "M",
-                        "mirror",
-                        "MIRROR"
-                      ]
-                    }
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "enum": ["m", "M", "mirror", "MIRROR"]}
                   ]
                 }
               },

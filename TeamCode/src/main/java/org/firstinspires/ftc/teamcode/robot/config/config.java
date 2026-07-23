@@ -206,275 +206,291 @@ public final class config {
 
   public static final class Caching {
     /**
-     * Power variance tolerance (0.0 to 1.0) for the front and mid intake rollers. If the new command is within this range of the previous write, it is skipped.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Power variance tolerance (0.0 to 1.0) for the front and mid intake rollers. If the new
+     * command is within this range of the previous write, it is skipped. Minimum: 0.0 Maximum: 1.0
      */
     public double intake_tolerance;
+
     /**
-     * Velocity variance tolerance (in encoder ticks per second) below which new speed adjustment commands are dropped to prevent minor noise from saturating the I2C bus.
-     * Minimum: 0.0
+     * Velocity variance tolerance (in encoder ticks per second) below which new speed adjustment
+     * commands are dropped to prevent minor noise from saturating the I2C bus. Minimum: 0.0
      */
     public double flywheel_tolerance;
+
     /**
-     * Servo position variance tolerance (0.0 to 1.0) below which new position commands are ignored. Reduces servo jitter.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Servo position variance tolerance (0.0 to 1.0) below which new position commands are ignored.
+     * Reduces servo jitter. Minimum: 0.0 Maximum: 1.0
      */
     public double hood_tolerance;
+
     /**
-     * Motor power variance tolerance (0.0 to 1.0) for chassis wheels. Crucial for reducing loop times.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Motor power variance tolerance (0.0 to 1.0) for chassis wheels. Crucial for reducing loop
+     * times. Minimum: 0.0 Maximum: 1.0
      */
     public double drivetrain_tolerance;
   }
 
   public static final class Turret {
     /**
-     * Upper speed limit (0.0 to 1.0) allowed for chassis turn adjustments when auto-aligning to the goal.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Upper speed limit (0.0 to 1.0) allowed for chassis turn adjustments when auto-aligning to the
+     * goal. Minimum: 0.0 Maximum: 1.0
      */
     public double max_turn_power;
+
     /**
-     * Minimum power (0.0 to 1.0) sent to the drivetrain during auto-turn corrections. Overcomes static wheel friction (stiction). If the robot stops turning before aligning, increase this.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Minimum power (0.0 to 1.0) sent to the drivetrain during auto-turn corrections. Overcomes
+     * static wheel friction (stiction). If the robot stops turning before aligning, increase this.
+     * Minimum: 0.0 Maximum: 1.0
      */
     public double min_turn_power;
+
     /**
-     * Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret rotation speed.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret
+     * rotation speed. Minimum: 0.0 Maximum: 1.0
      */
     public double max_power_output;
+
     /**
-     * Feedforward power component (0.0 to 1.0) added to turret rotation to overcome gear backlash and friction. Applied in the direction of movement.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Feedforward power component (0.0 to 1.0) added to turret rotation to overcome gear backlash
+     * and friction. Applied in the direction of movement. Minimum: 0.0 Maximum: 1.0
      */
     public double feed_forward;
+
     public static final class Orientation {
       /**
-       * Mounting orientation direction of the hub's logo panel (e.g. RIGHT, LEFT, UP, DOWN, FORWARD, BACKWARD).
+       * Mounting orientation direction of the hub's logo panel (e.g. RIGHT, LEFT, UP, DOWN,
+       * FORWARD, BACKWARD).
        */
       public String logo;
-      /**
-       * Mounting direction of the hub's USB ports.
-       */
+
+      /** Mounting direction of the hub's USB ports. */
       public String usb;
     }
+
     public Orientation orientation;
+
     public static final class Turn {
       /**
-       * Encoder-to-angle mapping offset (degrees) to align the physical turret zero orientation with the chassis.
+       * Encoder-to-angle mapping offset (degrees) to align the physical turret zero orientation
+       * with the chassis.
        */
       public double offset_const;
+
       /**
-       * Mechanical rotation boundary (degrees) measured from center. Prevents the turret from rotating past this limit and tearing internal wires.
+       * Mechanical rotation boundary (degrees) measured from center. Prevents the turret from
+       * rotating past this limit and tearing internal wires.
        */
       public double limit_const;
     }
+
     public Turn turn;
     public com.qualcomm.robotcore.hardware.PIDFCoefficients pidf;
+
     public static final class Tolerance {
       /**
-       * Maximum allowed chassis drift (inches) from target pose before auto-corrective drive motions engage.
-       * Minimum: 0.0
+       * Maximum allowed chassis drift (inches) from target pose before auto-corrective drive
+       * motions engage. Minimum: 0.0
        */
       public double max_drift;
+
       /**
-       * Distance boundary (inches) below which the target is considered close, switching to static tolerance.
-       * Minimum: 0.0
+       * Distance boundary (inches) below which the target is considered close, switching to static
+       * tolerance. Minimum: 0.0
        */
       public double near_cutoff;
-      /**
-       * Target alignment tolerance (degrees) when within the near cutoff range.
-       * Minimum: 0.0
-       */
+
+      /** Target alignment tolerance (degrees) when within the near cutoff range. Minimum: 0.0 */
       public double near_val;
+
       /**
-       * Minimum dynamic alignment tolerance (degrees) allowed. Prevents the turret from hunting indefinitely when very close.
-       * Minimum: 0.0
+       * Minimum dynamic alignment tolerance (degrees) allowed. Prevents the turret from hunting
+       * indefinitely when very close. Minimum: 0.0
        */
       public double min_deg;
+
       /**
-       * Maximum dynamic alignment tolerance (degrees) allowed. Prevents launching if the turret orientation error exceeds this.
-       * Minimum: 0.0
+       * Maximum dynamic alignment tolerance (degrees) allowed. Prevents launching if the turret
+       * orientation error exceeds this. Minimum: 0.0
        */
       public double max_deg;
     }
+
     public Tolerance tolerance;
   }
 
   public static final class Vision {
     public static final class CameraPosition {
-      /**
-       * X value coordinate.
-       */
+      /** X value coordinate. */
       public double x;
-      /**
-       * Y value coordinate.
-       */
+
+      /** Y value coordinate. */
       public double y;
+
       public double z;
     }
+
     public CameraPosition camera_position;
+
     public static final class CameraOrientation {
       public double yaw;
       public double pitch;
       public double roll;
     }
+
     public CameraOrientation camera_orientation;
   }
 
   public static final class Sentinel {
     /**
-     * Total physical width of the robot (inches) used to build the collision footprint. Determines how close the robot can get to walls or goals.
-     * Minimum: 0.0
+     * Total physical width of the robot (inches) used to build the collision footprint. Determines
+     * how close the robot can get to walls or goals. Minimum: 0.0
      */
     public double robot_width;
+
     /**
-     * Angle (radians) used to project the robot's future rotation. If the robot would violate a goal zone at this lookahead angle, it prevents the turn.
-     * Minimum: 0.0
+     * Angle (radians) used to project the robot's future rotation. If the robot would violate a
+     * goal zone at this lookahead angle, it prevents the turn. Minimum: 0.0
      */
     public double rotation_lookahead;
+
     public static final class Goals {
-      /**
-       * Length (inches) of one side of the square scoring goal zones on the field.
-       * Minimum: 0.0
-       */
+      /** Length (inches) of one side of the square scoring goal zones on the field. Minimum: 0.0 */
       public double size;
+
       /**
-       * The Y-coordinate boundary (inches) on the field where the scoring zones begin. Used to calculate red/blue alliance goal boxes.
-       * Minimum: 0.0
+       * The Y-coordinate boundary (inches) on the field where the scoring zones begin. Used to
+       * calculate red/blue alliance goal boxes. Minimum: 0.0
        */
       public double min_y;
-      /**
-       * Goal center X coordinate for RED alliance.
-       * Minimum: 0.0
-       */
+
+      /** Goal center X coordinate for RED alliance. Minimum: 0.0 */
       public double red_goal_x;
-      /**
-       * Goal center Y coordinate for RED alliance.
-       * Minimum: 0.0
-       */
+
+      /** Goal center Y coordinate for RED alliance. Minimum: 0.0 */
       public double red_goal_y;
-      /**
-       * Goal center X coordinate for BLUE alliance.
-       * Minimum: 0.0
-       */
+
+      /** Goal center X coordinate for BLUE alliance. Minimum: 0.0 */
       public double blue_goal_x;
-      /**
-       * Goal center Y coordinate for BLUE alliance.
-       * Minimum: 0.0
-       */
+
+      /** Goal center Y coordinate for BLUE alliance. Minimum: 0.0 */
       public double blue_goal_y;
     }
+
     public Goals goals;
   }
 
   public static final class Casablanca {
     public static final class Repulsion {
       /**
-       * Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone boundary.
-       * Minimum: 0.0
-       * Maximum: 1.0
+       * Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone
+       * boundary. Minimum: 0.0 Maximum: 1.0
        */
       public double power;
+
       /**
-       * Scale factor (0.0 to 1.0) for predictive braking. Lowering this makes braking engage sooner/more aggressively to guarantee the robot doesn't enter the goal zone.
-       * Minimum: 0.0
+       * Scale factor (0.0 to 1.0) for predictive braking. Lowering this makes braking engage
+       * sooner/more aggressively to guarantee the robot doesn't enter the goal zone. Minimum: 0.0
        * Maximum: 1.0
        */
       public double decel_safety_factor;
     }
+
     public Repulsion repulsion;
+
     public static final class Depth {
       /**
-       * Distance (inches) from the goal zone at which speed reduction warning starts.
-       * Minimum: 0.0
+       * Distance (inches) from the goal zone at which speed reduction warning starts. Minimum: 0.0
        */
       public double slow_down;
+
       /**
        * Distance (inches) from the goal zone where drive power towards the zone is cut to zero.
        * Minimum: 0.0
        */
       public double hard_stop;
     }
+
     public Depth depth;
+
     public static final class Side {
       /**
-       * Distance (inches) from the goal zone at which speed reduction warning starts.
-       * Minimum: 0.0
+       * Distance (inches) from the goal zone at which speed reduction warning starts. Minimum: 0.0
        */
       public double slow_down;
+
       /**
        * Distance (inches) from the goal zone where drive power towards the zone is cut to zero.
        * Minimum: 0.0
        */
       public double hard_stop;
     }
+
     public Side side;
+
     /**
-     * Distance (inches) over which safety slows downs are interpolated from 0% to 100% strength to prevent jerky speed changes.
-     * Minimum: 0.0
+     * Distance (inches) over which safety slows downs are interpolated from 0% to 100% strength to
+     * prevent jerky speed changes. Minimum: 0.0
      */
     public double lane_blend_distance;
+
     public static final class Friction {
-      /**
-       * X value coordinate.
-       */
+      /** X value coordinate. */
       public double x;
-      /**
-       * Y value coordinate.
-       */
+
+      /** Y value coordinate. */
       public double y;
+
       /**
-       * Minimum turn/yaw drive power (0.0 to 1.0) needed to overcome static wheel stiction. Calibrated using Friction Calibration OpMode.
-       * Minimum: 0.0
-       * Maximum: 1.0
+       * Minimum turn/yaw drive power (0.0 to 1.0) needed to overcome static wheel stiction.
+       * Calibrated using Friction Calibration OpMode. Minimum: 0.0 Maximum: 1.0
        */
       public double rot;
     }
+
     public Friction friction;
+
     public static final class Smoothing {
       /**
-       * Joystick input filter time constant (seconds). Higher values make acceleration and deceleration smoother but increase input lag.
-       * Minimum: 0.0
+       * Joystick input filter time constant (seconds). Higher values make acceleration and
+       * deceleration smoother but increase input lag. Minimum: 0.0
        */
       public double time;
+
       /**
-       * Divisor scaling factor for deceleration. Divides the deceleration rate when stopping to slow down the deceleration curve, preventing the robot from tipping forward and lifting its back wheels.
-       * Minimum: 0.0
+       * Divisor scaling factor for deceleration. Divides the deceleration rate when stopping to
+       * slow down the deceleration curve, preventing the robot from tipping forward and lifting its
+       * back wheels. Minimum: 0.0
        */
       public double back_lift_multiplier;
     }
+
     public Smoothing smoothing;
+
     public static final class HeadingLock {
       /**
        * Enable/disable automatic heading lock when the driver releases the turn joystick in TeleOp.
        */
       public boolean enabled;
+
       /**
        * Proportional gain for the controller loop. Higher values correct errors more aggressively.
        * Minimum: 0.0
        */
       public double kp;
+
       /**
-       * Maximum motor power (0.0 to 1.0) the loop is allowed to command. Clamped to be completely imperceptible.
-       * Minimum: 0.0
-       * Maximum: 1.0
+       * Maximum motor power (0.0 to 1.0) the loop is allowed to command. Clamped to be completely
+       * imperceptible. Minimum: 0.0 Maximum: 1.0
        */
       public double max_power;
+
       /**
-       * Joystick threshold (0.0 to 1.0) below which the heading lock engages.
-       * Minimum: 0.0
-       * Maximum: 1.0
+       * Joystick threshold (0.0 to 1.0) below which the heading lock engages. Minimum: 0.0 Maximum:
+       * 1.0
        */
       public double deadband;
     }
+
     public HeadingLock heading_lock;
   }
 
@@ -484,310 +500,275 @@ public final class config {
      * Minimum: 0.0
      */
     public double max_rpm;
+
     public boolean auto_shoot_mode;
+
     /**
-     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
+     * Prevents launching rings before the shooter is up to speed. Minimum: 0.0 Maximum: 1.0
      */
     public double min_transfer_threshold;
+
     public com.qualcomm.robotcore.hardware.PIDFCoefficients pidf;
+
     public static final class LaunchParams {
       /**
-       * Distance boundary (inches) separating close-range shots from long-range shots.
-       * Minimum: 0.0
+       * Distance boundary (inches) separating close-range shots from long-range shots. Minimum: 0.0
        */
       public double threshold_distance;
+
       public static final class Near {
         /**
-         * Flywheel power ratio (0.0 to 1.0) used for close-range shots.
-         * Minimum: 0.0
-         * Maximum: 1.0
+         * Flywheel power ratio (0.0 to 1.0) used for close-range shots. Minimum: 0.0 Maximum: 1.0
          */
         public double launch_power;
+
         /**
-         * Delay (milliseconds) to keep the flywheel running after firing a near shot.
-         * Minimum: 0.0
+         * Delay (milliseconds) to keep the flywheel running after firing a near shot. Minimum: 0.0
          */
         public double wait_time;
       }
+
       public Near near;
+
       public static final class Far {
         /**
-         * Base flywheel power ratio (0.0 to 1.0) for Blue alliance shots beyond the threshold distance.
-         * Minimum: 0.0
-         * Maximum: 1.0
+         * Base flywheel power ratio (0.0 to 1.0) for Blue alliance shots beyond the threshold
+         * distance. Minimum: 0.0 Maximum: 1.0
          */
         public double blue_base_power;
+
         /**
-         * Base flywheel power ratio (0.0 to 1.0) for Red alliance shots beyond the threshold distance. Red shoots from farther away so this value is intentionally higher.
-         * Minimum: 0.0
-         * Maximum: 1.0
+         * Base flywheel power ratio (0.0 to 1.0) for Red alliance shots beyond the threshold
+         * distance. Red shoots from farther away so this value is intentionally higher. Minimum:
+         * 0.0 Maximum: 1.0
          */
         public double red_base_power;
+
         /**
-         * Distance divisor (inches) to scale up flywheel power as distance increases (power = base_power + extra_distance / power_scale).
-         * Minimum: 0.0
+         * Distance divisor (inches) to scale up flywheel power as distance increases (power =
+         * base_power + extra_distance / power_scale). Minimum: 0.0
          */
         public double power_scale;
+
         /**
-         * Multiplier converting distance to run-time (wait_time = distance * wait_time_scale) in milliseconds.
-         * Minimum: 0.0
+         * Multiplier converting distance to run-time (wait_time = distance * wait_time_scale) in
+         * milliseconds. Minimum: 0.0
          */
         public double wait_time_scale;
       }
+
       public Far far;
     }
+
     public LaunchParams launch_params;
   }
 
   public static final class Auto {
-    /**
-     * Wait delay (milliseconds) at the drink gate when intake gathers rings.
-     * Minimum: 0
-     */
+    /** Wait delay (milliseconds) at the drink gate when intake gathers rings. Minimum: 0.0 */
     public int drink_wait_ms;
+
     /**
-     * Wait time (milliseconds) allowed to fire a shot before ending the shoot command.
-     * Minimum: 0
+     * Wait time (milliseconds) allowed to fire a shot before ending the shoot command. Minimum: 0.0
      */
     public int shoot_wait_ms;
-    /**
-     * Flywheel power ratio (0.0 to 1.0) used for close-range shots.
-     * Minimum: 0.0
-     * Maximum: 1.0
-     */
+
+    /** Flywheel power ratio (0.0 to 1.0) used for close-range shots. Minimum: 0.0 Maximum: 1.0 */
     public double launch_power;
+
     /**
-     * Target power coefficient (0.0 to 1.0) for autonomous transfer motor.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Target power coefficient (0.0 to 1.0) for autonomous transfer motor. Minimum: 0.0 Maximum:
+     * 1.0
      */
     public double transfer_power;
+
     /**
-     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
+     * Prevents launching rings before the shooter is up to speed. Minimum: 0.0 Maximum: 1.0
      */
     public double min_transfer_threshold;
+
     /**
-     * Wait delay (milliseconds) at the drink gate for opposite alliance autonomous.
-     * Minimum: 0
+     * Wait delay (milliseconds) at the drink gate for opposite alliance autonomous. Minimum: 0.0
      */
     public int opposite_drink_wait_ms;
+
     /**
-     * Wait time (milliseconds) allowed to fire a shot for opposite alliance autonomous.
-     * Minimum: 0
+     * Wait time (milliseconds) allowed to fire a shot for opposite alliance autonomous. Minimum:
+     * 0.0
      */
     public int opposite_shoot_wait_ms;
+
     /**
-     * Target power coefficient (0.0 to 1.0) for opposite alliance autonomous launcher.
-     * Minimum: 0.0
+     * Target power coefficient (0.0 to 1.0) for opposite alliance autonomous launcher. Minimum: 0.0
      * Maximum: 1.0
      */
     public double opposite_launch_power;
+
     /**
-     * Target power coefficient (0.0 to 1.0) for opposite alliance autonomous transfer.
-     * Minimum: 0.0
+     * Target power coefficient (0.0 to 1.0) for opposite alliance autonomous transfer. Minimum: 0.0
      * Maximum: 1.0
      */
     public double opposite_transfer_power;
+
     /**
-     * Shooter minimum transfer threshold velocity ratio for opposite auto.
-     * Minimum: 0.0
-     * Maximum: 1.0
+     * Shooter minimum transfer threshold velocity ratio for opposite auto. Minimum: 0.0 Maximum:
+     * 1.0
      */
     public double opposite_min_transfer_threshold;
   }
 
   public static final class Teleop {
     /**
-     * Maximum speed scaler (0.0 to 1.0) applied to chassis manual TeleOp drive inputs.
-     * Minimum: 0.0
+     * Maximum speed scaler (0.0 to 1.0) applied to chassis manual TeleOp drive inputs. Minimum: 0.0
      * Maximum: 1.0
      */
     public double max_speed;
+
     public static final class Poses {
       public static final class Red {
-        /**
-         * Starting position coordinate pose.
-         */
+        /** Starting position coordinate pose. */
         public Pose start;
-        /**
-         * High goal target scoring position coordinate pose.
-         */
+
+        /** High goal target scoring position coordinate pose. */
         public Pose score;
-        /**
-         * Drink gate alignment coordinate pose.
-         */
+
+        /** Drink gate alignment coordinate pose. */
         public Pose drink;
-        /**
-         * Parking destination coordinate pose.
-         */
+
+        /** Parking destination coordinate pose. */
         public Pose park;
       }
+
       public Red red;
+
       public static final class Blue {
-        /**
-         * Starting position coordinate pose.
-         */
+        /** Starting position coordinate pose. */
         public Pose start;
-        /**
-         * High goal target scoring position coordinate pose.
-         */
+
+        /** High goal target scoring position coordinate pose. */
         public Pose score;
-        /**
-         * Drink gate alignment coordinate pose.
-         */
+
+        /** Drink gate alignment coordinate pose. */
         public Pose drink;
-        /**
-         * Parking destination coordinate pose.
-         */
+
+        /** Parking destination coordinate pose. */
         public Pose park;
       }
+
       public Blue blue;
     }
+
     public Poses poses;
   }
 
   public static final class NormalAuto {
-    /**
-     * Control point pose on path to drink gate.
-     */
+    /** Control point pose on path to drink gate. */
     public Pose drinkCp;
-    /**
-     * Ending position coordinate pose at the drink gate.
-     */
+
+    /** Ending position coordinate pose at the drink gate. */
     public Pose drinkEnd;
-    /**
-     * Final scoring target position coordinate pose.
-     */
+
+    /** Final scoring target position coordinate pose. */
     public Pose finalScore;
-    /**
-     * Mid-scoring target position coordinate pose.
-     */
+
+    /** Mid-scoring target position coordinate pose. */
     public Pose midScore;
-    /**
-     * Control point pose on path to first sample pickup.
-     */
+
+    /** Control point pose on path to first sample pickup. */
     public Pose pickup1Cp;
-    /**
-     * Ending position coordinate pose for first sample pickup.
-     */
+
+    /** Ending position coordinate pose for first sample pickup. */
     public Pose pickup1End;
-    /**
-     * Control point pose on path to second sample pickup.
-     */
+
+    /** Control point pose on path to second sample pickup. */
     public Pose pickup2Cp;
-    /**
-     * Ending position coordinate pose for second sample pickup.
-     */
+
+    /** Ending position coordinate pose for second sample pickup. */
     public Pose pickup2End;
-    /**
-     * Control point pose on path to third sample pickup.
-     */
+
+    /** Control point pose on path to third sample pickup. */
     public Pose pickup3Cp;
-    /**
-     * Ending position coordinate pose for third sample pickup.
-     */
+
+    /** Ending position coordinate pose for third sample pickup. */
     public Pose pickup3End;
-    /**
-     * High goal target scoring position coordinate pose.
-     */
+
+    /** High goal target scoring position coordinate pose. */
     public Pose score;
-    /**
-     * Starting position coordinate pose.
-     */
+
+    /** Starting position coordinate pose. */
     public Pose start;
 
     // Shared operational parameters (same for both alliances)
-    /**
-     * Wait delay (milliseconds) at the drink gate when intake gathers rings.
-     */
+    /** Wait delay (milliseconds) at the drink gate when intake gathers rings. */
     public int drinkWaitMs;
-    /**
-     * Wait time (milliseconds) allowed to fire a shot before ending the shoot command.
-     */
+
+    /** Wait time (milliseconds) allowed to fire a shot before ending the shoot command. */
     public int shootWaitMs;
-    /**
-     * Flywheel power ratio (0.0 to 1.0) used for close-range shots.
-     */
+
+    /** Flywheel power ratio (0.0 to 1.0) used for close-range shots. */
     public double launchPower;
-    /**
-     * Target power coefficient (0.0 to 1.0) for autonomous transfer motor.
-     */
+
+    /** Target power coefficient (0.0 to 1.0) for autonomous transfer motor. */
     public double transferPower;
+
     /**
-     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed.
+     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
+     * Prevents launching rings before the shooter is up to speed.
      */
     public double minTransferThreshold;
   }
 
   public static final class OppositeAuto {
-    /**
-     * Control point pose on path to drink gate.
-     */
+    /** Control point pose on path to drink gate. */
     public Pose drinkCp;
-    /**
-     * Ending position coordinate pose at the drink gate.
-     */
+
+    /** Ending position coordinate pose at the drink gate. */
     public Pose drinkEnd;
-    /**
-     * Parking destination coordinate pose.
-     */
+
+    /** Parking destination coordinate pose. */
     public Pose park;
-    /**
-     * Control point pose on path to second sample pickup.
-     */
+
+    /** Control point pose on path to second sample pickup. */
     public Pose pickup2Cp;
-    /**
-     * Ending position coordinate pose for second sample pickup.
-     */
+
+    /** Ending position coordinate pose for second sample pickup. */
     public Pose pickup2End;
-    /**
-     * Control point pose on path to third sample pickup.
-     */
+
+    /** Control point pose on path to third sample pickup. */
     public Pose pickup3Cp;
-    /**
-     * Ending position coordinate pose for third sample pickup.
-     */
+
+    /** Ending position coordinate pose for third sample pickup. */
     public Pose pickup3End;
-    /**
-     * Control point pose on path to fourth sample pickup.
-     */
+
+    /** Control point pose on path to fourth sample pickup. */
     public Pose pickup4Cp;
-    /**
-     * Ending position coordinate pose for fourth sample pickup.
-     */
+
+    /** Ending position coordinate pose for fourth sample pickup. */
     public Pose pickup4End;
-    /**
-     * High goal target scoring position coordinate pose.
-     */
+
+    /** High goal target scoring position coordinate pose. */
     public Pose score;
-    /**
-     * Starting position coordinate pose.
-     */
+
+    /** Starting position coordinate pose. */
     public Pose start;
 
     // Shared operational parameters (same for both alliances)
-    /**
-     * Wait delay (milliseconds) at the drink gate when intake gathers rings.
-     */
+    /** Wait delay (milliseconds) at the drink gate when intake gathers rings. */
     public int drinkWaitMs;
-    /**
-     * Wait time (milliseconds) allowed to fire a shot before ending the shoot command.
-     */
+
+    /** Wait time (milliseconds) allowed to fire a shot before ending the shoot command. */
     public int shootWaitMs;
-    /**
-     * Flywheel power ratio (0.0 to 1.0) used for close-range shots.
-     */
+
+    /** Flywheel power ratio (0.0 to 1.0) used for close-range shots. */
     public double launchPower;
-    /**
-     * Target power coefficient (0.0 to 1.0) for autonomous transfer motor.
-     */
+
+    /** Target power coefficient (0.0 to 1.0) for autonomous transfer motor. */
     public double transferPower;
+
     /**
-     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed.
+     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
+     * Prevents launching rings before the shooter is up to speed.
      */
     public double minTransferThreshold;
   }
@@ -802,7 +783,9 @@ public final class config {
     Pose scorePose;
     if (alliance == Alliance.RED) {
       Pose redScore = ConfigLoader.load(Pose.class, "teleop.poses.red.score");
-      scorePose = org.firstinspires.ftc.teamcode.robot.Turret.alignPose(redScore.getX(), redScore.getY(), goalX + 2.5, goalY);
+      scorePose =
+          org.firstinspires.ftc.teamcode.robot.Turret.alignPose(
+              redScore.getX(), redScore.getY(), goalX + 2.5, goalY);
     } else {
       scorePose = ConfigLoader.load(Pose.class, "teleop.poses.blue.score");
     }

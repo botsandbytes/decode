@@ -26,4 +26,6 @@ dependencies {
     implementation 'dev.frozenmilk.dairy:CachingHardware:1.0.0'
     implementation 'org.apache.commons:commons-math3:3.6.1'
     implementation 'org.yaml:snakeyaml:2.6'
+    implementation 'org.locationtech.jts:jts-core:1.20.0'
 }
+

@@ -10,8 +10,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
 import org.yaml.snakeyaml.Yaml;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -21,7 +19,6 @@ import tools.jackson.databind.ObjectMapper;
  * i.e. it is not the old hollow {@code anyOf} schema that passed almost anything. Each test mutates
  * a fresh copy of the real config and asserts the schema rejects it.
  */
-@RunWith(RobolectricTestRunner.class)
 public class ConfigSchemaStrictnessTest {
 
   private Schema schema() {

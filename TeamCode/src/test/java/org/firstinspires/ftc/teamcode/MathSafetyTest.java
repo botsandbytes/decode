@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import android.graphics.RectF;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -18,11 +17,10 @@ import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
 import org.mockito.Mockito;
-import org.robolectric.RobolectricTestRunner;
 
-@RunWith(RobolectricTestRunner.class)
 public class MathSafetyTest {
 
   private Turret turret;
@@ -148,17 +146,17 @@ public class MathSafetyTest {
   public void testSentinelZoneCalculations() {
     // Verify Sentinel goal zones bounding box calculations (loaded from config.yaml)
     Sentinel sentinel = new Sentinel(Alliance.RED);
-    RectF blueZone = sentinel.getBlueGoalZone();
-    assertEquals(0.0f, blueZone.left, 1e-6);
-    assertEquals(69.0f, blueZone.top, 1e-6);
-    assertEquals(6.0f, blueZone.right, 1e-6);
-    assertEquals(75.0f, blueZone.bottom, 1e-6);
+    Envelope blueZone = sentinel.getBlueGoalZone();
+    assertEquals(0.0, blueZone.getMinX(), 1e-6);
+    assertEquals(69.0, blueZone.getMinY(), 1e-6);
+    assertEquals(6.0, blueZone.getMaxX(), 1e-6);
+    assertEquals(75.0, blueZone.getMaxY(), 1e-6);
 
-    RectF redZone = sentinel.getRedGoalZone();
-    assertEquals(138.0f, redZone.left, 1e-6);
-    assertEquals(69.0f, redZone.top, 1e-6);
-    assertEquals(144.0f, redZone.right, 1e-6);
-    assertEquals(75.0f, redZone.bottom, 1e-6);
+    Envelope redZone = sentinel.getRedGoalZone();
+    assertEquals(138.0, redZone.getMinX(), 1e-6);
+    assertEquals(69.0, redZone.getMinY(), 1e-6);
+    assertEquals(144.0, redZone.getMaxX(), 1e-6);
+    assertEquals(75.0, redZone.getMaxY(), 1e-6);
   }
 
   @Test
@@ -193,24 +191,24 @@ public class MathSafetyTest {
 
     // 1. Robot Footprint rotation test at heading = 0
     Pose poseZero = new Pose(10, 10, 0);
-    android.graphics.PointF[] footprintZero = sentinel.calculateRobotFootprint(poseZero);
+    Coordinate[] footprintZero = sentinel.calculateRobotFootprint(poseZero);
     assertEquals(4, footprintZero.length);
     // Corner 0: (10 - 9, 10 - 9) = (1, 1)
-    assertEquals(1.0f, footprintZero[0].x, 1e-4);
-    assertEquals(1.0f, footprintZero[0].y, 1e-4);
+    assertEquals(1.0, footprintZero[0].x, 1e-4);
+    assertEquals(1.0, footprintZero[0].y, 1e-4);
     // Corner 1: (10 + 9, 10 - 9) = (19, 1)
-    assertEquals(19.0f, footprintZero[1].x, 1e-4);
-    assertEquals(1.0f, footprintZero[1].y, 1e-4);
+    assertEquals(19.0, footprintZero[1].x, 1e-4);
+    assertEquals(1.0, footprintZero[1].y, 1e-4);
 
     // 2. Bounding Box intersection with Goal Zone (violatesActiveGoal)
     // Place robot centered at (2, 72) with heading = 0. It should overlap.
     Pose poseViolating = new Pose(2, 72, 0);
-    android.graphics.PointF[] footprintViolating = sentinel.calculateRobotFootprint(poseViolating);
+    Coordinate[] footprintViolating = sentinel.calculateRobotFootprint(poseViolating);
     assertTrue(sentinel.violatesActiveGoal(footprintViolating));
 
     // Place robot centered at (72, 72) with heading = 0. It should NOT overlap.
     Pose poseSafe = new Pose(72, 72, 0);
-    android.graphics.PointF[] footprintSafe = sentinel.calculateRobotFootprint(poseSafe);
+    Coordinate[] footprintSafe = sentinel.calculateRobotFootprint(poseSafe);
     assertFalse(sentinel.violatesActiveGoal(footprintSafe));
 
     // 3. Launch allowed test

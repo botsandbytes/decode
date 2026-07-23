@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
-import android.graphics.RectF;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.control.PredictiveBrakingController;
 import com.pedropathing.geometry.Pose;
@@ -8,6 +7,7 @@ import com.pedropathing.math.Vector;
 import com.pedropathing.util.NanoTimer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.locationtech.jts.geom.Envelope;
 
 @Configurable
 public class Casablanca {
@@ -145,34 +145,34 @@ public class Casablanca {
     double adjFieldX = inputField.getXComponent();
     double adjFieldY = inputField.getYComponent();
 
-    RectF robotBounds = sentinel.getRobotBounds(pose);
-    RectF protectedZone = sentinel.getProtectedZone();
+    Envelope robotBounds = sentinel.getRobotBounds(pose);
+    Envelope protectedZone = sentinel.getProtectedZone();
 
     double currentVelX = currentVelocity.getXComponent();
     double currentVelY = currentVelocity.getYComponent();
 
     double laneFadeY =
         calculateLaneFade(
-            robotBounds.top,
-            robotBounds.bottom,
-            protectedZone.top,
-            protectedZone.bottom,
+            robotBounds.getMinY(),
+            robotBounds.getMaxY(),
+            protectedZone.getMinY(),
+            protectedZone.getMaxY(),
             laneBlendDistance);
     double laneFadeX =
         calculateLaneFade(
-            robotBounds.left,
-            robotBounds.right,
-            protectedZone.left,
-            protectedZone.right,
+            robotBounds.getMinX(),
+            robotBounds.getMaxX(),
+            protectedZone.getMinX(),
+            protectedZone.getMaxX(),
             laneBlendDistance);
 
     if (enableDepthProtection && laneFadeY > 0) {
       AxisState xState =
           calculateAxisState(
-              robotBounds.left,
-              robotBounds.right,
-              protectedZone.left,
-              protectedZone.right,
+              robotBounds.getMinX(),
+              robotBounds.getMaxX(),
+              protectedZone.getMinX(),
+              protectedZone.getMaxX(),
               currentVelX,
               adjFieldX,
               depthSlowDown,
@@ -187,10 +187,10 @@ public class Casablanca {
     if (enableSideProtection && laneFadeX > 0) {
       AxisState yState =
           calculateAxisState(
-              robotBounds.top,
-              robotBounds.bottom,
-              protectedZone.top,
-              protectedZone.bottom,
+              robotBounds.getMinY(),
+              robotBounds.getMaxY(),
+              protectedZone.getMinY(),
+              protectedZone.getMaxY(),
               currentVelY,
               adjFieldY,
               sideSlowDown,

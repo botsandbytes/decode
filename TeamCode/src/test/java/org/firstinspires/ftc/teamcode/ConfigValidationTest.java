@@ -11,13 +11,10 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
 import org.yaml.snakeyaml.Yaml;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-@RunWith(RobolectricTestRunner.class)
 public class ConfigValidationTest {
 
   @Test

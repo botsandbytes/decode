@@ -1,22 +1,23 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
-import android.graphics.Path;
-import android.graphics.PointF;
-import android.graphics.RectF;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
 
 @Configurable
 public class Sentinel {
   private final double robotWidth;
   private final double goalSize;
   private final double goalMinY;
-  private final RectF redGoalZone;
-  private final RectF blueGoalZone;
-  private final PointF[] leftBigLaunchZone;
-  private final PointF[] rightSmallLaunchZone;
+  private final Envelope redGoalZone;
+  private final Envelope blueGoalZone;
+  private final Coordinate[] leftBigLaunchZone;
+  private final Coordinate[] rightSmallLaunchZone;
   private final Alliance alliance;
 
   public Sentinel(Alliance alliance) {
@@ -26,34 +27,35 @@ public class Sentinel {
     this.goalSize = s.goals.size;
     this.goalMinY = s.goals.min_y;
 
-    this.redGoalZone =
-        new RectF(
-            (float) (144.0 - goalSize), (float) goalMinY, 144.0f, (float) (goalMinY + goalSize));
-    this.blueGoalZone =
-        new RectF(0.0f, (float) goalMinY, (float) goalSize, (float) (goalMinY + goalSize));
+    this.redGoalZone = new Envelope(144.0 - goalSize, 144.0, goalMinY, goalMinY + goalSize);
+    this.blueGoalZone = new Envelope(0.0, goalSize, goalMinY, goalMinY + goalSize);
     this.leftBigLaunchZone =
-        new PointF[] {new PointF(144f, 144f), new PointF(0f, 144f), new PointF(72f, 72f)};
+        new Coordinate[] {
+          new Coordinate(144.0, 144.0), new Coordinate(0.0, 144.0), new Coordinate(72.0, 72.0)
+        };
     this.rightSmallLaunchZone =
-        new PointF[] {new PointF(96f, 0f), new PointF(48f, 0f), new PointF(72f, 24f)};
+        new Coordinate[] {
+          new Coordinate(96.0, 0.0), new Coordinate(48.0, 0.0), new Coordinate(72.0, 24.0)
+        };
   }
 
   public double getRobotWidth() {
     return robotWidth;
   }
 
-  public RectF getRedGoalZone() {
+  public Envelope getRedGoalZone() {
     return redGoalZone;
   }
 
-  public RectF getBlueGoalZone() {
+  public Envelope getBlueGoalZone() {
     return blueGoalZone;
   }
 
-  public PointF[] getLeftBigLaunchZone() {
+  public Coordinate[] getLeftBigLaunchZone() {
     return leftBigLaunchZone;
   }
 
-  public PointF[] getRightSmallLaunchZone() {
+  public Coordinate[] getRightSmallLaunchZone() {
     return rightSmallLaunchZone;
   }
 
@@ -62,23 +64,23 @@ public class Sentinel {
   }
 
   public boolean isLaunchAllowed(Pose currentPose) {
-    PointF[] robot = calculateSmallRobotFootprint(currentPose);
+    Coordinate[] robot = calculateSmallRobotFootprint(currentPose);
     return intersects(robot, leftBigLaunchZone) || intersects(robot, rightSmallLaunchZone);
   }
 
-  public boolean violatesActiveGoal(PointF[] footprint) {
+  public boolean violatesActiveGoal(Coordinate[] footprint) {
     return intersects(footprint, getRectVertices(getProtectedZone()));
   }
 
-  public boolean doesViolateBlueGoal(PointF[] robotFootprint) {
+  public boolean doesViolateBlueGoal(Coordinate[] robotFootprint) {
     return intersects(robotFootprint, getRectVertices(blueGoalZone));
   }
 
-  public boolean doesViolateRedGoal(PointF[] robotFootprint) {
+  public boolean doesViolateRedGoal(Coordinate[] robotFootprint) {
     return intersects(robotFootprint, getRectVertices(redGoalZone));
   }
 
-  public RectF getProtectedZone() {
+  public Envelope getProtectedZone() {
     return alliance == Alliance.RED ? blueGoalZone : redGoalZone;
   }
 
@@ -87,25 +89,25 @@ public class Sentinel {
     Pose futurePose =
         new Pose(currentPose.getX(), currentPose.getY(), currentPose.getHeading() + predictedDelta);
 
-    PointF[] futureFootprint = calculateRobotFootprint(futurePose);
-    PointF[] currentFootprint = calculateRobotFootprint(currentPose);
+    Coordinate[] futureFootprint = calculateRobotFootprint(futurePose);
+    Coordinate[] currentFootprint = calculateRobotFootprint(currentPose);
 
     return !violatesActiveGoal(futureFootprint) || violatesActiveGoal(currentFootprint);
   }
 
-  public RectF getRobotBounds(Pose pose) {
+  public Envelope getRobotBounds(Pose pose) {
     return getProjectedBounds(calculateRobotFootprint(pose));
   }
 
-  public PointF[] calculateRobotFootprint(Pose pose) {
+  public Coordinate[] calculateRobotFootprint(Pose pose) {
     return calculateFootprint(pose, robotWidth);
   }
 
-  public PointF[] calculateSmallRobotFootprint(Pose pose) {
+  public Coordinate[] calculateSmallRobotFootprint(Pose pose) {
     return calculateFootprint(pose, robotWidth - 1.0);
   }
 
-  private PointF[] calculateFootprint(Pose pose, double width) {
+  private Coordinate[] calculateFootprint(Pose pose, double width) {
     double heading = pose.getHeading();
     double centerX = pose.getX();
     double centerY = pose.getY();
@@ -115,96 +117,53 @@ public class Sentinel {
 
     double[] xOffsets = {-radius, radius, radius, -radius};
     double[] yOffsets = {-radius, -radius, radius, radius};
-    PointF[] corners = new PointF[4];
+    Coordinate[] corners = new Coordinate[4];
     for (int i = 0; i < 4; i++) {
       double rotatedX = (xOffsets[i] * cos) - (yOffsets[i] * sin);
       double rotatedY = (xOffsets[i] * sin) + (yOffsets[i] * cos);
-      corners[i] = new PointF((float) (centerX + rotatedX), (float) (centerY + rotatedY));
+      corners[i] = new Coordinate(centerX + rotatedX, centerY + rotatedY);
     }
     return corners;
   }
 
-  private RectF getProjectedBounds(PointF[] footprint) {
-    float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
-    float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
-    for (PointF p : footprint) {
+  private Envelope getProjectedBounds(Coordinate[] footprint) {
+    double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
+    double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+    for (Coordinate p : footprint) {
       minX = Math.min(minX, p.x);
       maxX = Math.max(maxX, p.x);
       minY = Math.min(minY, p.y);
       maxY = Math.max(maxY, p.y);
     }
-    return new RectF(minX, minY, maxX, maxY);
+    return new Envelope(minX, maxX, minY, maxY);
   }
 
-  private Path createPath(PointF[] points) {
-    Path path = new Path();
-    if (points.length == 0) return path;
-    path.moveTo(points[0].x, points[0].y);
-    for (int i = 1; i < points.length; i++) {
-      path.lineTo(points[i].x, points[i].y);
+  private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
+
+  private Polygon createJTSPolygon(Coordinate[] points) {
+    if (points == null || points.length == 0) {
+      return GEOMETRY_FACTORY.createPolygon();
     }
-    path.close();
-    return path;
+    Coordinate[] coords = new Coordinate[points.length + 1];
+    for (int i = 0; i < points.length; i++) {
+      coords[i] = new Coordinate(points[i].x, points[i].y);
+    }
+    coords[points.length] = new Coordinate(points[0].x, points[0].y);
+    return GEOMETRY_FACTORY.createPolygon(coords);
   }
 
-  private PointF[] getRectVertices(RectF rect) {
-    return new PointF[] {
-      new PointF(rect.left, rect.top),
-      new PointF(rect.right, rect.top),
-      new PointF(rect.right, rect.bottom),
-      new PointF(rect.left, rect.bottom)
+  private Coordinate[] getRectVertices(Envelope rect) {
+    return new Coordinate[] {
+      new Coordinate(rect.getMinX(), rect.getMinY()),
+      new Coordinate(rect.getMaxX(), rect.getMinY()),
+      new Coordinate(rect.getMaxX(), rect.getMaxY()),
+      new Coordinate(rect.getMinX(), rect.getMaxY())
     };
   }
 
-  private boolean intersects(PointF[] polyA, PointF[] polyB) {
-    Path pathA = createPath(polyA);
-    Path pathB = createPath(polyB);
-    Path intersection = new Path();
-    try {
-      if (intersection.op(pathA, pathB, Path.Op.INTERSECT) && !intersection.isEmpty()) {
-        return true;
-      }
-    } catch (Exception e) {
-      // Fall back under JVM/Robolectric test environment
-    }
-    return satIntersects(polyA, polyB);
-  }
-
-  private boolean satIntersects(PointF[] polyA, PointF[] polyB) {
-    for (int i = 0; i < polyA.length; i++) {
-      PointF p1 = polyA[i];
-      PointF p2 = polyA[(i + 1) % polyA.length];
-      PointF normal = new PointF(p2.y - p1.y, p1.x - p2.x);
-      if (isSeparatingAxis(normal, polyA, polyB)) {
-        return false;
-      }
-    }
-    for (int i = 0; i < polyB.length; i++) {
-      PointF p1 = polyB[i];
-      PointF p2 = polyB[(i + 1) % polyB.length];
-      PointF normal = new PointF(p2.y - p1.y, p1.x - p2.x);
-      if (isSeparatingAxis(normal, polyA, polyB)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private boolean isSeparatingAxis(PointF axis, PointF[] polyA, PointF[] polyB) {
-    double minA = Double.MAX_VALUE, maxA = -Double.MAX_VALUE;
-    for (PointF p : polyA) {
-      double projection = p.x * axis.x + p.y * axis.y;
-      minA = Math.min(minA, projection);
-      maxA = Math.max(maxA, projection);
-    }
-
-    double minB = Double.MAX_VALUE, maxB = -Double.MAX_VALUE;
-    for (PointF p : polyB) {
-      double projection = p.x * axis.x + p.y * axis.y;
-      minB = Math.min(minB, projection);
-      maxB = Math.max(maxB, projection);
-    }
-
-    return maxA < minB || maxB < minA;
+  private boolean intersects(Coordinate[] polyA, Coordinate[] polyB) {
+    Polygon pA = createJTSPolygon(polyA);
+    Polygon pB = createJTSPolygon(polyB);
+    return pA.intersects(pB);
   }
 }

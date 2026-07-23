@@ -29,16 +29,23 @@ public final class ConfigLoader {
    */
   @SuppressWarnings("unchecked")
   public static synchronized void reload() {
-    java.io.File externalFile =
-        new java.io.File(
-            android.os.Environment.getExternalStorageDirectory(), RELATIVE_EXTERNAL_PATH);
+    java.io.File externalFile = null;
+    try {
+      java.io.File storageDir = android.os.Environment.getExternalStorageDirectory();
+      if (storageDir != null) {
+        externalFile = new java.io.File(storageDir, RELATIVE_EXTERNAL_PATH);
+      }
+    } catch (Throwable ignored) {
+      // android.os.Environment is unmocked in pure JVM unit tests
+    }
     try {
       InputStream inputStream;
-      if (externalFile.exists() && externalFile.canRead()) {
+      if (externalFile != null && externalFile.exists() && externalFile.canRead()) {
         inputStream = new java.io.FileInputStream(externalFile);
       } else {
         inputStream = ConfigLoader.class.getResourceAsStream(CLASSPATH_RESOURCE);
       }
+
       if (inputStream == null) {
         throw new RuntimeException("Could not find config.yaml on the classpath");
       }

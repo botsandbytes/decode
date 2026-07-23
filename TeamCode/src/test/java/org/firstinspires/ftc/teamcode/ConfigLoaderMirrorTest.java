@@ -10,8 +10,6 @@ import java.lang.reflect.Field;
 import org.firstinspires.ftc.teamcode.config.ConfigLoader;
 import org.firstinspires.ftc.teamcode.robot.config.config;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
 
 /**
  * Covers the ConfigLoader "mirror" system (an {@code m}/{@code mirror} value means "derive this
@@ -19,7 +17,6 @@ import org.robolectric.RobolectricTestRunner;
  * auto_poses.opposite.red} routine is defined this way, so this is competition-critical geometry
  * that previously had no test coverage.
  */
-@RunWith(RobolectricTestRunner.class)
 public class ConfigLoaderMirrorTest {
 
   private static final double EPS = 1e-4;

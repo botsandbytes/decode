@@ -70,29 +70,30 @@ public class DrawingUtil {
     field.setStyle("stroke", "red", 1.0);
     drawRect(
         field,
-        sentinel.getRedGoalZone().left,
-        sentinel.getRedGoalZone().top,
-        sentinel.getRedGoalZone().right,
-        sentinel.getRedGoalZone().bottom);
+        sentinel.getRedGoalZone().getMinX(),
+        sentinel.getRedGoalZone().getMinY(),
+        sentinel.getRedGoalZone().getMaxX(),
+        sentinel.getRedGoalZone().getMaxY());
 
     field.setStyle("stroke", "blue", 1.0);
     drawRect(
         field,
-        sentinel.getBlueGoalZone().left,
-        sentinel.getBlueGoalZone().top,
-        sentinel.getBlueGoalZone().right,
-        sentinel.getBlueGoalZone().bottom);
+        sentinel.getBlueGoalZone().getMinX(),
+        sentinel.getBlueGoalZone().getMinY(),
+        sentinel.getBlueGoalZone().getMaxX(),
+        sentinel.getBlueGoalZone().getMaxY());
 
     field.setStyle("stroke", "green", 1.0);
     drawPolygon(field, sentinel.getLeftBigLaunchZone());
     drawPolygon(field, sentinel.getRightSmallLaunchZone());
   }
 
-  private static void drawPolygon(FieldManager field, android.graphics.PointF[] vertices) {
+  private static void drawPolygon(
+      FieldManager field, org.locationtech.jts.geom.Coordinate[] vertices) {
     if (vertices == null || vertices.length < 2) return;
     for (int i = 0; i < vertices.length; i++) {
-      android.graphics.PointF current = vertices[i];
-      android.graphics.PointF next = vertices[(i + 1) % vertices.length];
+      org.locationtech.jts.geom.Coordinate current = vertices[i];
+      org.locationtech.jts.geom.Coordinate next = vertices[(i + 1) % vertices.length];
       field.moveCursor(current.x, current.y);
       field.line(next.x, next.y);
     }
