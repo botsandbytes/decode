@@ -1,0 +1,309 @@
+intake_tolerance:
+  desc: "Power variance tolerance (0.0 to 1.0) for the front and mid intake rollers. If the new command is within this range of the previous write, it is skipped."
+  min: 0.0
+  max: 1.0
+
+flywheel_tolerance:
+  desc: "Velocity variance tolerance (in encoder ticks per second) below which new speed adjustment commands are dropped to prevent minor noise from saturating the I2C bus."
+  min: 0.0
+
+hood_tolerance:
+  desc: "Servo position variance tolerance (0.0 to 1.0) below which new position commands are ignored. Reduces servo jitter."
+  min: 0.0
+  max: 1.0
+
+drivetrain_tolerance:
+  desc: "Motor power variance tolerance (0.0 to 1.0) for chassis wheels. Crucial for reducing loop times."
+  min: 0.0
+  max: 1.0
+
+max_turn_power:
+  desc: "Upper speed limit (0.0 to 1.0) allowed for chassis turn adjustments when auto-aligning to the goal."
+  min: 0.0
+  max: 1.0
+
+min_turn_power:
+  desc: "Minimum power (0.0 to 1.0) sent to the drivetrain during auto-turn corrections. Overcomes static wheel friction (stiction). If the robot stops turning before aligning, increase this."
+  min: 0.0
+  max: 1.0
+
+max_power_output:
+  desc: "Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret rotation speed."
+  min: 0.0
+  max: 1.0
+
+feed_forward:
+  desc: "Feedforward power component (0.0 to 1.0) added to turret rotation to overcome gear backlash and friction. Applied in the direction of movement."
+  min: 0.0
+  max: 1.0
+
+offset_const:
+  desc: "Encoder-to-angle mapping offset (degrees) to align the physical turret zero orientation with the chassis."
+
+limit_const:
+  desc: "Mechanical rotation boundary (degrees) measured from center. Prevents the turret from rotating past this limit and tearing internal wires."
+
+logo:
+  desc: "Mounting orientation direction of the hub's logo panel (e.g. RIGHT, LEFT, UP, DOWN, FORWARD, BACKWARD)."
+
+usb:
+  desc: "Mounting direction of the hub's USB ports."
+
+max_drift:
+  desc: "Maximum allowed chassis drift (inches) from target pose before auto-corrective drive motions engage."
+  min: 0.0
+
+near_cutoff:
+  desc: "Distance boundary (inches) below which the target is considered close, switching to static tolerance."
+  min: 0.0
+
+near_val:
+  desc: "Target alignment tolerance (degrees) when within the near cutoff range."
+  min: 0.0
+
+min_deg:
+  desc: "Minimum dynamic alignment tolerance (degrees) allowed. Prevents the turret from hunting indefinitely when very close."
+  min: 0.0
+
+max_deg:
+  desc: "Maximum dynamic alignment tolerance (degrees) allowed. Prevents launching if the turret orientation error exceeds this."
+  min: 0.0
+
+robot_width:
+  desc: "Total physical width of the robot (inches) used to build the collision footprint. Determines how close the robot can get to walls or goals."
+  min: 0.0
+
+rotation_lookahead:
+  desc: "Angle (radians) used to project the robot's future rotation. If the robot would violate a goal zone at this lookahead angle, it prevents the turn."
+  min: 0.0
+
+size:
+  desc: "Length (inches) of one side of the square scoring goal zones on the field."
+  min: 0.0
+
+min_y:
+  desc: "The Y-coordinate boundary (inches) on the field where the scoring zones begin. Used to calculate red/blue alliance goal boxes."
+  min: 0.0
+
+red_goal_x:
+  desc: "Goal center X coordinate for RED alliance."
+  min: 0.0
+
+red_goal_y:
+  desc: "Goal center Y coordinate for RED alliance."
+  min: 0.0
+
+blue_goal_x:
+  desc: "Goal center X coordinate for BLUE alliance."
+  min: 0.0
+
+blue_goal_y:
+  desc: "Goal center Y coordinate for BLUE alliance."
+  min: 0.0
+
+power:
+  desc: "Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone boundary."
+  min: 0.0
+  max: 1.0
+
+decel_safety_factor:
+  desc: "Scale factor (0.0 to 1.0) for predictive braking. Lowering this makes braking engage sooner/more aggressively to guarantee the robot doesn't enter the goal zone."
+  min: 0.0
+  max: 1.0
+
+slow_down:
+  desc: "Distance (inches) from the goal zone at which speed reduction warning starts."
+  min: 0.0
+
+hard_stop:
+  desc: "Distance (inches) from the goal zone where drive power towards the zone is cut to zero."
+  min: 0.0
+
+lane_blend_distance:
+  desc: "Distance (inches) over which safety slows downs are interpolated from 0% to 100% strength to prevent jerky speed changes."
+  min: 0.0
+
+x:
+  desc: "X value coordinate."
+
+y:
+  desc: "Y value coordinate."
+
+rot:
+  desc: "Minimum turn/yaw drive power (0.0 to 1.0) needed to overcome static wheel stiction. Calibrated using Friction Calibration OpMode."
+  min: 0.0
+  max: 1.0
+  suppress_similarity_check: true
+
+time:
+  desc: "Joystick input filter time constant (seconds). Higher values make acceleration and deceleration smoother but increase input lag."
+  min: 0.0
+  suppress_similarity_check: true
+
+back_lift_multiplier:
+  desc: "Divisor scaling factor for deceleration. Divides the deceleration rate when stopping to slow down the deceleration curve, preventing the robot from tipping forward and lifting its back wheels."
+  min: 0.0
+
+enabled:
+  desc: "Enable/disable automatic heading lock when the driver releases the turn joystick in TeleOp."
+
+kp:
+  desc: "Proportional gain for the controller loop. Higher values correct errors more aggressively."
+  min: 0.0
+
+max_power:
+  desc: "Maximum motor power (0.0 to 1.0) the loop is allowed to command. Clamped to be completely imperceptible."
+  min: 0.0
+  max: 1.0
+
+deadband:
+  desc: "Joystick threshold (0.0 to 1.0) below which the heading lock engages."
+  min: 0.0
+  max: 1.0
+
+max_rpm:
+  desc: "Maximum rotational speed (RPM) of the motor. Used to scale power percentage to velocity."
+  min: 0.0
+
+min_transfer_threshold:
+  desc: "Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed."
+  min: 0.0
+  max: 1.0
+
+p:
+  desc: "Proportional gain."
+
+i:
+  desc: "Integral gain."
+
+d:
+  desc: "Derivative gain."
+
+f:
+  desc: "Feedforward gain."
+
+threshold_distance:
+  desc: "Distance boundary (inches) separating close-range shots from long-range shots."
+  min: 0.0
+
+launch_power:
+  desc: "Flywheel power ratio (0.0 to 1.0) used for close-range shots."
+  min: 0.0
+  max: 1.0
+
+wait_time:
+  desc: "Delay (milliseconds) to keep the flywheel running after firing a near shot."
+  min: 0.0
+
+blue_base_power:
+  desc: "Base flywheel power ratio (0.0 to 1.0) for Blue alliance shots beyond the threshold distance."
+  min: 0.0
+  max: 1.0
+
+red_base_power:
+  desc: "Base flywheel power ratio (0.0 to 1.0) for Red alliance shots beyond the threshold distance. Red shoots from farther away so this value is intentionally higher."
+  min: 0.0
+  max: 1.0
+
+power_scale:
+  desc: "Distance divisor (inches) to scale up flywheel power as distance increases (power = base_power + extra_distance / power_scale)."
+  min: 0.0
+
+wait_time_scale:
+  desc: "Multiplier converting distance to run-time (wait_time = distance * wait_time_scale) in milliseconds."
+  min: 0.0
+
+drink_wait_ms:
+  desc: "Wait delay (milliseconds) at the drink gate when intake gathers rings."
+  min: 0
+
+shoot_wait_ms:
+  desc: "Wait time (milliseconds) allowed to fire a shot before ending the shoot command."
+  min: 0
+
+transfer_power:
+  desc: "Target power coefficient (0.0 to 1.0) for autonomous transfer motor."
+  min: 0.0
+  max: 1.0
+
+opposite_drink_wait_ms:
+  desc: "Wait delay (milliseconds) at the drink gate for opposite alliance autonomous."
+  min: 0
+
+opposite_shoot_wait_ms:
+  desc: "Wait time (milliseconds) allowed to fire a shot for opposite alliance autonomous."
+  min: 0
+
+opposite_launch_power:
+  desc: "Target power coefficient (0.0 to 1.0) for opposite alliance autonomous launcher."
+  min: 0.0
+  max: 1.0
+
+opposite_transfer_power:
+  desc: "Target power coefficient (0.0 to 1.0) for opposite alliance autonomous transfer."
+  min: 0.0
+  max: 1.0
+
+opposite_min_transfer_threshold:
+  desc: "Shooter minimum transfer threshold velocity ratio for opposite auto."
+  min: 0.0
+  max: 1.0
+
+start:
+  desc: "Starting position coordinate pose."
+
+score:
+  desc: "High goal target scoring position coordinate pose."
+
+mid_score:
+  desc: "Mid-scoring target position coordinate pose."
+  # Red-only: Red re-aims to a mid pose after Line 1; Blue keeps using 'score', so this
+  # intentionally has no blue mirror.
+  suppress_similarity_check: true
+
+final_score:
+  desc: "Final scoring target position coordinate pose."
+  # Blue-only: Blue's last shot uses a distinct final pose; Red ends at 'mid_score', so this
+  # intentionally has no red mirror.
+  suppress_similarity_check: true
+
+drink_cp:
+  desc: "Control point pose on path to drink gate."
+
+drink_end:
+  desc: "Ending position coordinate pose at the drink gate."
+
+pickup1_cp:
+  desc: "Control point pose on path to first sample pickup."
+
+pickup1_end:
+  desc: "Ending position coordinate pose for first sample pickup."
+
+pickup2_cp:
+  desc: "Control point pose on path to second sample pickup."
+
+pickup2_end:
+  desc: "Ending position coordinate pose for second sample pickup."
+
+pickup3_cp:
+  desc: "Control point pose on path to third sample pickup."
+
+pickup3_end:
+  desc: "Ending position coordinate pose for third sample pickup."
+
+pickup4_cp:
+  desc: "Control point pose on path to fourth sample pickup."
+
+pickup4_end:
+  desc: "Ending position coordinate pose for fourth sample pickup."
+
+park:
+  desc: "Parking destination coordinate pose."
+
+drink:
+  desc: "Drink gate alignment coordinate pose."
+
+max_speed:
+  desc: "Maximum speed scaler (0.0 to 1.0) applied to chassis manual TeleOp drive inputs."
+  min: 0.0
+  max: 1.0

@@ -1,0 +1,11 @@
+{
+  "name": "decode",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate": "ai-rulez generate"
+  },
+  "devDependencies": {
+    "ai-rulez": "^1.0.0"
+  }
+}
