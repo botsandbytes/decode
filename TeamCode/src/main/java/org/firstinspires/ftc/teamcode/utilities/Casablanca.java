@@ -23,7 +23,7 @@ public class Casablanca {
   public double backLiftMultiplier;
 
   public double wallRepulsionPower;
-  private double decelSafetyFactor;
+  private final double decelSafetyFactor;
 
   public boolean enableDepthProtection = true;
   public double depthSlowDown;
@@ -34,7 +34,7 @@ public class Casablanca {
   public double sideHardStop;
 
   public double laneBlendDistance;
-  private double rotationLookaheadRad;
+  private final double rotationLookaheadRad;
 
   public boolean enableHeadingLock;
   public double headingLockKp;

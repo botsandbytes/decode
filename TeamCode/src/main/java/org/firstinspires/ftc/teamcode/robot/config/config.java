@@ -7,6 +7,7 @@ import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.records.Field;
 import org.firstinspires.ftc.teamcode.records.MatchProfile;
 
+@SuppressWarnings("unused")
 public final class config {
   private config() {}
 

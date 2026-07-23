@@ -132,12 +132,12 @@ tasks.register('jacocoTestReport', JacocoReport) {
     }
 
     def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
-    def debugTree = fileTree(dir: "${project.buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes", excludes: fileFilter)
+    def debugTree = fileTree(dir: "${layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes", excludes: fileFilter)
     def mainSrc = "${project.projectDir}/src/main/java"
 
     sourceDirectories.setFrom(files([mainSrc]))
     classDirectories.setFrom(files([debugTree]))
-    executionData.setFrom(fileTree(dir: project.buildDir, includes: [
+    executionData.setFrom(fileTree(dir: layout.buildDirectory.get().asFile, includes: [
             'jacoco/testDebugUnitTest.exec',
             'outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec'
     ]))
@@ -175,7 +175,7 @@ tasks.register('generateConfig', JavaExec) {
     description = 'Regenerates config.java and config-schema.json from config.yaml.'
     dependsOn ':config-compiler:compileDebugJavaWithJavac'
     classpath = project(':config-compiler').configurations.debugCompileClasspath +
-                files("${project(':config-compiler').buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+                files("${project(':config-compiler').layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
     mainClass = 'org.firstinspires.ftc.teamcode.config.ConfigGeneratorMain'
     args rootProject.projectDir.absolutePath, "generate"
     inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.yaml")
@@ -191,8 +191,9 @@ tasks.register('checkConfigKeys', JavaExec) {
     description = 'Checks config.yaml for suspicious key asymmetries and near-duplicates.'
     dependsOn ':config-compiler:compileDebugJavaWithJavac', 'generateConfig'
     classpath = project(':config-compiler').configurations.debugCompileClasspath +
-                files("${project(':config-compiler').buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+                files("${project(':config-compiler').layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
     mainClass = 'org.firstinspires.ftc.teamcode.config.ConfigGeneratorMain'
+
     args rootProject.projectDir.absolutePath, "check"
     inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.yaml")
     inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config-docs.yaml")

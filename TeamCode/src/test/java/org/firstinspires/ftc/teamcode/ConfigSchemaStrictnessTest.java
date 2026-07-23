@@ -7,7 +7,6 @@ import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
@@ -98,9 +97,7 @@ public class ConfigSchemaStrictnessTest {
     // Sanity: a legal in-range change to a real key must still validate, so the failures above
     // are about the constraint, not about mutation breaking the map.
     Map<String, Object> cfg = freshConfig();
-    Map<String, Object> extra = new HashMap<>();
     child(cfg, "shooter").put("max_rpm", 1600.0);
     assertTrue(valid(cfg));
-    assertTrue(extra.isEmpty());
   }
 }

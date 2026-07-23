@@ -1,12 +1,14 @@
 package org.firstinspires.ftc.teamcode.config;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -409,8 +411,14 @@ public class ConfigGeneratorMain {
     sb.append("import org.firstinspires.ftc.teamcode.records.Alliance;\n");
     sb.append("import org.firstinspires.ftc.teamcode.records.Field;\n");
     sb.append("import org.firstinspires.ftc.teamcode.records.MatchProfile;\n\n");
+
+
+    sb.append("@SuppressWarnings(\"unused\")\n");
     sb.append("public final class config {\n");
+
+
     sb.append("  private config() {}\n\n");
+
 
     List<String> sections = new ArrayList<>();
     for (Map.Entry<String, Object> entry : configData.entrySet()) {
@@ -857,15 +865,19 @@ public class ConfigGeneratorMain {
 
   private static String readFileToString(File file) throws IOException {
     try (FileInputStream fis = new FileInputStream(file);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-      byte[] buffer = new byte[8192];
+        InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
+        BufferedReader reader = new BufferedReader(isr)) {
+      StringBuilder sb = new StringBuilder((int) file.length());
+      char[] buffer = new char[8192];
       int len;
-      while ((len = fis.read(buffer)) != -1) {
-        baos.write(buffer, 0, len);
+      while ((len = reader.read(buffer)) != -1) {
+        sb.append(buffer, 0, len);
       }
-      return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+      return sb.toString();
     }
   }
+
+
 
   private static boolean writeIfChanged(File file, String newContent) {
     if (file.exists()) {
@@ -878,7 +890,15 @@ public class ConfigGeneratorMain {
       }
     }
     File parent = file.getParentFile();
+    if (parent != null && !parent.exists()) {
+      boolean created = parent.mkdirs();
+      if (!created && !parent.exists()) {
+        throw new RuntimeException("Failed to create directory: " + parent.getAbsolutePath());
+      }
+    }
+
     try (FileOutputStream fos = new FileOutputStream(file);
+
         OutputStreamWriter writer = new OutputStreamWriter(fos, StandardCharsets.UTF_8)) {
       writer.write(newContent);
     } catch (IOException e) {

@@ -67,10 +67,11 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/
 Runtime loading is handled by a separate Gradle module, `config-compiler/` (see project root), which Android Studio will sync as its own module. When you add or change a config key:
 
 1. Edit `config.yaml` (and `config-docs.yaml` for its description).
-2. Run `python3 scripts/generate_config.py` from the repo root to regenerate `RobotConfig.java` and `config-schema.json`.
-3. Access the value in Java via `RobotConfig` (e.g. `RobotConfig.shooter.max_rpm`), not by hand-writing a lookup.
+2. Run `./gradlew generateConfig` (or `./gradlew verifyBuild`) to regenerate `config.java` and `config-schema.json`.
+3. Access the value in Java via `config` (e.g. `config.shooter.max_rpm`), not by hand-writing a lookup.
 
-See [TeamCode/CONTRIBUTING.md](TeamCode/CONTRIBUTING.md) §6 for the full configuration workflow, including the `checkConfigKeys` alliance-symmetry check and the `pushConfig`/`resetConfig` ADB hot-deploy tasks.
+See [CONTRIBUTING.md](CONTRIBUTING.md) §6 for the full configuration workflow, including the `checkConfigKeys` alliance-symmetry check and the `pushConfig`/`resetConfig` ADB hot-deploy tasks.
+
 
 ---
 
@@ -132,7 +133,8 @@ AI assistant behavior (Claude, Antigravity, Copilot, Codex) is governed by rules
 
 For a comprehensive guide to the codebase architecture, subsystem descriptions, and contributing conventions, see:
 
-**[TeamCode/CONTRIBUTING.md](TeamCode/CONTRIBUTING.md)**
+**[CONTRIBUTING.md](CONTRIBUTING.md)**
+
 
 This document covers:
 - What every package and class does

@@ -120,7 +120,9 @@ public final class ConfigLoader {
     return path;
   }
 
+  @SuppressWarnings("unchecked")
   private static Object rawLoad(String path) {
+
     String[] parts = path.split("\\.");
     Object current = config;
     for (String part : parts) {
