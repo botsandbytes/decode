@@ -1,8 +1,5 @@
 package org.firstinspires.ftc.teamcode.tests;
 
-import static org.firstinspires.ftc.teamcode.teleop.RedTeleOp.GOAL_X;
-import static org.firstinspires.ftc.teamcode.teleop.RedTeleOp.GOAL_Y;
-
 import com.bylazar.field.FieldManager;
 import com.bylazar.field.PanelsField;
 import com.pedropathing.follower.Follower;
@@ -11,118 +8,126 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import java.util.List;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.records.Alliance;
+import org.firstinspires.ftc.teamcode.records.Field;
 import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
-
-import java.util.List;
+import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 
 @TeleOp(name = "Casablanca Test", group = "Test")
 public class CasablancaTest extends OpMode {
 
-    private Follower follower;
-    private FieldManager field;
-    private List<LynxModule> allHubs;
+  private Follower follower;
+  private FieldManager field;
+  private List<LynxModule> allHubs;
+  private Turret turret;
+  private Sentinel sentinel;
+  private Casablanca casablanca;
 
-    private Pose startPose = new Pose(72, 72, 0);
+  private double goalX;
+  private double goalY;
 
-    @Override
-    public void init() {
-        // Initialize Field Manager
-        field = PanelsField.INSTANCE.getField();
-        field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
+  private Pose startPose = new Pose(72, 72, 0);
 
-        // Initialize Hardware (Follower)
-        allHubs = hardwareMap.getAll(LynxModule.class);
-        for (LynxModule module : allHubs) {
-            module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
-        }
+  @Override
+  public void init() {
+    // Initialize Field Manager
+    field = PanelsField.INSTANCE.getField();
+    field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
 
-        List<DcMotorEx> motors = hardwareMap.getAll(DcMotorEx.class);
-        for (DcMotorEx motor : motors) {
-            motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        }
-
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startPose);
+    // Initialize Hardware (Follower)
+    allHubs = hardwareMap.getAll(LynxModule.class);
+    for (LynxModule module : allHubs) {
+      module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
     }
 
-    @Override
-    public void start() {
-        follower.startTeleopDrive();
+    List<DcMotorEx> motors = hardwareMap.getAll(DcMotorEx.class);
+    for (DcMotorEx motor : motors) {
+      motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
     }
 
-    @Override
-    public void loop() {
-        // Clear bulk cache
-        for (LynxModule module : allHubs) {
-            module.clearBulkCache();
-        }
+    follower = Constants.createFollower(hardwareMap);
+    follower.setStartingPose(startPose);
 
-        follower.update();
+    goalX = Field.getRedGoalX();
+    goalY = Field.getRedGoalY();
 
-        handleDrive();
-        drawField();
+    sentinel = new Sentinel(Alliance.RED);
+    casablanca = new Casablanca(sentinel);
+    turret = new Turret(hardwareMap, telemetry, follower);
+  }
 
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading", follower.getPose().getHeading());
-        telemetry.update();
+  @Override
+  public void start() {
+    follower.startTeleopDrive();
+  }
+
+  @Override
+  public void loop() {
+    // Clear bulk cache
+    for (LynxModule module : allHubs) {
+      module.clearBulkCache();
     }
 
-    private void handleDrive() {
-        double forward = -gamepad1.left_stick_y;
-        double strafe = -gamepad1.left_stick_x;
-        double turn = gamepad1.right_stick_x;
+    follower.update();
 
-        // Convert Pedro Pose to FTC Pose2D
-        Pose pedroPose = follower.getPose();
-        Pose2D currentPose = new Pose2D(
-                DistanceUnit.INCH,
-                pedroPose.getX(),
-                pedroPose.getY(),
-                AngleUnit.RADIANS,
-                pedroPose.getHeading()
-        );
+    handleDrive();
+    drawField();
 
-        // Adjust inputs using Casablanca
-        // Passing 0 for current velocity as it seems unused or we don't have it easily
-        double[] adjusted = Casablanca.adjustDriveInput(
-                follower.getPose(),
-                follower.getVelocity(),
-                strafe, forward, turn
-        );
+    telemetry.addData("X", follower.getPose().getX());
+    telemetry.addData("Y", follower.getPose().getY());
+    telemetry.addData("Heading", follower.getPose().getHeading());
+    telemetry.update();
+  }
 
-        // Casablanca returns [strafe, forward, turn]
-        // Follower expects [forward, strafe, turn]
-        follower.setTeleOpDrive(adjusted[1], adjusted[0], adjusted[2], true);
+  private void handleDrive() {
+    double forward = -gamepad1.left_stick_y;
+    double strafe = -gamepad1.left_stick_x;
+    double turn = gamepad1.right_stick_x;
 
-        telemetry.addData("Pos", "X:%.1f Y:%.1f H:%.2f", pedroPose.getX(), pedroPose.getY(), pedroPose.getHeading());
-        telemetry.addData("Input", "F:%.2f S:%.2f T:%.2f", forward, strafe, turn);
-        telemetry.addData("Output", "F:%.2f S:%.2f T:%.2f", adjusted[1], adjusted[0], adjusted[2]);
-        
-        // Debug info
-        if (Math.abs(forward) > 0.1 || Math.abs(strafe) > 0.1) {
-            double inputMag = Math.hypot(forward, strafe);
-            double outputMag = Math.hypot(adjusted[1], adjusted[0]);
-            telemetry.addData("Magnitude", "In:%.2f Out:%.2f", inputMag, outputMag);
-            if (inputMag > 0.1 && outputMag < 0.05) {
-                telemetry.addData("WARNING", "Movement blocked!");
-            }
-        }
+    // Convert Pedro Pose to FTC Pose2D
+    Pose pedroPose = follower.getPose();
+
+    // Adjust inputs using Casablanca
+    // Passing 0 for current velocity as it seems unused or we don't have it easily
+    double[] adjusted =
+        casablanca.adjustDriveInput(
+            follower.getPose(), follower.getVelocity(), strafe, forward, turn);
+
+    // Casablanca returns [strafe, forward, turn]
+    // Follower expects [forward, strafe, turn]
+    follower.setTeleOpDrive(adjusted[1], adjusted[0], adjusted[2], true);
+
+    telemetry.addData(
+        "Pos", "X:%.1f Y:%.1f H:%.2f", pedroPose.getX(), pedroPose.getY(), pedroPose.getHeading());
+    telemetry.addData("Input", "F:%.2f S:%.2f T:%.2f", forward, strafe, turn);
+    telemetry.addData("Output", "F:%.2f S:%.2f T:%.2f", adjusted[1], adjusted[0], adjusted[2]);
+
+    // Debug info
+    if (Math.abs(forward) > 0.1 || Math.abs(strafe) > 0.1) {
+      double inputMag = Math.hypot(forward, strafe);
+      double outputMag = Math.hypot(adjusted[1], adjusted[0]);
+      telemetry.addData("Magnitude", "In:%.2f Out:%.2f", inputMag, outputMag);
+      if (inputMag > 0.1 && outputMag < 0.05) {
+        telemetry.addData("WARNING", "Movement blocked!");
+      }
     }
+  }
 
-    private void drawField() {
-        if (field != null) {
-            DrawingUtil.drawCasablancaZones(field);
-        DrawingUtil.drawRobotOnField(field, follower.getPose().getX(), follower.getPose().getY(),
-                follower.getPose().getHeading(), Math.toRadians(new Turret(hardwareMap, telemetry, follower).getCurrentTurnAngle()), GOAL_X, GOAL_Y);
-        }
+  private void drawField() {
+    if (field != null) {
+      DrawingUtil.drawCasablancaZones(field, sentinel);
+      DrawingUtil.drawRobotOnField(
+          field,
+          follower.getPose().getX(),
+          follower.getPose().getY(),
+          follower.getPose().getHeading(),
+          Math.toRadians(turret.getCurrentTurnAngle()),
+          goalX,
+          goalY);
     }
+  }
 }
-
