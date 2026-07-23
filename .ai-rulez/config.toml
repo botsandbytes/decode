@@ -16,4 +16,5 @@ description = "AI-powered development governance for FTC decode project"
 presets = ["claude", "copilot", "codex", "antigravity"]
 
 # Gitignore management
-gitignore = true
+gitignore = false
+
