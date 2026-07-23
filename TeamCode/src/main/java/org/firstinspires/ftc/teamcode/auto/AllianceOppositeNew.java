@@ -13,11 +13,6 @@ import com.pedropathing.paths.PathChain;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.robot.config.config;
 
-/**
- * Shared "score preload, cycle lines 2-4 plus the drink gate, then park" autonomous, run from the
- * starting wall opposite {@link AllianceAutoNew}. {@link BlueOppositeNew} and {@link
- * RedOppositeNew} supply the alliance-mirrored field poses.
- */
 @Configurable
 public abstract class AllianceOppositeNew extends AllianceAutoBase<config.OppositeAuto> {
 

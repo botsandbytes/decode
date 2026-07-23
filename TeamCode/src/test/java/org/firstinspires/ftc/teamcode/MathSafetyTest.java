@@ -24,12 +24,11 @@ import org.mockito.Mockito;
 public class MathSafetyTest {
 
   private Turret turret;
-  private HardwareMap hardwareMap;
 
   @Before
   public void setUp() {
     // Mock hardware dependencies for Turret initialization
-    hardwareMap = Mockito.mock(HardwareMap.class);
+    HardwareMap hardwareMap = Mockito.mock(HardwareMap.class);
     CRServo mockServo = Mockito.mock(CRServo.class);
     IMU mockIMU = Mockito.mock(IMU.class);
     DcMotorEx mockMotor = Mockito.mock(DcMotorEx.class);

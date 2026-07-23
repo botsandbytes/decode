@@ -12,8 +12,6 @@ import org.locationtech.jts.geom.Polygon;
 @Configurable
 public class Sentinel {
   private final double robotWidth;
-  private final double goalSize;
-  private final double goalMinY;
   private final Envelope redGoalZone;
   private final Envelope blueGoalZone;
   private final Coordinate[] leftBigLaunchZone;
@@ -24,8 +22,8 @@ public class Sentinel {
     this.alliance = alliance;
     var s = config.sentinel;
     this.robotWidth = s.robot_width;
-    this.goalSize = s.goals.size;
-    this.goalMinY = s.goals.min_y;
+    double goalSize = s.goals.size;
+    double goalMinY = s.goals.min_y;
 
     this.redGoalZone = new Envelope(144.0 - goalSize, 144.0, goalMinY, goalMinY + goalSize);
     this.blueGoalZone = new Envelope(0.0, goalSize, goalMinY, goalMinY + goalSize);
@@ -37,10 +35,6 @@ public class Sentinel {
         new Coordinate[] {
           new Coordinate(96.0, 0.0), new Coordinate(48.0, 0.0), new Coordinate(72.0, 24.0)
         };
-  }
-
-  public double getRobotWidth() {
-    return robotWidth;
   }
 
   public Envelope getRedGoalZone() {
@@ -70,14 +64,6 @@ public class Sentinel {
 
   public boolean violatesActiveGoal(Coordinate[] footprint) {
     return intersects(footprint, getRectVertices(getProtectedZone()));
-  }
-
-  public boolean doesViolateBlueGoal(Coordinate[] robotFootprint) {
-    return intersects(robotFootprint, getRectVertices(blueGoalZone));
-  }
-
-  public boolean doesViolateRedGoal(Coordinate[] robotFootprint) {
-    return intersects(robotFootprint, getRectVertices(redGoalZone));
   }
 
   public Envelope getProtectedZone() {

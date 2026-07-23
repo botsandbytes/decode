@@ -28,7 +28,6 @@ public class ConfigSchemaStrictnessTest {
     return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7).getSchema(schemaStream);
   }
 
-  @SuppressWarnings("unchecked")
   private Map<String, Object> freshConfig() {
     InputStream yamlStream =
         getClass().getResourceAsStream("/org/firstinspires/ftc/teamcode/robot/config/config.yaml");

@@ -1,11 +1,13 @@
 package org.firstinspires.ftc.teamcode.config;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,6 +16,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import org.yaml.snakeyaml.Yaml;
@@ -153,8 +156,8 @@ public class ConfigGeneratorMain {
         Map<String, Object> sub = (Map<String, Object>) entry.getValue();
         Object d = sub.get("desc");
         if (d != null) info.desc = d.toString();
-        if (sub.get("min") instanceof Number) info.min = ((Number) sub.get("min")).doubleValue();
-        if (sub.get("max") instanceof Number) info.max = ((Number) sub.get("max")).doubleValue();
+        if (sub.get("min") instanceof Number) info.min = ((Number) Objects.requireNonNull(sub.get("min"))).doubleValue();
+        if (sub.get("max") instanceof Number) info.max = ((Number) Objects.requireNonNull(sub.get("max"))).doubleValue();
       } else if (entry.getValue() != null) {
         info.desc = entry.getValue().toString();
       }
@@ -418,7 +421,7 @@ public class ConfigGeneratorMain {
 
     List<LeafPath> leafPaths = new ArrayList<>();
     for (String s : sections) {
-      collectLeafPaths((Map<String, Object>) configData.get(s), Arrays.asList(s), leafPaths);
+      collectLeafPaths((Map<String, Object>) Objects.requireNonNull(configData.get(s)), Collections.singletonList(s), leafPaths);
     }
 
     // Static section object fields
@@ -479,7 +482,7 @@ public class ConfigGeneratorMain {
 
       Map<String, Object> normalGlobal = new LinkedHashMap<>();
       Map<String, Object> oppositeGlobal = new LinkedHashMap<>();
-      for (Map.Entry<String, Object> e : autoGlobal.entrySet()) {
+      for (Map.Entry<String, Object> e : Objects.requireNonNull(autoGlobal).entrySet()) {
         if (e.getKey().startsWith("opposite_")) {
           oppositeGlobal.put(e.getKey().substring("opposite_".length()), e.getValue());
         } else {
@@ -487,7 +490,7 @@ public class ConfigGeneratorMain {
         }
       }
 
-      if (autoPoses.containsKey("normal") && autoPoses.get("normal") instanceof Map) {
+      if (Objects.requireNonNull(autoPoses).containsKey("normal") && autoPoses.get("normal") instanceof Map) {
         emitAllianceClass(
             sb, "NormalAuto", (Map<String, Object>) autoPoses.get("normal"), normalGlobal, docs);
       }
@@ -610,7 +613,7 @@ public class ConfigGeneratorMain {
     Set<String> poseKeys = new TreeSet<>();
     for (String alliance : Arrays.asList("blue", "red")) {
       if (poseSection.containsKey(alliance) && poseSection.get(alliance) instanceof Map) {
-        poseKeys.addAll(((Map<String, Object>) poseSection.get(alliance)).keySet());
+        poseKeys.addAll(((Map<String, Object>) Objects.requireNonNull(poseSection.get(alliance))).keySet());
       }
     }
 
@@ -674,7 +677,6 @@ public class ConfigGeneratorMain {
     return "m".equals(v) || "mirror".equals(v);
   }
 
-  @SuppressWarnings("unchecked")
   private static Object resolveMirrorVal(List<String> path, Map<String, Object> configData) {
     if (path == null || path.isEmpty()) return null;
     String leaf = path.get(path.size() - 1);
@@ -753,7 +755,6 @@ public class ConfigGeneratorMain {
 
   // --- JSON Schema Generation ---
 
-  @SuppressWarnings("unchecked")
   private static String generateSchemaJson(
       Map<String, Object> configData, Map<String, DocInfo> docs) {
     StringBuilder sb = new StringBuilder();
@@ -854,18 +855,31 @@ public class ConfigGeneratorMain {
     return str.replace("\\", "\\\\").replace("\"", "\\\"");
   }
 
+  private static String readFileToString(File file) throws IOException {
+    try (FileInputStream fis = new FileInputStream(file);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      byte[] buffer = new byte[8192];
+      int len;
+      while ((len = fis.read(buffer)) != -1) {
+        baos.write(buffer, 0, len);
+      }
+      return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    }
+  }
+
   private static boolean writeIfChanged(File file, String newContent) {
     if (file.exists()) {
       try {
-        String existingContent = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+        String existingContent = readFileToString(file);
         if (existingContent.equals(newContent)) {
           return false;
         }
       } catch (IOException ignored) {
       }
     }
-    file.getParentFile().mkdirs();
-    try (FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8)) {
+    File parent = file.getParentFile();
+    try (FileOutputStream fos = new FileOutputStream(file);
+        OutputStreamWriter writer = new OutputStreamWriter(fos, StandardCharsets.UTF_8)) {
       writer.write(newContent);
     } catch (IOException e) {
       throw new RuntimeException("Failed to write file: " + file.getAbsolutePath(), e);
@@ -873,3 +887,5 @@ public class ConfigGeneratorMain {
     return true;
   }
 }
+
+

@@ -18,7 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 public class ConfigValidationTest {
 
   @Test
-  public void validateConfigurations() throws Exception {
+  public void validateConfigurations() {
     ObjectMapper mapper = new ObjectMapper();
     SchemaRegistry factory = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7);
 

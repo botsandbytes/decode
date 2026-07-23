@@ -27,7 +27,6 @@ public final class ConfigLoader {
    * <p>Priority: external ADB-pushed file → classpath resource. Call this at the top of {@code
    * OpMode.init()} after pushing a new YAML via ADB.
    */
-  @SuppressWarnings("unchecked")
   public static synchronized void reload() {
     java.io.File externalFile = null;
     try {
@@ -349,7 +348,7 @@ public final class ConfigLoader {
       return ((Number) value).floatValue();
     }
     if (type == boolean.class || type == Boolean.class) {
-      return (Boolean) value;
+      return value;
     }
     if (type == String.class) {
       return value.toString();

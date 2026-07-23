@@ -243,9 +243,9 @@ public class Casablanca {
       double slowDownDist,
       double hardStopDist) {
     AxisState state = new AxisState();
-    double distToStop = -1.0;
+    double distToStop;
     boolean movingTowards = false;
-    double repulsionDir = 0;
+    double repulsionDir;
 
     if (botMax <= zoneMin) {
       distToStop = zoneMin - botMax;
