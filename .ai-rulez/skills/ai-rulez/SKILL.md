@@ -21,23 +21,23 @@ Use this skill when working in a project that is managed by AI-Rulez.
 1. Check for .ai-rulez/config.yaml (or config.toml), .ai-rulez/skills/, domain folders.
 2. If MCP is configured in the config, prefer the MCP server for reading and modifying AI-Rulez content.
 3. Update the relevant source files under .ai-rulez/: rules, context, skills, agents, domains, or config.
-4. Run ai-rulez validate when changing configuration structure.
-5. Run ai-rulez generate after source changes so assistant-specific outputs stay current.
-6. If MCP is available, start it with npx -y ai-rulez@latest mcp (or the repo’s helper) and use it for CRUD instead of manual edits when possible.
+4. Run `bunx ai-rulez validate` when changing configuration structure.
+5. Run `bunx ai-rulez generate` after source changes so assistant-specific outputs stay current.
+6. If MCP is available, start it with `bunx ai-rulez mcp` (or the repo’s helper) and use it for CRUD instead of manual edits when possible.
 
 ## Core Commands
 
-- ai-rulez init — scaffold .ai-rulez/ for a project.
-- ai-rulez add|remove|list rule|context|skill|agent — manage content files.
-- ai-rulez validate — ensure config and tree structure are sound.
-- ai-rulez generate [--profile <name>] — render tool presets after edits.
-- ai-rulez migrate — convert legacy ai-rulez.yaml to .ai-rulez/.
+- `bunx ai-rulez init` — scaffold .ai-rulez/ for a project.
+- `bunx ai-rulez add|remove|list rule|context|skill|agent` — manage content files.
+- `bunx ai-rulez validate` — ensure config and tree structure are sound.
+- `bunx ai-rulez generate [--profile <name>]` — render tool presets after edits.
+- `bunx ai-rulez migrate` — convert legacy ai-rulez.yaml to .ai-rulez/.
 
 ## Guidelines
 
 - Treat .ai-rulez/ as the source of truth.
 - Generated files such as AGENTS.md, CLAUDE.md, or .cursor/ outputs should only change via generation.
-- Use ai-rulez init to bootstrap, generate to render outputs, validate to check structure, and migrate for format migration.
+- Use `bunx ai-rulez init` to bootstrap, generate to render outputs, validate to check structure, and migrate for format migration.
 - Remember that root content is always included, while domains are controlled by profiles.
 - MCP can expose read, CRUD, generate, and validate operations for assistants.
 - When changing presets, profiles, or domains in config.yaml, rerun validate then generate so downstream files stay in sync.
