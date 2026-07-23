@@ -129,6 +129,18 @@ x:
 y:
   desc: "Y value coordinate."
 
+z:
+  desc: "Z value coordinate."
+
+yaw:
+  desc: "Yaw rotation (degrees)."
+
+pitch:
+  desc: "Pitch rotation (degrees)."
+
+roll:
+  desc: "Roll rotation (degrees)."
+
 rot:
   desc: "Minimum turn/yaw drive power (0.0 to 1.0) needed to overcome static wheel stiction. Calibrated using Friction Calibration OpMode."
   min: 0.0
