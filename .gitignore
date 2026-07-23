@@ -80,4 +80,9 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
+# Node / JS
+node_modules/
+bun.lock
+
+
 
