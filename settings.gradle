@@ -4,3 +4,4 @@ plugins {
 
 include ':FtcRobotController'
 include ':TeamCode'
+include ':config-compiler'

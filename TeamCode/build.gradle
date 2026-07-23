@@ -1,7 +1,9 @@
+import net.ltgt.gradle.errorprone.CheckSeverity
+
 buildscript {
     repositories {
         mavenCentral()
-        maven { url "https://repo.dairy.foundation/releases" }
+        maven { url = "https://repo.dairy.foundation/releases" }
     }
     dependencies {
         classpath "dev.frozenmilk:Load:0.2.4"
@@ -25,6 +27,10 @@ buildscript {
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
 apply plugin: 'dev.frozenmilk.sinister.sloth.load'
+apply plugin: 'jacoco'
+apply plugin: 'net.ltgt.errorprone'
+apply plugin: 'com.diffplug.spotless'
+apply plugin: 'com.github.spotbugs'
 
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
@@ -37,7 +43,7 @@ android {
         jniLibs {
             pickFirsts += ['**/*.so']
         }
-        jniLibs.useLegacyPackaging true
+        jniLibs.useLegacyPackaging = true
     }
 
     sourceSets {
@@ -45,6 +51,103 @@ android {
             resources.srcDirs += ['src/main/java']
         }
     }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs << "-Xlint:all" << "-Xlint:-options" << "-Xlint:-path"
+        
+        if (plugins.hasPlugin("net.ltgt.errorprone")) {
+            options.errorprone {
+                check("NullAway", CheckSeverity.ERROR)
+                option("NullAway:AnnotatedPackages", "org.firstinspires.ftc.teamcode")
+                
+                check("FloatDoubleComparison", CheckSeverity.ERROR)
+                check("FloatingPointLiteralPrecision", CheckSeverity.ERROR)
+                check("MathAbsoluteRandom", CheckSeverity.ERROR)
+                check("DeadException", CheckSeverity.ERROR)
+            }
+        }
+    }
+}
+
+// Spotless formatting rules
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        googleJavaFormat('1.27.0')
+        removeUnusedImports()
+    }
+}
+
+// SpotBugs settings
+spotbugs {
+    ignoreFailures = false
+    showStackTraces = true
+    onlyAnalyze = ['org.firstinspires.ftc.teamcode.-']
+    excludeFilter = file('spotbugs-exclude.xml')
+    jvmArgs = ['--add-modules=java.rmi']
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    launcher.set(
+        javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    )
+}
+
+// Auto-format files before compiling, and keep the generated config facade in sync with
+// config.yaml before every build (not just verifyBuild/checkConfigKeys).
+preBuild.dependsOn 'spotlessApply', 'generateConfig'
+
+// Hook tests, SpotBugs, and Spotless verification into all assemble, install, and deploy tasks (runs on clicking Build / Run)
+tasks.configureEach { task ->
+    if (task.name.startsWith('assemble') || task.name.startsWith('install') || task.name.equals('deploySloth')) {
+        task.dependsOn 'testDebugUnitTest'
+        task.dependsOn 'spotlessApply'
+        task.dependsOn 'spotbugsDebug'
+    }
+}
+
+// Force ASM version to 9.9 to fully support Java 26 bytecode inside local JVM tests
+configurations.configureEach {
+    resolutionStrategy {
+        force 'org.ow2.asm:asm:9.9'
+        force 'org.ow2.asm:asm-commons:9.9'
+        force 'org.ow2.asm:asm-tree:9.9'
+        force 'org.ow2.asm:asm-util:9.9'
+    }
+}
+
+// Force local JVM tests to run on a Java 21 toolchain sandbox for target compatibility
+tasks.withType(Test).configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// Gate fast deploy (deploySloth) with test and spotless formatting checks
+tasks.named('deploySloth') {
+    dependsOn 'testDebugUnitTest', 'spotlessApply'
+}
+
+// JaCoCo Report Task
+tasks.register('jacocoTestReport', JacocoReport) {
+    dependsOn 'testDebugUnitTest'
+    reports {
+        xml.required = true
+        html.required = true
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${project.buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files([mainSrc]))
+    classDirectories.setFrom(files([debugTree]))
+    executionData.setFrom(fileTree(dir: project.buildDir, includes: [
+            'jacoco/testDebugUnitTest.exec',
+            'outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec'
+    ]))
 }
 
 repositories {
@@ -56,4 +159,53 @@ repositories {
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.bylazar.sloth:fullpanels:0.2.4+1.0.12'
+    implementation project(':config-compiler')
+
+    // Error Prone & NullAway compiler dependencies
+    errorprone "com.google.errorprone:error_prone_core:2.50.0"
+    errorprone "com.uber.nullaway:nullaway:0.13.8"
+
+    // Nullability annotations for compile-time
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+
+    // Test dependencies
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'com.networknt:json-schema-validator:3.0.6'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.22.1'
+    testImplementation 'org.robolectric:robolectric:4.16.1'
+    testImplementation 'org.mockito:mockito-core:5.23.0'
+}
+
+// Compile-time config key similarity and alliance-symmetry checker
+tasks.register('generateConfig', Exec) {
+    group = 'build'
+    description = 'Regenerates config.java and config-schema.json from config.yaml.'
+    commandLine 'python3', "${rootProject.projectDir}/scripts/generate_config.py"
+}
+
+tasks.register('checkConfigKeys', Exec) {
+    group = 'verification'
+    description = 'Checks config.yaml for suspicious key asymmetries and near-duplicates.'
+    dependsOn 'generateConfig'
+    commandLine 'python3', "${rootProject.projectDir}/scripts/check_config_keys.py"
+}
+
+// ADB YAML hot-deploy tasks (no APK rebuild required)
+tasks.register('pushConfig', Exec) {
+    group = 'deploy'
+    description = 'Pushes config.yaml to the robot via ADB. Re-init your OpMode to apply.'
+    commandLine 'python3', "${rootProject.projectDir}/scripts/push_config.py"
+}
+
+tasks.register('resetConfig', Exec) {
+    group = 'deploy'
+    description = 'Removes the ADB-pushed config override; robot reverts to bundled config.'
+    commandLine 'python3', "${rootProject.projectDir}/scripts/push_config.py", '--reset'
+}
+
+// Custom verification task that mirrors compile/test/formatting checks without deployment
+tasks.register('verifyBuild') {
+    group = 'verification'
+    description = 'Runs all formatting, compiler, unit test, and config checks without deploying.'
+    dependsOn 'generateConfig', 'spotlessApply', 'testDebugUnitTest', 'spotbugsDebug', 'checkConfigKeys'
 }
