@@ -34,7 +34,7 @@ This project is a First Tech Challenge (FTC) robot controller application writte
 
 5. **Collision Avoidance (Casablanca & Sentinel)**:
    - `Sentinel` and `Casablanca` are per-match **instances** owned by `Robot`, not static utility classes: `new Sentinel(alliance)` computes the goal zones and launch zones once, and `new Casablanca(sentinel)` reads its friction/smoothing/protection config from it. There is no static "current alliance" global — alliance flows in through the constructor via `MatchProfile`.
-   - `Sentinel` checks robot footprint geometry against protected alliance goal zones. It first tries `android.graphics.Path.op(INTERSECT)`, and falls back to a pure-Java Separating Axis Theorem (SAT) polygon-intersection check when `Path.op` isn't available (Robolectric/JVM unit tests) — this is what makes the footprint-rotation and intersection math unit-testable per the code-quality coverage rule, without weakening the production (on-device) path.
+   - `Sentinel` checks robot footprint geometry against protected alliance goal zones using JTS Topology Suite (`org.locationtech.jts.geom.Polygon.intersects()`). This provides robust, instant 2D polygon collision detection under pure JUnit 4 unit tests without requiring Android Robolectric wrappers.
    - `Casablanca` dynamically reduces velocity or repels the robot to prevent violating opponent goals, using a `PredictiveBrakingController` to gauge required stopping distance. Depth (X-axis) and side (Y-axis) protection are computed by the same `calculateAxisState` helper called twice with the appropriately-swapped bounds — keep the axis pairing symmetric when touching this code (see `MathSafetyTest#testCasablancaSymmetryAndCollisionMath`).
 
 6. **Alliance-Parameterized OpModes**:
@@ -46,9 +46,10 @@ This project is a First Tech Challenge (FTC) robot controller application writte
 7. **Dynamic Configuration System**:
    - Config lives in one YAML file, `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.yaml`, with human-readable descriptions and min/max constraints kept separately in the sibling `config-docs.yaml` (keyed by leaf name).
    - Runtime loading is handled by the `config-compiler` Gradle module (`org.firstinspires.ftc.teamcode.config.ConfigLoader`), a small reflection-based YAML→POJO binder. It prefers an ADB-pushed override at `/sdcard/FIRST/teamcode/config.yaml` over the bundled classpath resource, so config can be hot-reloaded without an APK rebuild (`./gradlew pushConfig` / `./gradlew resetConfig`, backed by `scripts/push_config.py`).
-   - `config.java` (under `robot/config/`) is a **generated** typed facade over that loader — nested static classes mirroring the YAML structure — and a `loadMatchProfile(Alliance)` helper. It is regenerated from `config.yaml` + `config-docs.yaml` by `python3 scripts/generate_config.py`, which also regenerates `config-schema.json`; never hand-edit `config.java` or `config-schema.json`.
-   - `scripts/check_config_keys.py` (wired into the `checkConfigKeys` Gradle task, part of `verifyBuild`) statically checks `config.yaml` for alliance-name asymmetry (a `red_*` key with no `blue_*` mirror) and fuzzy near-duplicate keys, failing the build on the former.
+   - `config.java` (under `robot/config/`) is a **generated** typed facade over that loader — nested static classes mirroring the YAML structure — and a `loadMatchProfile(Alliance)` helper. It is regenerated from `config.yaml` + `config-docs.yaml` by the pure Java generator `ConfigGeneratorMain` (`./gradlew generateConfig`), which also regenerates `config-schema.json`; never hand-edit `config.java` or `config-schema.json`.
+   - `checkConfigKeys` (wired into the `checkConfigKeys` Gradle task, part of `verifyBuild`) is a pure Java JavaExec task that statically checks `config.yaml` for alliance-name asymmetry (a `red_*` key with no `blue_*` mirror) and fuzzy near-duplicate keys, failing the build on the former.
    - The old `utilities/ConfigLoader.java` (string-path `getDouble`/`getInt`/... lookups) is `@Deprecated` and only kept as a thin shim over the new loader for backward compatibility — new code should read from `config`, not call it directly.
+
 
 8. **Dedicated Records Package**:
    - The `org.firstinspires.ftc.teamcode.records` package contains simple, immutable record types and structural data elements:

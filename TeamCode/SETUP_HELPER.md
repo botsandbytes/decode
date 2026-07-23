@@ -85,7 +85,7 @@ See [TeamCode/CONTRIBUTING.md](TeamCode/CONTRIBUTING.md) §6 for the full config
 >
 > **Tip:** Once deployed, you can hot-reload `config.yaml` alone — no rebuild/redeploy — with `./gradlew pushConfig` (and revert with `./gradlew resetConfig`). Re-init the OpMode on the Driver Station afterward to pick up the new values.
 
-Before opening a PR, run the full local verification pass (formatting, compile, SpotBugs, unit tests, and the config-symmetry check) without deploying:
+Before opening a PR, run the full local verification pass (formatting, compile, unit tests, and the config-symmetry check) without deploying:
 ```bash
 ./gradlew verifyBuild
 ```

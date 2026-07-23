@@ -10,16 +10,17 @@ Follow these coding and design standards in the `decode` codebase:
 1. **Dynamic Configuration Over Hardcoding**:
    - Never hardcode mechanical coefficients, tolerances, PID constants, safety margins, velocity scales, or autonomous timing values in Java code.
    - Add or change values in `config.yaml`; access them in Java via the generated `config` facade (e.g. `config.turret.pidf.p`) — do not call the low-level `config.ConfigLoader.load(...)` directly from subsystem code, and never call the deprecated `utilities.ConfigLoader`.
-   - When adding a new config key, also add its description (and `min`/`max` where applicable) to `config-docs.yaml`, then run `python3 scripts/generate_config.py` to regenerate `config.java` and `config-schema.json`. Never hand-edit either generated file.
+   - When adding a new config key, also add its description (and `min`/`max` where applicable) to `config-docs.yaml`, then run `./gradlew generateConfig` (or `./gradlew verifyBuild`) to regenerate `config.java` and `config-schema.json`. Never hand-edit either generated file.
    - If a new key mentions an alliance (`red_*`/`blue_*`), add its mirror for the other alliance or the `checkConfigKeys` Gradle task (part of `verifyBuild`) will fail the build.
 
 2. **Prefer Libraries Over Custom Implementations**:
    - Never write custom code for something a library can already do — even if that library is not yet installed. Identify and add the appropriate dependency first.
-   - Use Android SDK types (`android.graphics.RectF`, `android.graphics.PointF`, `android.graphics.Path`) for 2D geometry instead of custom records.
+   - Use JTS Topology Suite (`org.locationtech.jts.geom.Coordinate`, `Envelope`, `Polygon`) for 2D spatial geometry and polygon intersections instead of custom record types.
    - Use Pedro Pathing's `com.pedropathing.control.PIDFController` and `PIDFCoefficients` instead of any custom PID/PIDF implementations.
    - Use FTC SDK's `org.firstinspires.ftc.robotcore.external.navigation.AngleUnit` normalization methods instead of custom modulo math.
    - This rule applies to: PID controllers, geometry types, angle math, data structures, interpolation, collections, and anything else with a well-supported library equivalent.
-   - Exception: `Sentinel`'s polygon intersection falls back to a hand-written Separating Axis Theorem check only because `android.graphics.Path.op()` isn't implemented under Robolectric/JVM tests. That fallback exists solely to satisfy rule 10's test-coverage requirement — it is not license to duplicate other library functionality for testability elsewhere. Prefer making the real dependency testable before reaching for a parallel implementation.
+   - Exception: `Sentinel` uses JTS (`Polygon.intersects()`) for robust 2D polygon intersection math, allowing all unit tests to execute under pure JUnit 4 in < 0.1s.
+
 
 3. **Hardware Optimization via Dairy Caching**:
    - Drivetrain wheels, shooters, and rollers must use caching hardware wrappers (`CachingDcMotorEx`, `CachingServo`, `CachingCRServo`) to optimize loop times.
@@ -56,6 +57,6 @@ Follow these coding and design standards in the `decode` codebase:
     - However, all pure mathematical functions, geometry collision calculations (e.g., coordinate rotations, bounding box intersections in `Sentinel`/`Casablanca`), and numeric helpers (e.g., yaw angle wrapping in `Turret`) **must** have full local JVM unit test coverage to prevent logic regressions. See `MathSafetyTest` for the current baseline (turret angle math, Casablanca friction/slew/lane-fade math, Sentinel footprint rotation and intersection, Casablanca depth/side axis symmetry).
 
 11. **Verification Task Workflow**:
-    - Prefer running the custom task `./gradlew verifyBuild` to run the exact same verification checks as a standard build (Spotless auto-formatting, compiler error checks, SpotBugs analysis, local JVM tests, and the `checkConfigKeys` config-symmetry check) without deploying the application.
+    - Prefer running the custom task `./gradlew verifyBuild` to run the exact same verification checks as a standard build (Spotless auto-formatting, compiler error checks, local JVM tests, and the `checkConfigKeys` config-symmetry check) without deploying the application.
     - Always run `./gradlew` commands outside the terminal sandbox (`BypassSandbox: true`) because Gradle requires access to global cache lock files (e.g. `~/.gradle/wrapper/dists/...`) which are restricted by standard sandboxing.
     - For live tuning on a connected robot without a full APK rebuild, use `./gradlew pushConfig` to hot-deploy `config.yaml` over ADB (re-init the OpMode to pick it up) and `./gradlew resetConfig` to revert to the bundled config. This is a deployment convenience, not part of `verifyBuild`.

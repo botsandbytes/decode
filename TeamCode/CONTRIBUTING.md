@@ -41,7 +41,8 @@ decode/
 │       └── tests/              # Calibration/diagnostic OpModes
 │   └── src/test/java/...       # JVM unit tests (Robolectric) — math/geometry + config schema
 ├── config-compiler/            # Standalone Android library: runtime YAML→POJO ConfigLoader
-├── scripts/                    # Python: generate_config.py, check_config_keys.py, push_config.py
+├── scripts/                    # Helper scripts (push_config.py hot-reload over ADB)
+
 ├── pedro-repo/                 # Pedro Pathing library source (reference)
 ├── pedro-docs/                 # Pedro Pathing documentation site source
 ├── dairy-docs/                 # Dairy framework documentation
@@ -189,13 +190,14 @@ Access config through `RobotConfig` in subsystem code. Do not call `org.firstins
 ### Adding a new config value
 1. Add the value to `config.yaml`.
 2. Add a `desc:` (and `min:`/`max:` if numeric) entry for its leaf key name in `config-docs.yaml`.
-3. Run `python3 scripts/generate_config.py` to regenerate `RobotConfig.java` and `config-schema.json`.
+3. Run `./gradlew generateConfig` (or `./gradlew verifyBuild`) to regenerate `config.java` and `config-schema.json`.
 4. If the key mentions an alliance (`red_*` / `blue_*`), make sure its mirror exists — `./gradlew checkConfigKeys` will fail the build otherwise (see below).
-5. Access it via `RobotConfig.<section>.<key>` (or its generated flat alias).
+5. Access it via `config.<section>.<key>` (or its generated flat alias).
 
 ### Static checks
-- `./gradlew checkConfigKeys` (part of `verifyBuild`) runs `scripts/check_config_keys.py`, which flags alliance-name asymmetry (a `red_*` key with no `blue_*` mirror — build-failing) and fuzzy near-duplicate key names (Levenshtein distance ≤ 2 — warning only). Suppress a false positive with `suppress_similarity_check: true` under that key in `config-docs.yaml`.
+- `./gradlew checkConfigKeys` (part of `verifyBuild`) runs a pure Java check task (`ConfigGeneratorMain`), which flags alliance-name asymmetry (a `red_*` key with no `blue_*` mirror — build-failing) and fuzzy near-duplicate key names (Levenshtein distance ≤ 2 — warning only). Suppress a false positive with `suppress_similarity_check: true` under that key in `config-docs.yaml`.
 - `ConfigValidationTest` (JVM unit test) validates `config.yaml` against the generated `config-schema.json`.
+
 
 ### Hot-deploying config to a connected robot
 ```bash
@@ -269,7 +271,7 @@ The **Dairy** framework is used for:
 |---|---|
 | `build.gradle` | Top-level; configures AGP classpath |
 | `build.dependencies.gradle` | All dependency version declarations (Pedro, Dairy, etc.) |
-| `TeamCode/build.gradle` | TeamCode module build; applies FTC conventions, Spotless/SpotBugs/JaCoCo, and the custom tasks below |
+| `TeamCode/build.gradle` | TeamCode module build; applies FTC conventions, Spotless/JaCoCo, and the custom tasks below |
 | `config-compiler/build.gradle` | Standalone Android library module providing the runtime `ConfigLoader` |
 | `gradle.properties` | JVM args, Gradle caching, parallel execution, config cache |
 | `settings.gradle` | Module declarations (`FtcRobotController`, `TeamCode`, `config-compiler`), plugin management |
@@ -277,7 +279,7 @@ The **Dairy** framework is used for:
 **Custom Gradle tasks** (defined in `TeamCode/build.gradle`):
 | Task | Purpose |
 |---|---|
-| `verifyBuild` | Spotless format, compile, SpotBugs, JVM unit tests, and `checkConfigKeys` — no deployment |
+| `verifyBuild` | Spotless format, compile, JVM unit tests, and `checkConfigKeys` — no deployment |
 | `checkConfigKeys` | Runs `scripts/check_config_keys.py` (alliance symmetry + fuzzy-duplicate check on `config.yaml`) |
 | `pushConfig` | ADB-pushes `config.yaml` to a connected robot for hot reload (no rebuild) |
 | `resetConfig` | Removes the ADB-pushed override |
