@@ -1,15 +1,3 @@
-[submodule "dairy-cachinghardware"]
-	path = dairy-cachinghardware
-	url = https://github.com/Dairy-Foundation/CachingHardware.git
-[submodule "dairy-docs"]
-	path = dairy-docs
-	url = https://github.com/Dairy-Foundation/docs.git
-[submodule "dairy-sloth"]
-	path = dairy-sloth
-	url = https://github.com/Dairy-Foundation/Sloth.git
-[submodule "nextftc-docs"]
-	path = nextftc-docs
-	url = https://github.com/NextFTC/NextFTC-Docs.git
 [submodule "pedro-docs"]
 	path = pedro-docs
 	url = https://github.com/Pedro-Pathing/Docs.git
