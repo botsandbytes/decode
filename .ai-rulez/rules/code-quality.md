@@ -22,10 +22,10 @@ Follow these coding and design standards in the `decode` codebase:
    - Exception: `Sentinel` uses JTS (`Polygon.intersects()`) for robust 2D polygon intersection math, allowing all unit tests to execute under pure JUnit 4 in < 0.1s.
 
 
-3. **Hardware Optimization via Dairy Caching**:
-   - Drivetrain wheels, shooters, and rollers must use caching hardware wrappers (`CachingDcMotorEx`, `CachingServo`, `CachingCRServo`) to optimize loop times.
-   - For the drivetrain, call `Constants.createCachedFollower(hardwareMap)` — it wraps all four motors in `CachingDcMotorEx`, registers them back into `hardwareMap`, and builds the `Follower` in one step. Only bypass it (calling `Constants.createFollower` directly) in calibration/tuning OpModes that intentionally want uncached motors.
-   - Set sensible tolerances (`caching.drivetrain_tolerance`, `caching.xxx_tolerance`) in `config.yaml` to minimize bus overhead.
+3. **Hardware Optimization via LynxModule Bulk Caching**:
+   - Drivetrain wheels, shooters, and rollers use standard FTC SDK hardware classes (`DcMotorEx`, `Servo`, `CRServo`).
+   - Bulk read caching is handled via `LynxModule.BulkCachingMode.MANUAL` cleared once per loop in `Robot.update()`.
+   - `Constants.createCachedFollower(hardwareMap)` is retained for convenience to build the `Follower`.
 
 4. **Command-Based Subsystems**:
    - Use the `com.pedropathing.ivy.Command` API to structure actions (e.g., `runIntakeCommand`, `shootCommand`).

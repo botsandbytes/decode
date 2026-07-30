@@ -8,9 +8,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.ivy.Command;
 import com.pedropathing.ivy.Scheduler;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import dev.frozenmilk.dairy.core.util.supplier.logical.EnhancedBooleanSupplier;
-import dev.frozenmilk.dairy.pasteurized.Pasteurized;
-import dev.frozenmilk.dairy.pasteurized.SDKGamepad;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.records.LaunchParameters;
 import org.firstinspires.ftc.teamcode.records.MatchProfile;
@@ -19,7 +17,7 @@ import org.firstinspires.ftc.teamcode.robot.Robot;
 import org.firstinspires.ftc.teamcode.robot.Shooter;
 import org.firstinspires.ftc.teamcode.robot.ShotController;
 import org.firstinspires.ftc.teamcode.robot.Turret;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 import org.firstinspires.ftc.teamcode.utilities.OpModeUtil;
@@ -31,6 +29,28 @@ import org.firstinspires.ftc.teamcode.utilities.Sentinel;
  */
 public abstract class TeleOpBase extends OpMode {
 
+  public static class ButtonTracker {
+    private boolean currentState = false;
+    private boolean previousState = false;
+
+    public void update(boolean state) {
+      previousState = currentState;
+      currentState = state;
+    }
+
+    public boolean onTrue() {
+      return currentState && !previousState;
+    }
+
+    public boolean onFalse() {
+      return !currentState && previousState;
+    }
+
+    public boolean state() {
+      return currentState;
+    }
+  }
+
   protected Robot robot;
   protected Follower follower;
   protected Intake intake;
@@ -41,13 +61,23 @@ public abstract class TeleOpBase extends OpMode {
   protected Casablanca casablanca;
   protected MatchProfile profile;
 
-  protected SDKGamepad driver;
-  protected SDKGamepad operator;
+  protected Gamepad driver;
+  protected Gamepad operator;
 
-  protected EnhancedBooleanSupplier operatorRightTrigger;
-  protected EnhancedBooleanSupplier operatorLeftTrigger;
-  protected EnhancedBooleanSupplier driverRightTrigger;
-  protected EnhancedBooleanSupplier driverLeftTrigger;
+  protected ButtonTracker operatorA = new ButtonTracker();
+  protected ButtonTracker operatorB = new ButtonTracker();
+  protected ButtonTracker operatorX = new ButtonTracker();
+  protected ButtonTracker operatorY = new ButtonTracker();
+  protected ButtonTracker operatorDpadUp = new ButtonTracker();
+  protected ButtonTracker operatorDpadDown = new ButtonTracker();
+  protected ButtonTracker operatorDpadRight = new ButtonTracker();
+  protected ButtonTracker operatorRightTrigger = new ButtonTracker();
+  protected ButtonTracker operatorLeftTrigger = new ButtonTracker();
+
+  protected ButtonTracker driverDpadLeft = new ButtonTracker();
+  protected ButtonTracker driverDpadRight = new ButtonTracker();
+  protected ButtonTracker driverRightTrigger = new ButtonTracker();
+  protected ButtonTracker driverLeftTrigger = new ButtonTracker();
 
   protected FieldManager field;
   protected TelemetryManager telemetryM;
@@ -87,15 +117,8 @@ public abstract class TeleOpBase extends OpMode {
     robot.vision.initAprilTag(hardwareMap, true);
     casablanca.reset();
 
-    Pasteurized.gamepad1(new SDKGamepad(gamepad1));
-    Pasteurized.gamepad2(new SDKGamepad(gamepad2));
-    driver = (SDKGamepad) Pasteurized.gamepad1();
-    operator = (SDKGamepad) Pasteurized.gamepad2();
-
-    operatorRightTrigger = operator.rightTrigger().conditionalBindState().greaterThan(0.5).bind();
-    operatorLeftTrigger = operator.leftTrigger().conditionalBindState().greaterThan(0.5).bind();
-    driverRightTrigger = driver.rightTrigger().conditionalBindState().greaterThan(0.5).bind();
-    driverLeftTrigger = driver.leftTrigger().conditionalBindState().greaterThan(0.5).bind();
+    driver = gamepad1;
+    operator = gamepad2;
 
     shooter.setShooterPIDFCoefficients();
 
@@ -104,12 +127,9 @@ public abstract class TeleOpBase extends OpMode {
         Command.build()
             .setExecute(
                 () -> {
-                  double y =
-                      Math.clamp(-Math.pow(driver.leftStickY().state(), 3), -maxSpeed, maxSpeed);
-                  double x =
-                      Math.clamp(-Math.pow(driver.leftStickX().state(), 3), -maxSpeed, maxSpeed);
-                  double r =
-                      Math.clamp(-Math.pow(driver.rightStickX().state(), 3), -maxSpeed, maxSpeed);
+                  double y = Math.clamp(-Math.pow(driver.left_stick_y, 3), -maxSpeed, maxSpeed);
+                  double x = Math.clamp(-Math.pow(driver.left_stick_x, 3), -maxSpeed, maxSpeed);
+                  double r = Math.clamp(-Math.pow(driver.right_stick_x, 3), -maxSpeed, maxSpeed);
 
                   double[] adjusted =
                       casablanca.adjustDriveInput(
@@ -128,8 +148,27 @@ public abstract class TeleOpBase extends OpMode {
     teleOpDriveCommand.schedule();
   }
 
+  private void updateGamepads() {
+    operatorA.update(operator.a);
+    operatorB.update(operator.b);
+    operatorX.update(operator.x);
+    operatorY.update(operator.y);
+    operatorDpadUp.update(operator.dpad_up);
+    operatorDpadDown.update(operator.dpad_down);
+    operatorDpadRight.update(operator.dpad_right);
+    operatorRightTrigger.update(operator.right_trigger > 0.5);
+    operatorLeftTrigger.update(operator.left_trigger > 0.5);
+
+    driverDpadLeft.update(driver.dpad_left);
+    driverDpadRight.update(driver.dpad_right);
+    driverRightTrigger.update(driver.right_trigger > 0.5);
+    driverLeftTrigger.update(driver.left_trigger > 0.5);
+  }
+
   @Override
   public void loop() {
+    updateGamepads();
+
     currentParams =
         shooter.calculateLaunchParameters(
             follower.getPose(), profile.goalX(), profile.goalY(), profile.alliance());
@@ -161,7 +200,7 @@ public abstract class TeleOpBase extends OpMode {
   }
 
   private void handleVision() {
-    if (operator.dpadDown().state()) {
+    if (operator.dpad_down) {
       Pose visionPose = robot.vision.updateAprilTagPose();
       if (robot.vision.isTagFound()) {
         follower.setPose(visionPose);
