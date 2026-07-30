@@ -25,7 +25,8 @@ public class ConfigValidationTest {
     // Load schema
     InputStream schemaStream =
         getClass()
-            .getResourceAsStream("/org/firstinspires/ftc/teamcode/robot/config/config-schema.json");
+            .getResourceAsStream(
+                "/org/firstinspires/ftc/teamcode/robot/config/generated/config-schema.json");
     assertNotNull("Could not find config-schema.json in classpath resources", schemaStream);
 
     Schema schema = factory.getSchema(schemaStream);
