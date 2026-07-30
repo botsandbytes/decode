@@ -28,9 +28,9 @@ This project is a First Tech Challenge (FTC) robot controller application writte
    - Custom constants (mass, PIDF, predictive braking) are configured in `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedroPathing/Constants.java`.
    - `Constants.createCachedFollower(hardwareMap)` is the standard entry point: it wraps all four drivetrain motors in `CachingDcMotorEx`, re-registers them into `hardwareMap`, and builds the `Follower` in one call. Only calibration/tuning OpModes that intentionally bypass caching should call the plain `Constants.createFollower(hardwareMap)` directly.
 
-4. **Hardware Abstraction & Performance (dev.frozenmilk Dairy)**:
-   - Utilizes the **Dairy** framework (Core, Pasteurized, CachingHardware, Sloth) for optimization.
-   - Drivetrain motors, shooter flywheels, and intake rollers use `dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx` to cache write commands, significantly reducing redundant I2C writes and loop times.
+4. **Hardware Abstraction & Performance**:
+   - Uses standard FTC SDK hardware interfaces (`DcMotorEx`, `Servo`, `CRServo`, `IMU`).
+   - Loop performance is optimized using LynxModule manual bulk caching cleared in `Robot.update()`.
 
 5. **Collision Avoidance (Casablanca & Sentinel)**:
    - `Sentinel` and `Casablanca` are per-match **instances** owned by `Robot`, not static utility classes: `new Sentinel(alliance)` computes the goal zones and launch zones once, and `new Casablanca(sentinel)` reads its friction/smoothing/protection config from it. There is no static "current alliance" global — alliance flows in through the constructor via `MatchProfile`.

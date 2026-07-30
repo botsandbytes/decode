@@ -9,12 +9,9 @@ import com.pedropathing.ftc.drivetrains.MecanumConstants;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.teamcode.robot.config.config;
 
 public class Constants {
   public static FollowerConstants followerConstants =
@@ -59,27 +56,8 @@ public class Constants {
         .build();
   }
 
-  /**
-   * Wraps all four drivetrain motors in {@link CachingDcMotorEx}, re-registers them into {@code
-   * hardwareMap} so Pedro Pathing picks up the cached instances, and builds the Follower.
-   */
+  /** Builds the Follower with standard hardware map. */
   public static Follower createCachedFollower(HardwareMap hardwareMap) {
-    double drivetrainTolerance = config.caching.drivetrain_tolerance;
-    CachingDcMotorEx lf = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "leftFront"));
-    CachingDcMotorEx lb = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "leftBack"));
-    CachingDcMotorEx rf = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "rightFront"));
-    CachingDcMotorEx rb = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "rightBack"));
-
-    lf.setCachingTolerance(drivetrainTolerance);
-    lb.setCachingTolerance(drivetrainTolerance);
-    rf.setCachingTolerance(drivetrainTolerance);
-    rb.setCachingTolerance(drivetrainTolerance);
-
-    hardwareMap.put("leftFront", lf);
-    hardwareMap.put("leftBack", lb);
-    hardwareMap.put("rightFront", rf);
-    hardwareMap.put("rightBack", rb);
-
     return createFollower(hardwareMap);
   }
 }

@@ -151,10 +151,10 @@ There is a single `TeleOp.java` (not per-alliance files). It reads `Alliance` fr
 ### Joystick Conventions
 The FTC SDK returns **inverted Y-axis values** (pushing forward = negative). Negate the left stick Y and X before passing to the follower:
 ```java
-double y = Math.clamp(Math.pow(-driver.leftStickY().state(), 3), -MAXSPEED, MAXSPEED);
-double x = Math.clamp(Math.pow(-driver.leftStickX().state(), 3), -MAXSPEED, MAXSPEED);
+double y = Math.clamp(Math.pow(-driver.left_stick_y, 3), -MAXSPEED, MAXSPEED);
+double x = Math.clamp(Math.pow(-driver.left_stick_x, 3), -MAXSPEED, MAXSPEED);
 ```
-Gamepads are wrapped via Dairy Pasteurized's `SDKGamepad` (bound once in `init()` via `Pasteurized.gamepad1/2(...)`), giving rising/falling-edge helpers (`.onTrue()`, `.onFalse()`) and bindable analog thresholds (`.conditionalBindState().greaterThan(0.5).bind()`).
+Gamepads are traditional FTC SDK `Gamepad` instances (`gamepad1`, `gamepad2`), with rising/falling edge tracking managed via `ButtonTracker` in `TeleOpBase`.
 
 ### Casablanca Integration
 Drive inputs pass through `robot.getCasablanca().adjustDriveInput(pose, velocity, x, y, r)` before being sent to the follower. This applies safety scaling when the robot approaches opponent goal zones. **Never bypass this call.**
@@ -300,7 +300,6 @@ The **Dairy** framework is used for:
 | Library | Where | Purpose |
 |---|---|---|
 | Pedro Pathing | `pedro-repo/`, published as `com.pedropathing` | Path following, motion profiling, localizer, Ivy Command scheduler |
-| Dairy | `dairy-*` dirs, `dev.frozenmilk.dairy` | Hardware caching, gamepad enhancements, loop management |
 | SnakeYAML | Maven, used by `config-compiler` | Parse `config.yaml` at runtime |
 | Robolectric + Mockito | Maven, test-only | Run Android-dependent JVM unit tests (`Path`, `RectF`, mocked `HardwareMap`) without a device |
 | json-schema-validator + Jackson | Maven, test-only | Validate `config.yaml` against the generated `config-schema.json` |

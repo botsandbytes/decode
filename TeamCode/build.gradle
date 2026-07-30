@@ -3,10 +3,6 @@ import net.ltgt.gradle.errorprone.CheckSeverity
 buildscript {
     repositories {
         mavenCentral()
-        maven { url = "https://repo.dairy.foundation/releases" }
-    }
-    dependencies {
-        classpath "dev.frozenmilk:Load:0.2.4"
     }
 }
 
@@ -26,7 +22,6 @@ buildscript {
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
-apply plugin: 'dev.frozenmilk.sinister.sloth.load'
 apply plugin: 'jacoco'
 apply plugin: 'net.ltgt.errorprone'
 apply plugin: 'com.diffplug.spotless'
@@ -94,7 +89,7 @@ preBuild.dependsOn 'generateConfig'
 
 // Hook tests and Spotless verification into all assemble, install, and deploy tasks (runs on clicking Build / Run)
 tasks.configureEach { task ->
-    if (task.name.startsWith('assemble') || task.name.startsWith('install') || task.name.equals('deploySloth')) {
+    if (task.name.startsWith('assemble') || task.name.startsWith('install')) {
         task.dependsOn 'testDebugUnitTest'
         task.dependsOn 'spotlessApply'
     }
@@ -114,13 +109,6 @@ configurations.configureEach {
 tasks.withType(Test).configureEach {
     maxParallelForks = 1
     forkEvery = 0
-}
-
-
-
-// Gate fast deploy (deploySloth) with test and spotless formatting checks
-tasks.named('deploySloth') {
-    dependsOn 'testDebugUnitTest', 'spotlessApply'
 }
 
 // JaCoCo Report Task
@@ -151,7 +139,7 @@ repositories {
 
 dependencies {
     implementation project(':FtcRobotController')
-    implementation 'com.bylazar.sloth:fullpanels:0.2.4+1.0.12'
+    implementation 'com.bylazar:fullpanels:1.0.12'
     implementation project(':config-compiler')
 
     // Error Prone & NullAway compiler dependencies
@@ -180,8 +168,8 @@ tasks.register('generateConfig', JavaExec) {
     args rootProject.projectDir.absolutePath, "generate"
     inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.yaml")
     inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config-docs.yaml")
-    outputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.java")
-    outputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config-schema.json")
+    outputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/generated/config.java")
+    outputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/generated/config-schema.json")
 }
 
 def checkConfigMarker = layout.buildDirectory.file("reports/checkConfigKeys.marker")
@@ -216,17 +204,83 @@ tasks.matching { it.name.startsWith('spotless') }.configureEach {
     mustRunAfter 'generateConfig'
 }
 
-// ADB YAML hot-deploy tasks (no APK rebuild required)
-tasks.register('pushConfig', Exec) {
+// ADB YAML hot-deploy tasks (no APK rebuild required, pure Java, no Python dependency)
+tasks.register('pushConfig', JavaExec) {
     group = 'deploy'
     description = 'Pushes config.yaml to the robot via ADB. Re-init your OpMode to apply.'
-    commandLine 'python3', "${rootProject.projectDir}/scripts/push_config.py"
+    dependsOn ':config-compiler:compileDebugJavaWithJavac', 'generateConfig'
+    classpath = project(':config-compiler').configurations.debugCompileClasspath +
+                files("${project(':config-compiler').layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+    mainClass = 'org.firstinspires.ftc.teamcode.config.ConfigPusherMain'
+    args rootProject.projectDir.absolutePath
 }
 
-tasks.register('resetConfig', Exec) {
+tasks.register('resetConfig', JavaExec) {
     group = 'deploy'
     description = 'Removes the ADB-pushed config override; robot reverts to bundled config.'
-    commandLine 'python3', "${rootProject.projectDir}/scripts/push_config.py", '--reset'
+    dependsOn ':config-compiler:compileDebugJavaWithJavac'
+    classpath = project(':config-compiler').configurations.debugCompileClasspath +
+                files("${project(':config-compiler').layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+    mainClass = 'org.firstinspires.ftc.teamcode.config.ConfigPusherMain'
+    args rootProject.projectDir.absolutePath, '--reset'
+}
+
+tasks.register('connectAdb') {
+    group = 'deploy'
+    description = 'Connects to robot via ADB over Wi-Fi (defaults to 192.168.43.1:5555), auto-reconnecting if already connected.'
+    
+    def targetParam = project.hasProperty('adbAddress') ? project.property('adbAddress').toString() : '192.168.43.1:5555'
+
+    doLast {
+        def target = targetParam
+        if (!target.contains(':')) {
+            target = "${target}:5555"
+        }
+
+        def adbBin = 'adb'
+        def getSdkAdb = {
+            def sdkDir = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT') ?: "${System.getProperty('user.home')}/Library/Android/sdk"
+            def file = new File(sdkDir, "platform-tools/adb")
+            return file.exists() ? file.absolutePath : 'adb'
+        }
+
+        def runCmd = { String... cmd ->
+            try {
+                def pb = new ProcessBuilder(cmd)
+                def proc = pb.start()
+                def stdout = proc.inputStream.text.trim()
+                def stderr = proc.errorStream.text.trim()
+                proc.waitFor()
+                return [exitCode: proc.exitValue(), out: stdout, err: stderr]
+            } catch (Exception e) {
+                return [exitCode: 1, out: "", err: e.message]
+            }
+        }
+
+        def testAdb = runCmd(adbBin, 'version')
+        if (testAdb.exitCode != 0) {
+            adbBin = getSdkAdb()
+        }
+
+        println "Connecting to ADB device at ${target}..."
+        def connectResult = runCmd(adbBin, 'connect', target)
+        if (connectResult.out) println connectResult.out
+        if (connectResult.err) println connectResult.err
+
+        def outputLower = (connectResult.out + " " + connectResult.err).toLowerCase()
+        if (outputLower.contains('already connected') || outputLower.contains('failed') || connectResult.exitCode != 0) {
+            println "Re-establishing ADB connection to ${target}..."
+            def disconnectResult = runCmd(adbBin, 'disconnect', target)
+            if (disconnectResult.out) println disconnectResult.out
+            connectResult = runCmd(adbBin, 'connect', target)
+            if (connectResult.out) println connectResult.out
+            if (connectResult.err) println connectResult.err
+        }
+
+        println "\nConnected ADB devices:"
+        def devicesResult = runCmd(adbBin, 'devices')
+        if (devicesResult.out) println devicesResult.out
+    }
 }
 
 // Custom verification task that mirrors compile/test/formatting checks without deployment

@@ -3,7 +3,7 @@ description: Use AI-Rulez correctly in user projects, including CLI, MCP, config
 name: ai-rulez
 user_invocable: false
 # Content-Hash: blake3:63877945f328aa0fad0e1afc85afd6231fe68c7c28c78f053ec3df2485183045
-# Source-Hash: blake3:103384c5979634bfc4353e1b9db1d77afb7f544de5eb32c83c64cc353d7bd729
+# Source-Hash: blake3:7c8948ef6cfae2f2fe4f599bbfa345f21ebc8e44b4ca5c3d00f7811d4f6bce32
 ---
 
 # AI-Rulez

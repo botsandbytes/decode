@@ -33,3 +33,9 @@ allprojects {
 repositories {
     mavenCentral()
 }
+
+tasks.register('connectAdb') {
+    group = 'deploy'
+    description = 'Connects to robot via ADB over Wi-Fi (defaults to 192.168.43.1:5555), auto-reconnecting if already connected.'
+    dependsOn ':TeamCode:connectAdb'
+}

@@ -1,7 +1,7 @@
 <!--
 🤖 AI-RULEZ :: GENERATED FILE — DO NOT EDIT
 Project: decode
-Generated: 2026-07-23 01:24:20
+Generated: 2026-07-23 19:13:31
 Source: .ai-rulez/config.toml
 
 NEVER edit this file - modify .ai-rulez/ content instead
@@ -9,8 +9,8 @@ Use MCP server: npx -y ai-rulez@latest mcp
 Regenerate: ai-rulez generate
 
 Docs: https://github.com/Goldziher/ai-rulez
-Content-Hash: blake3:76f08ea57da0cb303f0d1c464cad0e8b1f6a9704586515ffacf4375b770ee24c
-Source-Hash: blake3:103384c5979634bfc4353e1b9db1d77afb7f544de5eb32c83c64cc353d7bd729
+Content-Hash: blake3:ba744f85f94a3ae5d3a9cc8592140af7a911f52dfaba4a6e237d08e1f53672a3
+Source-Hash: blake3:7c8948ef6cfae2f2fe4f599bbfa345f21ebc8e44b4ca5c3d00f7811d4f6bce32
 -->
 
 # decode
@@ -40,10 +40,10 @@ Follow these coding and design standards in the `decode` codebase:
    - This rule applies to: PID controllers, geometry types, angle math, data structures, interpolation, collections, and anything else with a well-supported library equivalent.
    - Exception: `Sentinel` uses JTS (`Polygon.intersects()`) for robust 2D polygon intersection math, allowing all unit tests to execute under pure JUnit 4 in < 0.1s.
 
-3. **Hardware Optimization via Dairy Caching**:
-   - Drivetrain wheels, shooters, and rollers must use caching hardware wrappers (`CachingDcMotorEx`, `CachingServo`, `CachingCRServo`) to optimize loop times.
-   - For the drivetrain, call `Constants.createCachedFollower(hardwareMap)` — it wraps all four motors in `CachingDcMotorEx`, registers them back into `hardwareMap`, and builds the `Follower` in one step. Only bypass it (calling `Constants.createFollower` directly) in calibration/tuning OpModes that intentionally want uncached motors.
-   - Set sensible tolerances (`caching.drivetrain_tolerance`, `caching.xxx_tolerance`) in `config.yaml` to minimize bus overhead.
+3. **Hardware Optimization via LynxModule Bulk Caching**:
+   - Drivetrain wheels, shooters, and rollers use standard FTC SDK hardware classes (`DcMotorEx`, `Servo`, `CRServo`).
+   - Bulk read caching is handled via `LynxModule.BulkCachingMode.MANUAL` cleared once per loop in `Robot.update()`.
+   - `Constants.createCachedFollower(hardwareMap)` is retained for convenience to build the `Follower`.
 
 4. **Command-Based Subsystems**:
    - Use the `com.pedropathing.ivy.Command` API to structure actions (e.g., `runIntakeCommand`, `shootCommand`).
@@ -107,9 +107,9 @@ This project is a First Tech Challenge (FTC) robot controller application writte
    - Custom constants (mass, PIDF, predictive braking) are configured in `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/pedroPathing/Constants.java`.
    - `Constants.createCachedFollower(hardwareMap)` is the standard entry point: it wraps all four drivetrain motors in `CachingDcMotorEx`, re-registers them into `hardwareMap`, and builds the `Follower` in one call. Only calibration/tuning OpModes that intentionally bypass caching should call the plain `Constants.createFollower(hardwareMap)` directly.
 
-4. **Hardware Abstraction & Performance (dev.frozenmilk Dairy)**:
-   - Utilizes the **Dairy** framework (Core, Pasteurized, CachingHardware, Sloth) for optimization.
-   - Drivetrain motors, shooter flywheels, and intake rollers use `dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx` to cache write commands, significantly reducing redundant I2C writes and loop times.
+4. **Hardware Abstraction & Performance**:
+   - Uses standard FTC SDK hardware interfaces (`DcMotorEx`, `Servo`, `CRServo`, `IMU`).
+   - Loop performance is optimized using LynxModule manual bulk caching cleared in `Robot.update()`.
 
 5. **Collision Avoidance (Casablanca & Sentinel)**:
    - `Sentinel` and `Casablanca` are per-match **instances** owned by `Robot`, not static utility classes: `new Sentinel(alliance)` computes the goal zones and launch zones once, and `new Casablanca(sentinel)` reads its friction/smoothing/protection config from it. There is no static "current alliance" global — alliance flows in through the constructor via `MatchProfile`.

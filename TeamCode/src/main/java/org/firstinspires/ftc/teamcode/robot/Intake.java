@@ -5,20 +5,14 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
-import org.firstinspires.ftc.teamcode.robot.config.config;
 
 public class Intake {
-  private final CachingDcMotorEx intakeFront;
-  private final CachingDcMotorEx intakeMid;
+  private final DcMotorEx intakeFront;
+  private final DcMotorEx intakeMid;
 
   public Intake(HardwareMap hardwareMap) {
-    intakeFront = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "intakeFront"));
-    intakeMid = new CachingDcMotorEx(hardwareMap.get(DcMotorEx.class, "intakeMid"));
-
-    double tolerance = config.caching.intake_tolerance;
-    intakeFront.setCachingTolerance(tolerance);
-    intakeMid.setCachingTolerance(tolerance);
+    intakeFront = hardwareMap.get(DcMotorEx.class, "intakeFront");
+    intakeMid = hardwareMap.get(DcMotorEx.class, "intakeMid");
 
     intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     intakeMid.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
