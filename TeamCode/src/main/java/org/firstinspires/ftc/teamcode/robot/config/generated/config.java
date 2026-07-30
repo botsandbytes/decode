@@ -336,14 +336,20 @@ public final class config {
       /** Y value coordinate. */
       public double y;
 
+      /** Z value coordinate. */
       public double z;
     }
 
     public CameraPosition camera_position;
 
     public static final class CameraOrientation {
+      /** Yaw rotation (degrees). */
       public double yaw;
+
+      /** Pitch rotation (degrees). */
       public double pitch;
+
+      /** Roll rotation (degrees). */
       public double roll;
     }
 

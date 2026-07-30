@@ -367,6 +367,7 @@
               ]
             },
             "z": {
+              "description": "Z value coordinate.",
               "oneOf": [
                 {
                   "type": "number"
@@ -388,6 +389,7 @@
           "type": "object",
           "properties": {
             "yaw": {
+              "description": "Yaw rotation (degrees).",
               "oneOf": [
                 {
                   "type": "number"
@@ -399,6 +401,7 @@
               ]
             },
             "pitch": {
+              "description": "Pitch rotation (degrees).",
               "oneOf": [
                 {
                   "type": "number"
@@ -410,6 +413,7 @@
               ]
             },
             "roll": {
+              "description": "Roll rotation (degrees).",
               "oneOf": [
                 {
                   "type": "number"
