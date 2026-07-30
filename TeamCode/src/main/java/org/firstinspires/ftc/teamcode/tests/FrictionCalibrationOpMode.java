@@ -21,6 +21,7 @@ public class FrictionCalibrationOpMode extends LinearOpMode {
 
   @Override
   public void runOpMode() throws InterruptedException {
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     allHubs = hardwareMap.getAll(LynxModule.class);
     for (LynxModule module : allHubs) {
       module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);

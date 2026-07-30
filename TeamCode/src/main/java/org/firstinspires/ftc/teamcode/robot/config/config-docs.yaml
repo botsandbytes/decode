@@ -1,22 +1,3 @@
-intake_tolerance:
-  desc: "Power variance tolerance (0.0 to 1.0) for the front and mid intake rollers. If the new command is within this range of the previous write, it is skipped."
-  min: 0.0
-  max: 1.0
-
-flywheel_tolerance:
-  desc: "Velocity variance tolerance (in encoder ticks per second) below which new speed adjustment commands are dropped to prevent minor noise from saturating the I2C bus."
-  min: 0.0
-
-hood_tolerance:
-  desc: "Servo position variance tolerance (0.0 to 1.0) below which new position commands are ignored. Reduces servo jitter."
-  min: 0.0
-  max: 1.0
-
-drivetrain_tolerance:
-  desc: "Motor power variance tolerance (0.0 to 1.0) for chassis wheels. Crucial for reducing loop times."
-  min: 0.0
-  max: 1.0
-
 max_turn_power:
   desc: "Upper speed limit (0.0 to 1.0) allowed for chassis turn adjustments when auto-aligning to the goal."
   min: 0.0
@@ -182,6 +163,16 @@ min_transfer_threshold:
   min: 0.0
   max: 1.0
 
+low_position:
+  desc: "Hood servo low/retracted position coefficient (0.0 to 1.0) for short-range shots."
+  min: 0.0
+  max: 1.0
+
+high_position:
+  desc: "Hood servo high/extended position coefficient (0.0 to 1.0) for long-range shots."
+  min: 0.0
+  max: 1.0
+
 p:
   desc: "Proportional gain."
 
@@ -267,17 +258,8 @@ start:
 score:
   desc: "High goal target scoring position coordinate pose."
 
-mid_score:
-  desc: "Mid-scoring target position coordinate pose."
-  # Red-only: Red re-aims to a mid pose after Line 1; Blue keeps using 'score', so this
-  # intentionally has no blue mirror.
-  suppress_similarity_check: true
-
 final_score:
   desc: "Final scoring target position coordinate pose."
-  # Blue-only: Blue's last shot uses a distinct final pose; Red ends at 'mid_score', so this
-  # intentionally has no red mirror.
-  suppress_similarity_check: true
 
 drink_cp:
   desc: "Control point pose on path to drink gate."
@@ -319,3 +301,24 @@ max_speed:
   desc: "Maximum speed scaler (0.0 to 1.0) applied to chassis manual TeleOp drive inputs."
   min: 0.0
   max: 1.0
+
+zero_voltage:
+  desc: "Analog voltage (V) corresponding to 0 degree turret angle position."
+  min: 0.0
+  max: 3.3
+
+degrees_per_volt:
+  desc: "Scale factor (degrees/volt) converting analog input voltage delta to turret angle in degrees."
+
+min_voltage:
+  desc: "Minimum safe voltage limit for the analog encoder."
+  min: 0.0
+  max: 3.3
+
+max_voltage:
+  desc: "Maximum safe voltage limit for the analog encoder."
+  min: 0.0
+  max: 3.3
+
+inverted:
+  desc: "True if increasing turret angle produces decreasing analog voltage."

@@ -6,7 +6,7 @@ import com.pedropathing.geometry.Pose;
 import org.firstinspires.ftc.teamcode.config.ConfigLoader;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.records.MatchProfile;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 import org.junit.Test;
 
 /**

@@ -34,6 +34,7 @@ public class CasablancaTest extends OpMode {
 
   @Override
   public void init() {
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     // Initialize Field Manager
     field = PanelsField.INSTANCE.getField();
     field.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
@@ -99,7 +100,7 @@ public class CasablancaTest extends OpMode {
 
     // Casablanca returns [strafe, forward, turn]
     // Follower expects [forward, strafe, turn]
-    follower.setTeleOpDrive(adjusted[1], adjusted[0], adjusted[2], true);
+    follower.setTeleOpDrive(adjusted[1], adjusted[0], adjusted[2], false);
 
     telemetry.addData(
         "Pos", "X:%.1f Y:%.1f H:%.2f", pedroPose.getX(), pedroPose.getY(), pedroPose.getHeading());

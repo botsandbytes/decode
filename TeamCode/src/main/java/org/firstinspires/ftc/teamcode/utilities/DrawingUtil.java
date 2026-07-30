@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
 import com.bylazar.field.FieldManager;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
 public class DrawingUtil {
 

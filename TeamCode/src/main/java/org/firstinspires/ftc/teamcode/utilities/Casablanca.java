@@ -6,7 +6,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.pedropathing.util.NanoTimer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 import org.locationtech.jts.geom.Envelope;
 
 @Configurable
@@ -208,10 +208,8 @@ public class Casablanca {
 
     Vector adjField = new Vector();
     adjField.setOrthogonalComponents(adjFieldX, adjFieldY);
-    Vector adjRobot = adjField.copy();
-    adjRobot.rotateVector(-pose.getHeading());
 
-    return new double[] {adjRobot.getYComponent(), adjRobot.getXComponent(), turn};
+    return new double[] {adjField.getYComponent(), adjField.getXComponent(), turn};
   }
 
   public static double applyFriction(double input, double kS) {

@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.records;
 
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
 public class Field {
   // Not static final: config.sentinel is rebuilt on config.reload(), and these must reflect that

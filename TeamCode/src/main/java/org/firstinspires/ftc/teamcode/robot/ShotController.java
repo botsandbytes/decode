@@ -9,7 +9,7 @@ import com.pedropathing.ivy.CommandBuilder;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.function.Supplier;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
 public class ShotController {
   private final Shooter shooter;

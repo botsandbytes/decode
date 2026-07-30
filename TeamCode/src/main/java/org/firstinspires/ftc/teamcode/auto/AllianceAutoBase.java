@@ -61,7 +61,7 @@ public abstract class AllianceAutoBase<T> extends OpMode {
 
   @Override
   public void init() {
-    org.firstinspires.ftc.teamcode.robot.config.config.reload();
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     String allianceStr = alliance == Alliance.RED ? "red" : "blue";
     this.config = ConfigLoader.loadMerged(configClass, posePrefix + "." + allianceStr, "auto");
 

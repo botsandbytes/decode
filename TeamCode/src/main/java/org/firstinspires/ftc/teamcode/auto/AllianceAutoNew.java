@@ -8,17 +8,13 @@ import static org.firstinspires.ftc.teamcode.auto.PathUtil.pcurve;
 import static org.firstinspires.ftc.teamcode.auto.PathUtil.pline;
 
 import com.bylazar.configurables.annotations.Configurable;
-import com.pedropathing.geometry.Pose;
 import com.pedropathing.ivy.CommandBuilder;
 import com.pedropathing.paths.PathChain;
 import org.firstinspires.ftc.teamcode.records.Alliance;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
 @Configurable
 public abstract class AllianceAutoNew extends AllianceAutoBase<config.NormalAuto> {
-
-  private final Pose midScorePose;
-  private final Pose finalScorePose;
 
   private PathChain scorePreload;
   private PathChain grabPickup1, scorePickup1;
@@ -28,8 +24,6 @@ public abstract class AllianceAutoNew extends AllianceAutoBase<config.NormalAuto
 
   protected AllianceAutoNew(Alliance alliance) {
     super(alliance, config.NormalAuto.class, "auto_poses.normal");
-    this.midScorePose = alliance == Alliance.RED ? config.midScore : config.score;
-    this.finalScorePose = alliance == Alliance.RED ? this.midScorePose : config.finalScore;
   }
 
   @Override
@@ -97,10 +91,10 @@ public abstract class AllianceAutoNew extends AllianceAutoBase<config.NormalAuto
     drinkPickupStart = pcurve(config.score, config.drinkCp, config.drinkEnd);
     drinkPickupScore = pcurve(config.drinkEnd, config.drinkCp, config.score);
     grabPickup1 = pcurve(config.score, config.pickup1Cp, config.pickup1End, 0.1);
-    scorePickup1 = pcurve(config.pickup1End, config.pickup1Cp, midScorePose);
+    scorePickup1 = pcurve(config.pickup1End, config.pickup1Cp, config.score);
     grabPickup2 = pcurve(config.score, config.pickup2Cp, config.pickup2End, 0.5);
     scorePickup2 = pcurve(config.pickup2End, config.pickup2Cp, config.score);
-    grabPickup3 = pcurve(midScorePose, config.pickup3Cp, config.pickup3End, 0.5);
-    scorePickup3 = pcurve(config.pickup3End, config.pickup3Cp, finalScorePose);
+    grabPickup3 = pcurve(config.score, config.pickup3Cp, config.pickup3End, 0.5);
+    scorePickup3 = pcurve(config.pickup3End, config.pickup3Cp, config.finalScore);
   }
 }

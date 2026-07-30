@@ -45,11 +45,11 @@ public class ConfigGeneratorMain {
     File javaOut =
         new File(
             rootDir,
-            "TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.java");
+            "TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/generated/config.java");
     File schemaOut =
         new File(
             rootDir,
-            "TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config-schema.json");
+            "TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/generated/config-schema.json");
 
     if (!configYaml.exists()) {
       System.err.println("Error: config.yaml not found at " + configYaml.getAbsolutePath());
@@ -197,7 +197,39 @@ public class ConfigGeneratorMain {
     return keys;
   }
 
-  // --- Symmetry & Similarity Validation ---
+  private static final String[][] ALLIANCE_PAIRS = {
+    {"red", "blue"}, {"blue", "red"}
+  };
+
+  private static final String[][] MIRROR_PAIRS = {
+    {"red", "blue"}, {"blue", "red"},
+    {"high", "low"}, {"low", "high"},
+    {"short", "long"}, {"long", "short"},
+    {"left", "right"}, {"right", "left"},
+    {"front", "back"}, {"back", "front"},
+    {"top", "bottom"}, {"bottom", "top"},
+    {"near", "far"}, {"far", "near"},
+    {"min", "max"}, {"max", "min"}
+  };
+
+  private static String getMirrorKey(String key) {
+    if (key == null || key.isEmpty()) return key;
+    String lower = key.toLowerCase();
+    for (String[] pair : MIRROR_PAIRS) {
+      String a = pair[0], m = pair[1];
+      if (lower.equals(a)) return m;
+      if (lower.startsWith(a + "_")) {
+        return m + lower.substring(a.length());
+      }
+      if (lower.endsWith("_" + a)) {
+        return lower.substring(0, lower.length() - a.length()) + m;
+      }
+      if (lower.contains("_" + a + "_")) {
+        return lower.replace("_" + a + "_", "_" + m + "_");
+      }
+    }
+    return key;
+  }
 
   private static List<String> checkAllianceSymmetry(List<String> flatKeys, Set<String> suppressed) {
     List<String> errors = new ArrayList<>();
@@ -206,27 +238,26 @@ public class ConfigGeneratorMain {
       String[] parts = k.split("\\.");
       leafToPath.put(parts[parts.length - 1], k);
     }
+    errors.addAll(checkConfigKeys(flatKeys, suppressed, leafToPath));
+    errors.addAll(checkPathAllianceSymmetry(flatKeys, suppressed));
+    return errors;
+  }
 
-    String[][] pairs = {{"red", "blue"}, {"blue", "red"}};
+  private static List<String> checkConfigKeys(
+      List<String> flatKeys, Set<String> suppressed, Map<String, String> leafToPath) {
+    List<String> errors = new ArrayList<>();
+
     for (Map.Entry<String, String> entry : leafToPath.entrySet()) {
       String leaf = entry.getKey();
       String path = entry.getValue();
       if (suppressed.contains(leaf)) continue;
+
       String leafLower = leaf.toLowerCase();
-
-      for (String[] pair : pairs) {
-        String alliance = pair[0];
-        String mirror = pair[1];
-        String[][] variants = {
-          {alliance + "_", mirror + "_"},
-          {"_" + alliance, "_" + mirror},
-          {alliance.toUpperCase() + "_", mirror.toUpperCase() + "_"},
-          {"_" + alliance.toUpperCase(), "_" + mirror.toUpperCase()}
-        };
-
-        for (String[] var : variants) {
-          if (leafLower.contains(var[0])) {
-            String expectedLeaf = leafLower.replace(var[0], var[1]);
+      for (String[] pair : ALLIANCE_PAIRS) {
+        String a = pair[0], m = pair[1];
+        if (leafLower.contains(a)) {
+          String expectedLeaf = getMirrorKey(leaf);
+          if (!expectedLeaf.equals(leaf)) {
             boolean mirrorExists = false;
             for (String k : flatKeys) {
               String[] kParts = k.split("\\.");
@@ -267,16 +298,15 @@ public class ConfigGeneratorMain {
       String leaf = segments[segments.length - 1];
       if (suppressed.contains(leaf)) continue;
 
-      String[][] pairs = {{"red", "blue"}, {"blue", "red"}};
-      for (String[] pair : pairs) {
-        String alliance = pair[0];
-        String mirror = pair[1];
+      for (String[] pair : ALLIANCE_PAIRS) {
+        String name1 = pair[0];
+        String name2 = pair[1];
 
         boolean hasSegment = false;
         String[] mirrorSegments = new String[segments.length];
         for (int i = 0; i < segments.length; i++) {
-          if (segments[i].equalsIgnoreCase(alliance)) {
-            mirrorSegments[i] = mirror;
+          if (segments[i].equalsIgnoreCase(name1)) {
+            mirrorSegments[i] = name2;
             hasSegment = true;
           } else {
             mirrorSegments[i] = segments[i];
@@ -288,7 +318,7 @@ public class ConfigGeneratorMain {
         String mirrorKey = String.join(".", mirrorSegments);
         if (!keySet.contains(mirrorKey)) {
           errors.add(
-              "  Alliance path asymmetry: '"
+              "  Path asymmetry: '"
                   + key
                   + "'\n"
                   + "    but no mirror '"
@@ -405,7 +435,7 @@ public class ConfigGeneratorMain {
       Map<String, Object> configData, Map<String, DocInfo> docs) {
     StringBuilder sb = new StringBuilder();
     sb.append("// AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY\n");
-    sb.append("package org.firstinspires.ftc.teamcode.robot.config;\n\n");
+    sb.append("package org.firstinspires.ftc.teamcode.robot.config.generated;\n\n");
     sb.append("import com.pedropathing.geometry.Pose;\n");
     sb.append("import org.firstinspires.ftc.teamcode.config.ConfigLoader;\n");
     sb.append("import org.firstinspires.ftc.teamcode.records.Alliance;\n");
@@ -474,12 +504,19 @@ public class ConfigGeneratorMain {
     for (Map.Entry<String, Object> entry : configData.entrySet()) {
       if (entry.getValue() instanceof Map && !"auto_poses".equals(entry.getKey())) {
         String className = toClassName(entry.getKey());
-        generateNestedClass(sb, className, (Map<String, Object>) entry.getValue(), docs, "  ");
+        generateNestedClass(
+            sb,
+            className,
+            (Map<String, Object>) entry.getValue(),
+            docs,
+            "  ",
+            Collections.singletonList(entry.getKey()),
+            configData);
         sb.append("\n");
       }
     }
 
-    // AutoPoses classes
+    // AutoPoses classes generated dynamically for each category under auto_poses
     if (configData.containsKey("auto_poses")
         && configData.get("auto_poses") instanceof Map) {
       Map<String, Object> autoPoses = (Map<String, Object>) configData.get("auto_poses");
@@ -488,59 +525,30 @@ public class ConfigGeneratorMain {
               ? (Map<String, Object>) configData.get("auto")
               : Collections.emptyMap();
 
-      Map<String, Object> normalGlobal = new LinkedHashMap<>();
-      Map<String, Object> oppositeGlobal = new LinkedHashMap<>();
-      for (Map.Entry<String, Object> e : Objects.requireNonNull(autoGlobal).entrySet()) {
-        if (e.getKey().startsWith("opposite_")) {
-          oppositeGlobal.put(e.getKey().substring("opposite_".length()), e.getValue());
-        } else {
-          normalGlobal.put(e.getKey(), e.getValue());
-        }
-      }
+      for (Map.Entry<String, Object> categoryEntry : autoPoses.entrySet()) {
+        if (categoryEntry.getValue() instanceof Map) {
+          String category = categoryEntry.getKey();
+          String className = toClassName(category) + "Auto";
+          Map<String, Object> poseCategoryMap = (Map<String, Object>) categoryEntry.getValue();
 
-      if (Objects.requireNonNull(autoPoses).containsKey("normal") && autoPoses.get("normal") instanceof Map) {
-        emitAllianceClass(
-            sb, "NormalAuto", (Map<String, Object>) autoPoses.get("normal"), normalGlobal, docs);
-      }
-      if (autoPoses.containsKey("opposite") && autoPoses.get("opposite") instanceof Map) {
-        emitAllianceClass(
-            sb,
-            "OppositeAuto",
-            (Map<String, Object>) autoPoses.get("opposite"),
-            oppositeGlobal,
-            docs);
+          Map<String, Object> categoryGlobal = new LinkedHashMap<>();
+          String prefix = category + "_";
+          for (Map.Entry<String, Object> e : Objects.requireNonNull(autoGlobal).entrySet()) {
+            if (e.getKey().startsWith(prefix)) {
+              categoryGlobal.put(e.getKey().substring(prefix.length()), e.getValue());
+            } else {
+              categoryGlobal.put(e.getKey(), e.getValue());
+            }
+          }
+          emitAllianceClass(sb, className, poseCategoryMap, categoryGlobal, docs, configData);
+        }
       }
     }
 
-    // loadMatchProfile helper
+    // Season & team agnostic loadMatchProfile helper delegation
     sb.append("  public static MatchProfile loadMatchProfile(Alliance alliance) {\n");
-    sb.append("    String allianceStr = alliance == Alliance.RED ? \"red\" : \"blue\";\n");
-    sb.append("    double goalX = Field.getGoalX(alliance);\n");
-    sb.append("    double goalY = Field.getGoalY(alliance);\n");
-    sb.append(
-        "    Pose startPose = ConfigLoader.load(Pose.class, \"teleop.poses.\" + allianceStr +"
-            + " \".start\");\n");
-    sb.append(
-        "    Pose drinkPose = ConfigLoader.load(Pose.class, \"teleop.poses.\" + allianceStr +"
-            + " \".drink\");\n");
-    sb.append(
-        "    Pose parkPose = ConfigLoader.load(Pose.class, \"teleop.poses.\" + allianceStr +"
-            + " \".park\");\n");
-    sb.append("    Pose scorePose;\n");
-    sb.append("    if (alliance == Alliance.RED) {\n");
-    sb.append("      Pose redScore = ConfigLoader.load(Pose.class, \"teleop.poses.red.score\");\n");
-    sb.append(
-        "      scorePose = org.firstinspires.ftc.teamcode.robot.Turret.alignPose(redScore.getX(),"
-            + " redScore.getY(), goalX + 2.5, goalY);\n");
-    sb.append("    } else {\n");
-    sb.append(
-        "      scorePose = ConfigLoader.load(Pose.class, \"teleop.poses.blue.score\");\n");
-    sb.append("    }\n");
-    sb.append(
-        "    return new MatchProfile(alliance, goalX, goalY, startPose, drinkPose, parkPose,"
-            + " scorePose);\n");
+    sb.append("    return MatchProfile.loadMatchProfile(alliance);\n");
     sb.append("  }\n");
-
     sb.append("}\n");
     return sb.toString();
   }
@@ -575,12 +583,16 @@ public class ConfigGeneratorMain {
       String className,
       Map<String, Object> block,
       Map<String, DocInfo> docs,
-      String indent) {
+      String indent,
+      List<String> pathPrefix,
+      Map<String, Object> configData) {
     sb.append(indent).append("public static final class ").append(className).append(" {\n");
     for (Map.Entry<String, Object> entry : block.entrySet()) {
       String key = entry.getKey();
       Object val = entry.getValue();
       DocInfo doc = docs.get(key);
+      List<String> currentPath = new ArrayList<>(pathPrefix);
+      currentPath.add(key);
 
       if (doc != null && doc.desc != null && !doc.desc.isEmpty()) {
         sb.append(indent).append("  /**\n");
@@ -600,11 +612,11 @@ public class ConfigGeneratorMain {
               .append(";\n");
         } else {
           String subClassName = toClassName(key);
-          generateNestedClass(sb, subClassName, subMap, docs, indent + "  ");
+          generateNestedClass(sb, subClassName, subMap, docs, indent + "  ", currentPath, configData);
           sb.append(indent).append("  public ").append(subClassName).append(" ").append(key).append(";\n");
         }
       } else {
-        String javaType = getJavaType(val, key, null, null);
+        String javaType = getJavaType(val, key, currentPath, configData);
         sb.append(indent).append("  public ").append(javaType).append(" ").append(key).append(";\n");
       }
     }
@@ -617,7 +629,8 @@ public class ConfigGeneratorMain {
       String className,
       Map<String, Object> poseSection,
       Map<String, Object> globalFields,
-      Map<String, DocInfo> docs) {
+      Map<String, DocInfo> docs,
+      Map<String, Object> configData) {
     Set<String> poseKeys = new TreeSet<>();
     for (String alliance : Arrays.asList("blue", "red")) {
       if (poseSection.containsKey(alliance) && poseSection.get(alliance) instanceof Map) {
@@ -646,7 +659,7 @@ public class ConfigGeneratorMain {
           sb.append("     * ").append(doc.desc).append("\n");
           sb.append("     */\n");
         }
-        String javaType = getJavaType(entry.getValue(), key, null, null);
+        String javaType = getJavaType(entry.getValue(), key, Arrays.asList("auto", key), configData);
         sb.append("    public ").append(javaType).append(" ").append(toCamelCase(key)).append(";\n");
       }
     }
@@ -681,21 +694,50 @@ public class ConfigGeneratorMain {
   }
 
   private static boolean isMirrorString(String val) {
-    String v = val.trim().toLowerCase();
-    return "m".equals(v) || "mirror".equals(v);
+    if (val == null) return false;
+    String s = val.trim();
+    if (s.equalsIgnoreCase("m") || s.equalsIgnoreCase("mirror") || s.equalsIgnoreCase("k")) {
+      return true;
+    }
+    String lower = s.toLowerCase();
+    if (lower.startsWith("m") || lower.startsWith("mirror") || lower.startsWith("k")) {
+      String rest;
+      if (lower.startsWith("mirror")) {
+        rest = lower.substring(6).trim();
+      } else {
+        rest = lower.substring(1).trim();
+      }
+      if (rest.isEmpty()) return true;
+      if (rest.startsWith("+") || rest.startsWith("-") || rest.startsWith("*") || rest.startsWith("/")) {
+        String operandStr = rest.substring(1).trim();
+        try {
+          Double.parseDouble(operandStr);
+          return true;
+        } catch (NumberFormatException e) {
+          return false;
+        }
+      }
+    }
+    if (s.startsWith("+") || s.startsWith("-") || s.startsWith("*") || s.startsWith("/")) {
+      String rest = s.substring(1).trim();
+      try {
+        Double.parseDouble(rest);
+        return true;
+      } catch (NumberFormatException e) {
+        return false;
+      }
+    }
+    return false;
   }
 
   private static Object resolveMirrorVal(List<String> path, Map<String, Object> configData) {
     if (path == null || path.isEmpty()) return null;
     String leaf = path.get(path.size() - 1);
 
-    String[][] pairs = {
-      {"red", "blue"}, {"blue", "red"}, {"RED", "BLUE"}, {"BLUE", "RED"}
-    };
-    for (String[] pair : pairs) {
+    for (String[] pair : MIRROR_PAIRS) {
       List<String> mirrorSegments = new ArrayList<>();
       for (String s : path) {
-        mirrorSegments.add(s.equals(pair[0]) ? pair[1] : s);
+        mirrorSegments.add(s.equalsIgnoreCase(pair[0]) ? pair[1] : s);
       }
       if (!mirrorSegments.equals(path)) {
         Object val = getPathValue(configData, mirrorSegments);
@@ -704,7 +746,7 @@ public class ConfigGeneratorMain {
     }
 
     String leafLower = leaf.toLowerCase();
-    for (String[] pair : new String[][] {{"red", "blue"}, {"blue", "red"}}) {
+    for (String[] pair : MIRROR_PAIRS) {
       String a = pair[0];
       String m = pair[1];
       String[][] variants = {
@@ -807,14 +849,21 @@ public class ConfigGeneratorMain {
     if (val instanceof Boolean) {
       sb.append(indent).append("  \"type\": \"boolean\"\n");
     } else if (val instanceof Number) {
-      sb.append(indent).append("  \"type\": \"number\"");
+      sb.append(indent).append("  \"oneOf\": [\n");
+      sb.append(indent).append("    {\n");
+      sb.append(indent).append("      \"type\": \"number\"");
       if (doc != null && doc.min != null) {
-        sb.append(",\n").append(indent).append("  \"minimum\": ").append(doc.min);
+        sb.append(",\n").append(indent).append("      \"minimum\": ").append(doc.min);
       }
       if (doc != null && doc.max != null) {
-        sb.append(",\n").append(indent).append("  \"maximum\": ").append(doc.max);
+        sb.append(",\n").append(indent).append("      \"maximum\": ").append(doc.max);
       }
-      sb.append("\n");
+      sb.append("\n").append(indent).append("    },\n");
+      sb.append(indent).append("    {\n");
+      sb.append(indent).append("      \"type\": \"string\",\n");
+      sb.append(indent).append("      \"pattern\": \"^(?i)(m|k|mirror|key)?\\\\s*[+\\\\-*/]?\\\\s*\\\\d*(\\\\.\\\\d+)?$\"\n");
+      sb.append(indent).append("    }\n");
+      sb.append(indent).append("  ]\n");
     } else if (val instanceof List || (val instanceof String && isMirrorString((String) val))) {
       if ((val instanceof List && ((List<?>) val).size() == 3)
           || (val instanceof String && isMirrorString((String) val))) {
@@ -824,7 +873,9 @@ public class ConfigGeneratorMain {
                 "    {\"type\": \"array\", \"items\": {\"type\": \"number\"}, \"minItems\": 3,"
                     + " \"maxItems\": 3},\n");
         sb.append(indent)
-            .append("    {\"type\": \"string\", \"enum\": [\"m\", \"M\", \"mirror\", \"MIRROR\"]}\n");
+            .append(
+                "    {\"type\": \"string\", \"pattern\":"
+                    + " \"^(?i)(m|k|mirror|key)?\\\\s*[+\\\\-*/]?\\\\s*\\\\d*(\\\\.\\\\d+)?$\"}\n");
         sb.append(indent).append("  ]\n");
       } else {
         sb.append(indent).append("  \"type\": \"array\",\n");

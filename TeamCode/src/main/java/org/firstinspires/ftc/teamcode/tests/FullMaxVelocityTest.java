@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 public class FullMaxVelocityTest extends LinearOpMode {
   @Override
   public void runOpMode() throws InterruptedException {
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     final DcMotorEx intakeF, intakeM, shooter;
     double power = 0.8;
     intakeF = hardwareMap.get(DcMotorEx.class, "intakeFront");

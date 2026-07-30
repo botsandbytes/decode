@@ -8,6 +8,7 @@ import org.firstinspires.ftc.teamcode.robot.Lumos;
 public class LumosTest extends LinearOpMode {
   @Override
   public void runOpMode() throws InterruptedException {
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     Lumos lumos = new Lumos(hardwareMap);
     waitForStart();
 

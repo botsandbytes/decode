@@ -4,7 +4,7 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.ivy.Command;
 import com.pedropathing.ivy.Scheduler;
 import org.firstinspires.ftc.teamcode.robot.Turret;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
 @Configurable
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "TeleOp", group = "!")
@@ -54,7 +54,7 @@ public class TeleOp extends TeleOpBase {
                   if (currentParams.launchPower() > 0.7) {
                     shooter.setHoodLongShotPosition();
                   } else {
-                    shooter.setHoodPosition(0);
+                    shooter.setHoodShortShotPosition();
                   }
                 })
             .setDone(
@@ -72,7 +72,7 @@ public class TeleOp extends TeleOpBase {
                   if (currentParams.launchPower() > 0.7) {
                     shooter.setHoodLongShotPosition();
                   } else {
-                    shooter.setHoodPosition(0);
+                    shooter.setHoodShortShotPosition();
                   }
                   shooter.setTargetPower(currentParams.launchPower());
                 })
@@ -115,11 +115,11 @@ public class TeleOp extends TeleOpBase {
     boolean launchAllowed = sentinel.isLaunchAllowed(follower.getPose());
     boolean autoShoot = config.shooter.auto_shoot_mode;
 
-    if (operator.a().onTrue()) {
+    if (operatorA.onTrue()) {
       intakeCommand.schedule();
     }
 
-    if (operator.b().onTrue() || operator.y().onTrue()) {
+    if (operatorB.onTrue() || operatorY.onTrue()) {
       intakeCommand.cancel();
       manualRevCommand.schedule();
     }
@@ -139,14 +139,14 @@ public class TeleOp extends TeleOpBase {
       }
     }
 
-    if (!autoShoot && operator.x().onTrue() && launchAllowed) {
+    if (!autoShoot && operatorX.onTrue() && launchAllowed) {
       aimCommand.schedule();
     }
-    if (!autoShoot && operator.x().onFalse()) {
+    if (!autoShoot && operatorX.onFalse()) {
       aimCommand.cancel();
     }
 
-    if (operator.dpadUp().onTrue()) {
+    if (operatorDpadUp.onTrue()) {
       shootManualCommand.schedule();
     }
 
@@ -157,7 +157,7 @@ public class TeleOp extends TeleOpBase {
       manualRevCommand.cancel();
     }
 
-    if (driver.dpadLeft().onTrue()) {
+    if (driverDpadLeft.onTrue()) {
       parkCommand.schedule();
     }
     if (driverRightTrigger.onTrue()) {
@@ -167,7 +167,7 @@ public class TeleOp extends TeleOpBase {
       drinkCommand.schedule();
     }
 
-    if (driver.dpadRight().onTrue() || operator.dpadRight().onTrue()) {
+    if (driverDpadRight.onTrue() || operatorDpadRight.onTrue()) {
       parkCommand.cancel();
       scoreCommand.cancel();
       drinkCommand.cancel();

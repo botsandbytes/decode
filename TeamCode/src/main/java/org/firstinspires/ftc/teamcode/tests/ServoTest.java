@@ -11,6 +11,7 @@ public class ServoTest extends OpMode {
 
   @Override
   public void init() {
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     turnServo = hardwareMap.get(CRServo.class, "turn");
     telemetry.addData("Status", "Initialized - Use gamepad1 triggers to control servo");
     telemetry.addData("Left Trigger", "Reverse");

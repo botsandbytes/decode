@@ -24,6 +24,7 @@ public class MaxVelocityTest extends LinearOpMode {
 
   @Override
   public void runOpMode() throws InterruptedException {
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     DcMotorEx testMotor, testMotor2;
     boolean time_recorded = false;
     boolean time2_recorded = false;

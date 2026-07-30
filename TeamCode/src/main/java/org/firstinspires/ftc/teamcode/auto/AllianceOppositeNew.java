@@ -11,7 +11,7 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.ivy.CommandBuilder;
 import com.pedropathing.paths.PathChain;
 import org.firstinspires.ftc.teamcode.records.Alliance;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
 @Configurable
 public abstract class AllianceOppositeNew extends AllianceAutoBase<config.OppositeAuto> {

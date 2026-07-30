@@ -1,17 +1,15 @@
 // AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
-package org.firstinspires.ftc.teamcode.robot.config;
+package org.firstinspires.ftc.teamcode.robot.config.generated;
 
 import com.pedropathing.geometry.Pose;
 import org.firstinspires.ftc.teamcode.config.ConfigLoader;
 import org.firstinspires.ftc.teamcode.records.Alliance;
-import org.firstinspires.ftc.teamcode.records.Field;
 import org.firstinspires.ftc.teamcode.records.MatchProfile;
 
 @SuppressWarnings("unused")
 public final class config {
   private config() {}
 
-  public static Caching caching;
   public static Turret turret;
   public static Vision vision;
   public static Sentinel sentinel;
@@ -20,10 +18,6 @@ public final class config {
   public static Auto auto;
   public static Teleop teleop;
 
-  public static double CACHING_INTAKE_TOLERANCE;
-  public static double CACHING_FLYWHEEL_TOLERANCE;
-  public static double CACHING_HOOD_TOLERANCE;
-  public static double CACHING_DRIVETRAIN_TOLERANCE;
   public static double TURRET_MAX_TURN_POWER;
   public static double TURRET_MIN_TURN_POWER;
   public static double TURRET_MAX_POWER_OUTPUT;
@@ -41,6 +35,12 @@ public final class config {
   public static double TURRET_TOLERANCE_NEAR_VAL;
   public static double TURRET_TOLERANCE_MIN_DEG;
   public static double TURRET_TOLERANCE_MAX_DEG;
+  public static boolean TURRET_ANALOG_ENCODER_ENABLED;
+  public static double TURRET_ANALOG_ENCODER_ZERO_VOLTAGE;
+  public static double TURRET_ANALOG_ENCODER_DEGREES_PER_VOLT;
+  public static double TURRET_ANALOG_ENCODER_MIN_VOLTAGE;
+  public static double TURRET_ANALOG_ENCODER_MAX_VOLTAGE;
+  public static boolean TURRET_ANALOG_ENCODER_INVERTED;
   public static double VISION_CAMERA_POSITION_X;
   public static double VISION_CAMERA_POSITION_Y;
   public static double VISION_CAMERA_POSITION_Z;
@@ -74,6 +74,8 @@ public final class config {
   public static double SHOOTER_MAX_RPM;
   public static boolean SHOOTER_AUTO_SHOOT_MODE;
   public static double SHOOTER_MIN_TRANSFER_THRESHOLD;
+  public static double SHOOTER_HOOD_LOW_POSITION;
+  public static double SHOOTER_HOOD_HIGH_POSITION;
   public static double SHOOTER_PIDF_P;
   public static double SHOOTER_PIDF_I;
   public static double SHOOTER_PIDF_D;
@@ -111,7 +113,6 @@ public final class config {
 
   public static synchronized void reload() {
     ConfigLoader.reload();
-    caching = ConfigLoader.load(Caching.class, "caching");
     turret = ConfigLoader.load(Turret.class, "turret");
     vision = ConfigLoader.load(Vision.class, "vision");
     sentinel = ConfigLoader.load(Sentinel.class, "sentinel");
@@ -119,10 +120,6 @@ public final class config {
     shooter = ConfigLoader.load(Shooter.class, "shooter");
     auto = ConfigLoader.load(Auto.class, "auto");
     teleop = ConfigLoader.load(Teleop.class, "teleop");
-    CACHING_INTAKE_TOLERANCE = caching.intake_tolerance;
-    CACHING_FLYWHEEL_TOLERANCE = caching.flywheel_tolerance;
-    CACHING_HOOD_TOLERANCE = caching.hood_tolerance;
-    CACHING_DRIVETRAIN_TOLERANCE = caching.drivetrain_tolerance;
     TURRET_MAX_TURN_POWER = turret.max_turn_power;
     TURRET_MIN_TURN_POWER = turret.min_turn_power;
     TURRET_MAX_POWER_OUTPUT = turret.max_power_output;
@@ -140,6 +137,12 @@ public final class config {
     TURRET_TOLERANCE_NEAR_VAL = turret.tolerance.near_val;
     TURRET_TOLERANCE_MIN_DEG = turret.tolerance.min_deg;
     TURRET_TOLERANCE_MAX_DEG = turret.tolerance.max_deg;
+    TURRET_ANALOG_ENCODER_ENABLED = turret.analog_encoder.enabled;
+    TURRET_ANALOG_ENCODER_ZERO_VOLTAGE = turret.analog_encoder.zero_voltage;
+    TURRET_ANALOG_ENCODER_DEGREES_PER_VOLT = turret.analog_encoder.degrees_per_volt;
+    TURRET_ANALOG_ENCODER_MIN_VOLTAGE = turret.analog_encoder.min_voltage;
+    TURRET_ANALOG_ENCODER_MAX_VOLTAGE = turret.analog_encoder.max_voltage;
+    TURRET_ANALOG_ENCODER_INVERTED = turret.analog_encoder.inverted;
     VISION_CAMERA_POSITION_X = vision.camera_position.x;
     VISION_CAMERA_POSITION_Y = vision.camera_position.y;
     VISION_CAMERA_POSITION_Z = vision.camera_position.z;
@@ -173,6 +176,8 @@ public final class config {
     SHOOTER_MAX_RPM = shooter.max_rpm;
     SHOOTER_AUTO_SHOOT_MODE = shooter.auto_shoot_mode;
     SHOOTER_MIN_TRANSFER_THRESHOLD = shooter.min_transfer_threshold;
+    SHOOTER_HOOD_LOW_POSITION = shooter.hood.low_position;
+    SHOOTER_HOOD_HIGH_POSITION = shooter.hood.high_position;
     SHOOTER_PIDF_P = shooter.pidf.p;
     SHOOTER_PIDF_I = shooter.pidf.i;
     SHOOTER_PIDF_D = shooter.pidf.d;
@@ -203,32 +208,6 @@ public final class config {
     TELEOP_POSES_BLUE_SCORE = teleop.poses.blue.score;
     TELEOP_POSES_BLUE_DRINK = teleop.poses.blue.drink;
     TELEOP_POSES_BLUE_PARK = teleop.poses.blue.park;
-  }
-
-  public static final class Caching {
-    /**
-     * Power variance tolerance (0.0 to 1.0) for the front and mid intake rollers. If the new
-     * command is within this range of the previous write, it is skipped. Minimum: 0.0 Maximum: 1.0
-     */
-    public double intake_tolerance;
-
-    /**
-     * Velocity variance tolerance (in encoder ticks per second) below which new speed adjustment
-     * commands are dropped to prevent minor noise from saturating the I2C bus. Minimum: 0.0
-     */
-    public double flywheel_tolerance;
-
-    /**
-     * Servo position variance tolerance (0.0 to 1.0) below which new position commands are ignored.
-     * Reduces servo jitter. Minimum: 0.0 Maximum: 1.0
-     */
-    public double hood_tolerance;
-
-    /**
-     * Motor power variance tolerance (0.0 to 1.0) for chassis wheels. Crucial for reducing loop
-     * times. Minimum: 0.0 Maximum: 1.0
-     */
-    public double drivetrain_tolerance;
   }
 
   public static final class Turret {
@@ -317,6 +296,36 @@ public final class config {
     }
 
     public Tolerance tolerance;
+
+    public static final class AnalogEncoder {
+      /**
+       * Enable/disable automatic heading lock when the driver releases the turn joystick in TeleOp.
+       */
+      public boolean enabled;
+
+      /**
+       * Analog voltage (V) corresponding to 0 degree turret angle position. Minimum: 0.0 Maximum:
+       * 3.3
+       */
+      public double zero_voltage;
+
+      /**
+       * Scale factor (degrees/volt) converting analog input voltage delta to turret angle in
+       * degrees.
+       */
+      public double degrees_per_volt;
+
+      /** Minimum safe voltage limit for the analog encoder. Minimum: 0.0 Maximum: 3.3 */
+      public double min_voltage;
+
+      /** Maximum safe voltage limit for the analog encoder. Minimum: 0.0 Maximum: 3.3 */
+      public double max_voltage;
+
+      /** True if increasing turret angle produces decreasing analog voltage. */
+      public boolean inverted;
+    }
+
+    public AnalogEncoder analog_encoder;
   }
 
   public static final class Vision {
@@ -510,6 +519,21 @@ public final class config {
      */
     public double min_transfer_threshold;
 
+    public static final class Hood {
+      /**
+       * Hood servo low/retracted position coefficient (0.0 to 1.0) for short-range shots. Minimum:
+       * 0.0 Maximum: 1.0
+       */
+      public double low_position;
+
+      /**
+       * Hood servo high/extended position coefficient (0.0 to 1.0) for long-range shots. Minimum:
+       * 0.0 Maximum: 1.0
+       */
+      public double high_position;
+    }
+
+    public Hood hood;
     public com.qualcomm.robotcore.hardware.PIDFCoefficients pidf;
 
     public static final class LaunchParams {
@@ -673,9 +697,6 @@ public final class config {
     /** Final scoring target position coordinate pose. */
     public Pose finalScore;
 
-    /** Mid-scoring target position coordinate pose. */
-    public Pose midScore;
-
     /** Control point pose on path to first sample pickup. */
     public Pose pickup1Cp;
 
@@ -718,6 +739,21 @@ public final class config {
      * Prevents launching rings before the shooter is up to speed.
      */
     public double minTransferThreshold;
+
+    /** Wait delay (milliseconds) at the drink gate for opposite alliance autonomous. */
+    public int oppositeDrinkWaitMs;
+
+    /** Wait time (milliseconds) allowed to fire a shot for opposite alliance autonomous. */
+    public int oppositeShootWaitMs;
+
+    /** Target power coefficient (0.0 to 1.0) for opposite alliance autonomous launcher. */
+    public double oppositeLaunchPower;
+
+    /** Target power coefficient (0.0 to 1.0) for opposite alliance autonomous transfer. */
+    public double oppositeTransferPower;
+
+    /** Shooter minimum transfer threshold velocity ratio for opposite auto. */
+    public double oppositeMinTransferThreshold;
   }
 
   public static final class OppositeAuto {
@@ -775,21 +811,6 @@ public final class config {
   }
 
   public static MatchProfile loadMatchProfile(Alliance alliance) {
-    String allianceStr = alliance == Alliance.RED ? "red" : "blue";
-    double goalX = Field.getGoalX(alliance);
-    double goalY = Field.getGoalY(alliance);
-    Pose startPose = ConfigLoader.load(Pose.class, "teleop.poses." + allianceStr + ".start");
-    Pose drinkPose = ConfigLoader.load(Pose.class, "teleop.poses." + allianceStr + ".drink");
-    Pose parkPose = ConfigLoader.load(Pose.class, "teleop.poses." + allianceStr + ".park");
-    Pose scorePose;
-    if (alliance == Alliance.RED) {
-      Pose redScore = ConfigLoader.load(Pose.class, "teleop.poses.red.score");
-      scorePose =
-          org.firstinspires.ftc.teamcode.robot.Turret.alignPose(
-              redScore.getX(), redScore.getY(), goalX + 2.5, goalY);
-    } else {
-      scorePose = ConfigLoader.load(Pose.class, "teleop.poses.blue.score");
-    }
-    return new MatchProfile(alliance, goalX, goalY, startPose, drinkPose, parkPose, scorePose);
+    return MatchProfile.loadMatchProfile(alliance);
   }
 }

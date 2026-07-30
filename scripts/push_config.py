@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+
+DEPRECIATED; MOVED TO JAVA
 Pushes config.yaml to the robot via ADB so it takes effect on next OpMode init,
 without requiring a full APK redeploy.
 
@@ -39,19 +41,19 @@ def get_device():
 
 def push_config(device):
     print(f"Pushing config.yaml → robot ({device})")
-    run(f"adb -s {device} shell mkdir -p {REMOTE_DIR}", check=False)
-    run(f'adb -s {device} push "{LOCAL_YAML}" {REMOTE_YAML}')
-    print(f"✓ Pushed to {REMOTE_YAML}")
+    run(f"adb -s {device} shell mkdir -p /sdcard/FIRST/teamcode /sdcard/FIRST", check=False)
+    run(f'adb -s {device} push "{LOCAL_YAML}" /sdcard/FIRST/teamcode/config.yaml.tmp')
+    run(f'adb -s {device} shell mv /sdcard/FIRST/teamcode/config.yaml.tmp /sdcard/FIRST/teamcode/config.yaml')
+    run(f'adb -s {device} push "{LOCAL_YAML}" /sdcard/FIRST/config.yaml.tmp', check=False)
+    run(f'adb -s {device} shell mv /sdcard/FIRST/config.yaml.tmp /sdcard/FIRST/config.yaml', check=False)
+    print(f"✓ Pushed config.yaml atomically to robot (/sdcard/FIRST/teamcode/config.yaml)")
     print("  Re-init your OpMode on the robot to pick up the new values.")
 
 
 def reset_config(device):
     print(f"Removing config override from robot ({device})")
-    result = run(f"adb -s {device} shell rm -f {REMOTE_YAML}", check=False)
-    if result.returncode == 0:
-        print(f"✓ Removed {REMOTE_YAML} — robot will use bundled config on next init.")
-    else:
-        print("  No override file found (already using bundled config).")
+    run(f"adb -s {device} shell rm -f /sdcard/FIRST/teamcode/config.yaml /sdcard/FIRST/config.yaml", check=False)
+    print("✓ Removed override files — robot will use bundled config on next init.")
 
 
 def main():

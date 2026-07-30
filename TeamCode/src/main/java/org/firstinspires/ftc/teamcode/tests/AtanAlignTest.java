@@ -29,6 +29,7 @@ public class AtanAlignTest extends OpMode {
 
   @Override
   public void init() {
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     follower = Constants.createFollower(hardwareMap);
     follower.setStartingPose(initialPose);
     follower.update();

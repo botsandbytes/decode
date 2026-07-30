@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 import com.pedropathing.geometry.Pose;
 import java.lang.reflect.Field;
 import org.firstinspires.ftc.teamcode.config.ConfigLoader;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 import org.junit.Test;
 
 /**
@@ -70,23 +70,74 @@ public class ConfigLoaderMirrorTest {
     assertEquals("Pedro mirror uses field length 141.5", 141.5 - blue.getX(), red.getX(), EPS);
   }
 
-  /**
-   * Guard against over-triggering: {@code normal.red} is explicitly defined (no {@code m}), so it
-   * must load its own literal values, NOT the mirror of {@code normal.blue}.
-   */
+  /** Non-alliance pair math (high/low): verify "k+0.5" adds the offset to the partner's value. */
   @Test
-  public void explicitSection_isNotMirrorDerived() {
-    config.NormalAuto blue =
-        ConfigLoader.loadMerged(config.NormalAuto.class, "auto_poses.normal.blue", "auto");
-    config.NormalAuto red =
-        ConfigLoader.loadMerged(config.NormalAuto.class, "auto_poses.normal.red", "auto");
+  public void nonAlliancePair_mathResolution() throws Exception {
+    java.lang.reflect.Method eval =
+        ConfigLoader.class.getDeclaredMethod(
+            "evaluateMirrorOperation", Object.class, Object.class, Class.class, String.class);
+    eval.setAccessible(true);
 
-    // normal.red.start is the literal [117, 128, 45]; blue.start is [27, 128, 135].
-    assertEquals("explicit red start must be its own literal x", 117.0, red.start.getX(), EPS);
-    assertNotEquals(
-        "explicit section must not be mirror-derived",
-        blue.start.mirror().getX(),
-        red.start.getX(),
-        EPS);
+    // Sample: base low_position = 0.1 → high_position with "k+0.5" should be 0.6
+    double sampleBase = 0.1;
+    assertEquals(0.6, (Double) eval.invoke(null, sampleBase, "k+0.5", double.class, "dummy"), EPS);
+
+    // Sample: base = 0.3 → "k-0.1" should give 0.2
+    assertEquals(0.2, (Double) eval.invoke(null, 0.3, "k-0.1", double.class, "dummy"), EPS);
+
+    // Sample: base = 0.4 → "k*2" should give 0.8
+    assertEquals(0.8, (Double) eval.invoke(null, 0.4, "k*2", double.class, "dummy"), EPS);
+
+    // Sample: base = 0.6 → "k/2" should give 0.3
+    assertEquals(0.3, (Double) eval.invoke(null, 0.6, "k/2", double.class, "dummy"), EPS);
+  }
+
+  @Test
+  public void mirrorMathOperations_mAndShorthandForms() throws Exception {
+    java.lang.reflect.Method eval =
+        ConfigLoader.class.getDeclaredMethod(
+            "evaluateMirrorOperation", Object.class, Object.class, Class.class, String.class);
+    eval.setAccessible(true);
+
+    // For scalars, 'm' is identity (no spatial mirror), so m+N = base+N
+    // Sample: base=0.5 → "m+0.5" gives 1.0, shorthand "+0.5" also gives 1.0
+    double base = 0.5;
+    assertEquals(1.0, (Double) eval.invoke(null, base, "m+0.5", double.class, "dummy"), EPS);
+    assertEquals(1.0, (Double) eval.invoke(null, base, "+0.5", double.class, "dummy"), EPS);
+    // Sample: base=0.5 → "m*2" / "*2" gives 1.0
+    assertEquals(1.0, (Double) eval.invoke(null, base, "*2", double.class, "dummy"), EPS);
+    // Sample: base=0.8 → "*2" gives 1.6
+    assertEquals(1.6, (Double) eval.invoke(null, 0.8, "*2", double.class, "dummy"), EPS);
+  }
+
+  @Test
+  public void mirrorVsKey_poseTransformations() throws Exception {
+    java.lang.reflect.Method eval =
+        ConfigLoader.class.getDeclaredMethod(
+            "evaluateMirrorOperation", Object.class, Object.class, Class.class, String.class);
+    eval.setAccessible(true);
+
+    Pose basePose = new Pose(27.0, 128.0, 135.0);
+    Pose expectedMirror = basePose.mirror();
+
+    // 'm' mirrors the pose
+    Pose mirrored = (Pose) eval.invoke(null, basePose, "m", Pose.class, "dummy");
+    assertEquals(expectedMirror.getX(), mirrored.getX(), EPS);
+    assertEquals(expectedMirror.getY(), mirrored.getY(), EPS);
+
+    // 'm+2' mirrors the pose first, then adds 2
+    Pose mirroredPlusTwo = (Pose) eval.invoke(null, basePose, "m+2", Pose.class, "dummy");
+    assertEquals(expectedMirror.getX() + 2.0, mirroredPlusTwo.getX(), EPS);
+    assertEquals(expectedMirror.getY() + 2.0, mirroredPlusTwo.getY(), EPS);
+
+    // 'k' keeps the original pose UN-MIRRORED
+    Pose original = (Pose) eval.invoke(null, basePose, "k", Pose.class, "dummy");
+    assertEquals(basePose.getX(), original.getX(), EPS);
+    assertEquals(basePose.getY(), original.getY(), EPS);
+
+    // 'k+2' keeps original pose and adds 2
+    Pose originalPlusTwo = (Pose) eval.invoke(null, basePose, "k+2", Pose.class, "dummy");
+    assertEquals(basePose.getX() + 2.0, originalPlusTwo.getX(), EPS);
+    assertEquals(basePose.getY() + 2.0, originalPlusTwo.getY(), EPS);
   }
 }
