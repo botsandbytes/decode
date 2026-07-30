@@ -6,29 +6,24 @@ import com.pedropathing.control.PIDFController;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.MathFunctions;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.IMU;
-import dev.frozenmilk.dairy.cachinghardware.CachingCRServo;
-import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
 @Configurable
 public class Turret {
-  private final CachingCRServo turnServo;
-  private final IMU turnIMU;
+  private final CRServo turnServo;
+  private final AnalogInput turnAnalog;
   private final Telemetry telemetry;
 
-  private final CachingDcMotorEx leftFront;
-  private final CachingDcMotorEx leftBack;
-  private final CachingDcMotorEx rightFront;
-  private final CachingDcMotorEx rightBack;
+  private final DcMotorEx leftFront;
+  private final DcMotorEx leftBack;
+  private final DcMotorEx rightFront;
+  private final DcMotorEx rightBack;
 
   private final PIDFController headingController;
   private final PIDFController pidfController;
@@ -66,51 +61,13 @@ public class Turret {
     this.telemetry = telemetry;
     this.poseSupplier = poseSupplier;
 
-    turnServo = new CachingCRServo(hardwareMap.get(CRServo.class, "turn"));
-    turnIMU = hardwareMap.get(IMU.class, "turnImu");
+    turnServo = hardwareMap.get(CRServo.class, "turn");
+    turnAnalog = hardwareMap.get(AnalogInput.class, "turnanalog");
 
-    DcMotorEx lf = hardwareMap.get(DcMotorEx.class, "leftFront");
-    DcMotorEx lb = hardwareMap.get(DcMotorEx.class, "leftBack");
-    DcMotorEx rf = hardwareMap.get(DcMotorEx.class, "rightFront");
-    DcMotorEx rb = hardwareMap.get(DcMotorEx.class, "rightBack");
-
-    leftFront = (lf instanceof CachingDcMotorEx) ? (CachingDcMotorEx) lf : new CachingDcMotorEx(lf);
-    leftBack = (lb instanceof CachingDcMotorEx) ? (CachingDcMotorEx) lb : new CachingDcMotorEx(lb);
-    rightFront =
-        (rf instanceof CachingDcMotorEx) ? (CachingDcMotorEx) rf : new CachingDcMotorEx(rf);
-    rightBack = (rb instanceof CachingDcMotorEx) ? (CachingDcMotorEx) rb : new CachingDcMotorEx(rb);
-
-    double tol = config.caching.drivetrain_tolerance;
-    leftFront.setCachingTolerance(tol);
-    leftBack.setCachingTolerance(tol);
-    rightFront.setCachingTolerance(tol);
-    rightBack.setCachingTolerance(tol);
-
-    String logoStr = config.turret.orientation.logo;
-    String usbStr = config.turret.orientation.usb;
-
-    RevHubOrientationOnRobot.LogoFacingDirection logo;
-    try {
-      logo =
-          !logoStr.isEmpty()
-              ? RevHubOrientationOnRobot.LogoFacingDirection.valueOf(logoStr)
-              : RevHubOrientationOnRobot.LogoFacingDirection.UP;
-    } catch (IllegalArgumentException e) {
-      logo = RevHubOrientationOnRobot.LogoFacingDirection.UP;
-    }
-
-    RevHubOrientationOnRobot.UsbFacingDirection usb;
-    try {
-      usb =
-          !usbStr.isEmpty()
-              ? RevHubOrientationOnRobot.UsbFacingDirection.valueOf(usbStr)
-              : RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
-    } catch (IllegalArgumentException e) {
-      usb = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
-    }
-
-    turnIMU.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(logo, usb)));
-    turnIMU.resetYaw();
+    leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
+    leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
+    rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
+    rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
 
     PIDFCoefficients headingPIDFCoefficients =
         Constants.followerConstants.getCoefficientsHeadingPIDF();
@@ -135,8 +92,19 @@ public class Turret {
   }
 
   public double getCurrentTurnAngle() {
-    YawPitchRollAngles orientation = turnIMU.getRobotYawPitchRollAngles();
-    return Math.toDegrees(orientation.getYaw(AngleUnit.RADIANS) + initialHeadingOffset);
+    if (turnAnalog != null && config.turret.analog_encoder.enabled) {
+      double voltage = turnAnalog.getVoltage();
+      double zeroV = config.turret.analog_encoder.zero_voltage;
+      double degPerVolt = config.turret.analog_encoder.degrees_per_volt;
+      boolean inverted = config.turret.analog_encoder.inverted;
+
+      double voltageDelta = voltage - zeroV;
+      if (inverted) {
+        voltageDelta = -voltageDelta;
+      }
+      return (voltageDelta * degPerVolt) + initialHeadingOffset;
+    }
+    return 0.0;
   }
 
   public boolean isTurnDone() {
@@ -204,7 +172,7 @@ public class Turret {
   }
 
   public void updateTurret(Pose currentPose) {
-    double robotWorldHeading = currentPose.getHeading();
+    double robotWorldHeading = Math.toDegrees(currentPose.getHeading());
     double turretWorldAngle = getCurrentTurnAngle();
     double targetWorldAngle = targetTurnAngle;
 
@@ -340,7 +308,7 @@ public class Turret {
   }
 
   public double getAimError(Pose currentPose) {
-    double robotWorldHeading = currentPose.getHeading();
+    double robotWorldHeading = Math.toDegrees(currentPose.getHeading());
     double turretWorldAngle = getCurrentTurnAngle();
     double targetWorldAngle = targetTurnAngle;
 

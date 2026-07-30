@@ -28,8 +28,9 @@ Robot:
       5 (SERVO): gate
     Digital Devices:
     Analog Input Devices:
+      0: turnanalog
     I2C:
-      0 (REV 2M Distance Sensor): inputD
+      0:
       1: turnImu
       2 (9-axis IMU):
       3:

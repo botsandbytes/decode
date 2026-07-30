@@ -22,6 +22,7 @@ public class PIDAutotuner {
   protected double relayOutputMagnitude = 0.25;
   protected double targetValue = 0;
   protected double lastPeakError = 0;
+  protected double lastCrossingTime = -1.0;
 
   // Results
   protected double calculatedKu = 0;
@@ -50,8 +51,15 @@ public class PIDAutotuner {
     crossingTimes.clear();
     peakErrors.clear();
     timer.reset();
-    lastError = 0;
+    lastError = targetValue - currentVal;
     lastPeakError = 0;
+    lastCrossingTime = -1.0;
+  }
+
+  public void cancel() {
+    state = AutotuneState.IDLE;
+    crossingTimes.clear();
+    peakErrors.clear();
   }
 
   public double updateAutotune(double currentVal) {
@@ -60,10 +68,14 @@ public class PIDAutotuner {
     }
 
     double error = targetValue - currentVal;
+    double currentTime = timer.seconds();
 
-    // Detect zero crossings (50ms debounce)
-    if (lastError * error < 0 && timer.seconds() > 0.05) {
-      crossingTimes.add(timer.seconds());
+    // Detect zero crossings (require at least 120ms between distinct crossings to filter sensor
+    // noise)
+    if (lastError * error < 0
+        && (lastCrossingTime < 0 || (currentTime - lastCrossingTime) >= 0.12)) {
+      crossingTimes.add(currentTime);
+      lastCrossingTime = currentTime;
 
       if (Math.abs(lastError) > Math.abs(lastPeakError)) {
         lastPeakError = lastError;
@@ -84,8 +96,8 @@ public class PIDAutotuner {
       lastPeakError = error;
     }
 
-    // Timeout after 15 seconds
-    if (timer.seconds() > 15) {
+    // Timeout after 25 seconds
+    if (currentTime > 25.0) {
       state = AutotuneState.FAILED;
       return 0;
     }
@@ -104,6 +116,11 @@ public class PIDAutotuner {
       periods.add(period);
     }
 
+    if (periods.isEmpty() || peakErrors.size() <= 1) {
+      state = AutotuneState.FAILED;
+      return;
+    }
+
     calculatedPu = 0;
     for (double p : periods) calculatedPu += p;
     calculatedPu /= periods.size();
@@ -114,6 +131,11 @@ public class PIDAutotuner {
       avgAmplitude += peakErrors.get(i);
     }
     avgAmplitude /= (peakErrors.size() - 1);
+
+    if (avgAmplitude <= 1e-6 || calculatedPu <= 1e-6) {
+      state = AutotuneState.FAILED;
+      return;
+    }
 
     // Ultimate gain: Ku = (4 * d) / (π * a)
     calculatedKu = (4.0 * relayOutputMagnitude) / (Math.PI * avgAmplitude);

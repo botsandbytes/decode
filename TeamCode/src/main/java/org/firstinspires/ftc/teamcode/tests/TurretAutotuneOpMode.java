@@ -12,7 +12,7 @@ public class TurretAutotuneOpMode extends AutotuneOpMode {
   private Turret turret;
 
   public TurretAutotuneOpMode() {
-    super("turret", 0.3);
+    super("turret", 0.4);
   }
 
   @Override

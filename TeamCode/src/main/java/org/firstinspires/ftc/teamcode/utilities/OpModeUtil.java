@@ -38,7 +38,7 @@ public final class OpModeUtil {
     turret.setInitialHeading(initialHeadingRad);
     shooter.setShooterPIDFCoefficients();
     turret.setHoldAngle(Math.toDegrees(initialHeadingRad));
-    turret.setAimMode(Turret.AimMode.HOLD);
+    turret.setAimMode(Turret.AimMode.IDLE);
   }
 
   public static void drawRobot(

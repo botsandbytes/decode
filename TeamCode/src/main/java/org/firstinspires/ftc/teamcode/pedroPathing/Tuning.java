@@ -106,7 +106,7 @@ public class Tuning extends SelectableOpMode {
   public void onSelect() {
     if (follower == null) {
       follower = Constants.createFollower(hardwareMap);
-      PanelsConfigurables.refreshClass(this);
+      PanelsConfigurables.INSTANCE.refreshClass(this);
     } else {
       follower = Constants.createFollower(hardwareMap);
     }

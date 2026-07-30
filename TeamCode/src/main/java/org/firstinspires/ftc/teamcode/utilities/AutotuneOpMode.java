@@ -15,18 +15,25 @@ public abstract class AutotuneOpMode extends OpMode {
   protected PIDAutotuner autotuner;
   protected TelemetryManager telemetryM;
   private List<LynxModule> allHubs;
-  private boolean autotuneStarted = false;
-  private double targetValue = 0.0;
   private final String systemName;
   private final double outputMagnitude;
+  private double currentMagnitude;
+  private boolean autotuneStarted = false;
+  private double targetValue = 0.0;
+  private boolean lastAState = false;
+  private boolean lastBState = false;
+  private boolean lastDpadUpState = false;
+  private boolean lastDpadDownState = false;
 
   protected AutotuneOpMode(String systemName, double outputMagnitude) {
     this.systemName = systemName;
     this.outputMagnitude = outputMagnitude;
+    this.currentMagnitude = outputMagnitude;
   }
 
   @Override
   public void init() {
+    org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
     allHubs = hardwareMap.getAll(LynxModule.class);
     for (LynxModule module : allHubs) {
       module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
@@ -39,12 +46,14 @@ public abstract class AutotuneOpMode extends OpMode {
     telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
 
     autotuner = createAutotuner();
+    currentMagnitude = outputMagnitude;
+    autotuneStarted = false;
 
     telemetryM.addLine("=== " + systemName.toUpperCase() + " AUTOTUNE ===");
     telemetryM.addLine("Press [A] to start");
+    telemetryM.addLine("Press [DPAD UP/DOWN] to adjust power (Current: " + currentMagnitude + ")");
+    telemetryM.addLine("Press [B] to cancel");
     telemetryM.addLine(systemName + " will oscillate");
-    telemetryM.addLine("");
-    telemetryM.addLine("Make sure " + systemName + " can move freely!");
     telemetryM.update();
   }
 
@@ -77,9 +86,32 @@ public abstract class AutotuneOpMode extends OpMode {
     follower.update();
     double currentVal = readCurrentValue();
 
-    if (gamepad1.a && !autotuneStarted) {
+    boolean aJustPressed = gamepad1.a && !lastAState;
+    boolean bJustPressed = gamepad1.b && !lastBState;
+    boolean dpadUpJustPressed = gamepad1.dpad_up && !lastDpadUpState;
+    boolean dpadDownJustPressed = gamepad1.dpad_down && !lastDpadDownState;
+
+    lastAState = gamepad1.a;
+    lastBState = gamepad1.b;
+    lastDpadUpState = gamepad1.dpad_up;
+    lastDpadDownState = gamepad1.dpad_down;
+
+    if (dpadUpJustPressed && !autotuner.isRunning()) {
+      currentMagnitude = Math.clamp(currentMagnitude + 0.05, 0.05, 1.0);
+    }
+    if (dpadDownJustPressed && !autotuner.isRunning()) {
+      currentMagnitude = Math.clamp(currentMagnitude - 0.05, 0.05, 1.0);
+    }
+
+    if (bJustPressed) {
+      autotuner.cancel();
+      applyPower(0.0);
+      autotuneStarted = false;
+    }
+
+    if (aJustPressed && !autotuner.isRunning()) {
       targetValue = currentVal;
-      autotuner.startAutotune(currentVal, targetValue, outputMagnitude);
+      autotuner.startAutotune(currentVal, targetValue, currentMagnitude);
       autotuneStarted = true;
     }
 
@@ -103,17 +135,20 @@ public abstract class AutotuneOpMode extends OpMode {
   private void updateIdleTelemetry(double currentVal) {
     telemetryM.addLine("=== READY ===");
     telemetryM.addData("Current " + systemName + " Value", currentVal);
+    telemetryM.addData("Output Power Magnitude", currentMagnitude);
     telemetryM.addLine("");
     telemetryM.addLine("Press [A] to start autotune");
+    telemetryM.addLine("Press [DPAD UP/DOWN] to adjust power");
   }
 
   private void updateRunningTelemetry(double currentVal) {
     telemetryM.addLine("=== AUTOTUNING " + systemName.toUpperCase() + "... ===");
     telemetryM.addData("Target Value", targetValue);
     telemetryM.addData("Current Value", currentVal);
+    telemetryM.addData("Output Power Magnitude", currentMagnitude);
     telemetryM.addData("Crossings", autotuner.getCrossingCount());
     telemetryM.addLine("");
-    telemetryM.addLine("Wait for oscillations...");
+    telemetryM.addLine("Press [B] to cancel");
   }
 
   private void updateCompleteTelemetry() {
@@ -132,7 +167,7 @@ public abstract class AutotuneOpMode extends OpMode {
     telemetryM.addLine("=== FAILED ===");
     telemetryM.addLine("");
     telemetryM.addLine("Not enough oscillations (timeout)");
-    telemetryM.addLine("Ensure system can move freely");
+    telemetryM.addLine("Ensure system can move freely and try increasing power with [DPAD UP]");
     telemetryM.addLine("");
     telemetryM.addLine("Press [A] to retry");
     autotuneStarted = false;

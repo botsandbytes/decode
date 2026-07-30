@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.utilities.PIDAutotuner;
 public class HeadingAutotuneOpMode extends AutotuneOpMode {
 
   public HeadingAutotuneOpMode() {
-    super("chassis heading", 0.25);
+    super("chassis heading", 0.45);
   }
 
   @Override
@@ -18,7 +18,7 @@ public class HeadingAutotuneOpMode extends AutotuneOpMode {
 
   @Override
   protected double readCurrentValue() {
-    return follower.getHeading();
+    return Math.toDegrees(follower.getHeading());
   }
 
   @Override

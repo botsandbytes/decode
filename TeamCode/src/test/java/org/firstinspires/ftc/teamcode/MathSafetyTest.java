@@ -5,14 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.IMU;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.robot.Turret;
-import org.firstinspires.ftc.teamcode.robot.config.config;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 import org.junit.Before;
@@ -24,17 +24,19 @@ import org.mockito.Mockito;
 public class MathSafetyTest {
 
   private Turret turret;
+  private CRServo mockServo;
 
   @Before
   public void setUp() {
     // Mock hardware dependencies for Turret initialization
     HardwareMap hardwareMap = Mockito.mock(HardwareMap.class);
-    CRServo mockServo = Mockito.mock(CRServo.class);
-    IMU mockIMU = Mockito.mock(IMU.class);
+    mockServo = Mockito.mock(CRServo.class);
     DcMotorEx mockMotor = Mockito.mock(DcMotorEx.class);
-
     Mockito.when(hardwareMap.get(CRServo.class, "turn")).thenReturn(mockServo);
-    Mockito.when(hardwareMap.get(IMU.class, "turnImu")).thenReturn(mockIMU);
+    AnalogInput mockAnalog = Mockito.mock(AnalogInput.class);
+    Mockito.when(hardwareMap.get(AnalogInput.class, "turnanalog")).thenReturn(mockAnalog);
+    Mockito.when(mockAnalog.getVoltage()).thenReturn(1.65);
+
     Mockito.when(hardwareMap.get(DcMotorEx.class, "leftFront")).thenReturn(mockMotor);
     Mockito.when(hardwareMap.get(DcMotorEx.class, "leftBack")).thenReturn(mockMotor);
     Mockito.when(hardwareMap.get(DcMotorEx.class, "rightFront")).thenReturn(mockMotor);
@@ -143,19 +145,22 @@ public class MathSafetyTest {
 
   @Test
   public void testSentinelZoneCalculations() {
-    // Verify Sentinel goal zones bounding box calculations (loaded from config.yaml)
+    // Verify Sentinel goal zones bounding box calculations (loaded dynamically from config facade)
     Sentinel sentinel = new Sentinel(Alliance.RED);
+    double goalSize = config.sentinel.goals.size;
+    double goalMinY = config.sentinel.goals.min_y;
+
     Envelope blueZone = sentinel.getBlueGoalZone();
     assertEquals(0.0, blueZone.getMinX(), 1e-6);
-    assertEquals(69.0, blueZone.getMinY(), 1e-6);
-    assertEquals(6.0, blueZone.getMaxX(), 1e-6);
-    assertEquals(75.0, blueZone.getMaxY(), 1e-6);
+    assertEquals(goalSize, blueZone.getMaxX(), 1e-6);
+    assertEquals(goalMinY, blueZone.getMinY(), 1e-6);
+    assertEquals(goalMinY + goalSize, blueZone.getMaxY(), 1e-6);
 
     Envelope redZone = sentinel.getRedGoalZone();
-    assertEquals(138.0, redZone.getMinX(), 1e-6);
-    assertEquals(69.0, redZone.getMinY(), 1e-6);
+    assertEquals(144.0 - goalSize, redZone.getMinX(), 1e-6);
     assertEquals(144.0, redZone.getMaxX(), 1e-6);
-    assertEquals(75.0, redZone.getMaxY(), 1e-6);
+    assertEquals(goalMinY, redZone.getMinY(), 1e-6);
+    assertEquals(goalMinY + goalSize, redZone.getMaxY(), 1e-6);
   }
 
   @Test
@@ -255,5 +260,31 @@ public class MathSafetyTest {
             new Pose(3.0, 60.0, 0), new com.pedropathing.math.Vector(0, 0), 1.0, 0.0, 0.0);
     // Adjusted strafe (index 0) should be scaled down significantly (or 0)
     assertTrue(Math.abs(outputY[0]) < 0.2);
+  }
+
+  @Test
+  public void testTurretHeadingRadianToDegreeConversion() {
+    // Set initial heading offset to 90.0 degrees and hold angle to 90 deg
+    turret.setInitialHeading(90.0);
+    turret.setHoldAngle(90.0);
+    turret.setAimMode(Turret.AimMode.HOLD);
+
+    // Pose heading in Pedro Pathing is in RADIANS (Math.PI / 2 = 90 deg)
+    Pose poseHeading90Deg = new Pose(72, 72, Math.PI / 2);
+
+    // Error should be 0.0 degrees because turret world angle (90 deg) matches hold angle (90 deg)
+    assertEquals(0.0, turret.getAimError(poseHeading90Deg), 1e-6);
+    assertTrue(turret.isAimed(poseHeading90Deg));
+
+    // Calling updateTurret should set power to 0
+    turret.updateTurret(poseHeading90Deg);
+    Mockito.verify(mockServo).setPower(0.0);
+  }
+
+  @Test
+  public void testTurretIdleModeOnStartup() {
+    turret.setAimMode(Turret.AimMode.IDLE);
+    turret.periodic();
+    Mockito.verify(mockServo).setPower(0.0);
   }
 }
