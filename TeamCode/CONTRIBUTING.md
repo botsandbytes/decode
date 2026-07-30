@@ -41,7 +41,6 @@ decode/
 │       └── tests/              # Calibration/diagnostic OpModes
 │   └── src/test/java/...       # JVM unit tests (Robolectric) — math/geometry + config schema
 ├── config-compiler/            # Standalone Android library: runtime YAML→POJO ConfigLoader
-├── scripts/                    # Helper scripts (push_config.py hot-reload over ADB)
 
 ├── pedro-repo/                 # Pedro Pathing library source (reference)
 ├── pedro-docs/                 # Pedro Pathing documentation site source
