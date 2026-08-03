@@ -38,7 +38,7 @@ public class TeleOp extends TeleOpBase {
 
     intakeCommand =
         Command.build()
-            .setStart(() -> intake.run(1.0, 0.1))
+            .setStart(() -> intake.run(config.teleop.intake_power, config.teleop.transfer_power))
             .setEnd(interrupted -> intake.stop())
             .requiring(intake);
 
@@ -51,7 +51,7 @@ public class TeleOp extends TeleOpBase {
                 })
             .setExecute(
                 () -> {
-                  if (currentParams.launchPower() > 0.7) {
+                  if (currentParams.launchPower() > config.shooter.long_hood_power_threshold) {
                     shooter.setHoodLongShotPosition();
                   } else {
                     shooter.setHoodShortShotPosition();
@@ -69,7 +69,7 @@ public class TeleOp extends TeleOpBase {
             .setStart(() -> turret.setAimMode(Turret.AimMode.AIM_AT_GOAL))
             .setExecute(
                 () -> {
-                  if (currentParams.launchPower() > 0.7) {
+                  if (currentParams.launchPower() > config.shooter.long_hood_power_threshold) {
                     shooter.setHoodLongShotPosition();
                   } else {
                     shooter.setHoodShortShotPosition();
@@ -96,7 +96,7 @@ public class TeleOp extends TeleOpBase {
             .setStart(
                 () -> {
                   intake.stop();
-                  shooter.setTargetPower(0.6);
+                  shooter.setTargetPower(config.teleop.manual_rev_power);
                 })
             .setEnd(interrupted -> shooter.setTargetPower(0.0))
             .requiring(shooter);
@@ -113,7 +113,6 @@ public class TeleOp extends TeleOpBase {
   @Override
   protected void onLoop() {
     boolean launchAllowed = sentinel.isLaunchAllowed(follower.getPose());
-    boolean autoShoot = config.shooter.auto_shoot_mode;
 
     if (operatorA.onTrue()) {
       intakeCommand.schedule();
@@ -125,24 +124,16 @@ public class TeleOp extends TeleOpBase {
     }
 
     if (operatorRightTrigger.onTrue() && launchAllowed) {
-      if (autoShoot) {
-        aimAndShootCommand.schedule();
-      } else {
-        shootManualCommand.schedule();
-      }
+      aimAndShootCommand.schedule();
     }
     if (operatorRightTrigger.onFalse()) {
-      if (autoShoot) {
-        aimAndShootCommand.cancel();
-      } else {
-        shootManualCommand.cancel();
-      }
+      aimAndShootCommand.cancel();
     }
 
-    if (!autoShoot && operatorX.onTrue() && launchAllowed) {
+    if (operatorX.onTrue() && launchAllowed) {
       aimCommand.schedule();
     }
-    if (!autoShoot && operatorX.onFalse()) {
+    if (operatorX.onFalse()) {
       aimCommand.cancel();
     }
 
@@ -167,7 +158,12 @@ public class TeleOp extends TeleOpBase {
       drinkCommand.schedule();
     }
 
-    if (driverDpadRight.onTrue() || operatorDpadRight.onTrue()) {
+    boolean driverStickDeflected =
+        Math.abs(driver.left_stick_y) > 0.2
+            || Math.abs(driver.left_stick_x) > 0.2
+            || Math.abs(driver.right_stick_x) > 0.2;
+
+    if (driverDpadRight.onTrue() || operatorDpadRight.onTrue() || driverStickDeflected) {
       parkCommand.cancel();
       scoreCommand.cancel();
       drinkCommand.cancel();

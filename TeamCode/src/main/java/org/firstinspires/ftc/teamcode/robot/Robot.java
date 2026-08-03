@@ -28,23 +28,18 @@ public final class Robot {
   public Robot(HardwareMap hardwareMap, Telemetry telemetry, MatchProfile profile) {
     this.telemetry = telemetry;
 
-    // Bulk-caching setup
     allHubs = hardwareMap.getAll(LynxModule.class);
     for (LynxModule module : allHubs) {
       module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
     }
 
-    // Initialize Follower first (drivetrain motors caching is inside
-    // Constants.createCachedFollower)
     follower = Constants.createCachedFollower(hardwareMap);
 
-    // Initialize subsystems
     intake = new Intake(hardwareMap);
     shooter = new Shooter(hardwareMap);
     turret = new Turret(hardwareMap, telemetry, follower::getPose);
     turret.setGoal(profile.goalX(), profile.goalY());
 
-    // Initialize safety and shooting controller
     sentinel = new Sentinel(profile.alliance());
     casablanca = new Casablanca(sentinel);
     shotController = new ShotController(shooter, turret, intake, follower::getPose, telemetry);
@@ -53,15 +48,12 @@ public final class Robot {
   }
 
   public void update() {
-    // Clear bulk cache for the loop
     for (LynxModule module : allHubs) {
       module.clearBulkCache();
     }
 
-    // Update follower
     follower.update();
 
-    // Run subsystem and controller periodic updates
     intake.periodic();
     shooter.periodic();
     turret.periodic();
