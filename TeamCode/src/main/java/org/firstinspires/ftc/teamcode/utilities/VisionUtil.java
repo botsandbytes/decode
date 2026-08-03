@@ -26,13 +26,13 @@ public class VisionUtil {
   private boolean tagFound = false;
 
   public void initAprilTag(HardwareMap hardwareMap, boolean useWebcam) {
-    var v = config.vision;
-    double posX = v.camera_position.x;
-    double posY = v.camera_position.y;
-    double posZ = v.camera_position.z;
-    double oriYaw = v.camera_orientation.yaw;
-    double oriPitch = v.camera_orientation.pitch;
-    double oriRoll = v.camera_orientation.roll;
+    var visionConfig = config.vision;
+    double posX = visionConfig.camera_position.x;
+    double posY = visionConfig.camera_position.y;
+    double posZ = visionConfig.camera_position.z;
+    double oriYaw = visionConfig.camera_orientation.yaw;
+    double oriPitch = visionConfig.camera_orientation.pitch;
+    double oriRoll = visionConfig.camera_orientation.roll;
 
     Position cameraPosition = new Position(DistanceUnit.CM, posX, posY, posZ, 0);
     YawPitchRollAngles cameraOrientation =
@@ -45,7 +45,7 @@ public class VisionUtil {
 
     VisionPortal.Builder builder =
         new VisionPortal.Builder()
-            .setCameraResolution(new Size(1920, 1080))
+            .setCameraResolution(new Size(640, 480))
             .setStreamFormat(VisionPortal.StreamFormat.MJPEG);
 
     if (useWebcam) {
@@ -55,42 +55,60 @@ public class VisionUtil {
     }
     builder.addProcessor(aprilTag);
     visionPortal = builder.build();
+
+    stopStreaming();
   }
 
   public Pose updateAprilTagPose() {
-    List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-    Pose newPose = null;
     tagFound = false;
+    if (aprilTag == null) {
+      return null;
+    }
+    List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+    if (currentDetections == null) {
+      return null;
+    }
+
+    Pose newPose = null;
     for (AprilTagDetection detection : currentDetections) {
-      if (detection.metadata != null && !detection.metadata.name.contains("Obelisk")) {
-        tagFound = true;
-        double x = detection.robotPose.getPosition().x;
-        double y = detection.robotPose.getPosition().y;
-        double h_rad = detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS);
-        Pose2D visionPose = new Pose2D(DistanceUnit.INCH, x, y, AngleUnit.RADIANS, h_rad);
-        Pose pedroPose =
-            PoseConverter.pose2DToPose(visionPose, InvertedFTCCoordinates.INSTANCE)
-                .getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-        double pose_x, pose_y;
-        if (pedroPose.getX() < 0) {
-          pose_x = -pedroPose.getX() + 72;
-        } else {
-          pose_x = 72 - pedroPose.getX();
+      if (detection != null && detection.metadata != null && detection.robotPose != null) {
+        if (!detection.metadata.name.contains("Obelisk")) {
+          tagFound = true;
+          double detectedX = detection.robotPose.getPosition().x;
+          double detectedY = detection.robotPose.getPosition().y;
+          double headingRadians = detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS);
+          Pose2D visionPose =
+              new Pose2D(
+                  DistanceUnit.INCH, detectedX, detectedY, AngleUnit.RADIANS, headingRadians);
+          Pose pedroPose =
+              PoseConverter.pose2DToPose(visionPose, InvertedFTCCoordinates.INSTANCE)
+                  .getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+          double fieldX = pedroPose.getX() < 0 ? -pedroPose.getX() + 72 : 72 - pedroPose.getX();
+          double fieldY = pedroPose.getY() < 0 ? -pedroPose.getY() + 72 : 72 - pedroPose.getY();
+          newPose = new Pose(fieldX, fieldY, headingRadians);
+          break;
         }
-        if (pedroPose.getY() < 0) {
-          pose_y = -pedroPose.getY() + 72;
-        } else {
-          pose_y = 72 - pedroPose.getY();
-        }
-        newPose = new Pose(pose_x, pose_y, h_rad);
-        break;
       }
     }
     return newPose;
   }
 
+  public void resumeStreaming() {
+    if (visionPortal != null) {
+      try {
+        visionPortal.resumeStreaming();
+      } catch (Exception ignored) {
+      }
+    }
+  }
+
   public void stopStreaming() {
-    if (visionPortal != null) visionPortal.stopStreaming();
+    if (visionPortal != null) {
+      try {
+        visionPortal.stopStreaming();
+      } catch (Exception ignored) {
+      }
+    }
   }
 
   public boolean isTagFound() {
