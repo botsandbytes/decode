@@ -16,12 +16,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class Constants {
   public static FollowerConstants followerConstants =
       new FollowerConstants()
-          .mass(8.6)
-          .headingPIDFCoefficients(new PIDFCoefficients(.7, 0, 0.002, 0.01))
-          .predictiveBrakingCoefficients(new PredictiveBrakingCoefficients(0.1, 0.04, 0.0016))
+          .mass(11.15)
+          .headingPIDFCoefficients(new PIDFCoefficients(.7, 0, 0.002, 0.02))
+          .predictiveBrakingCoefficients(
+              new PredictiveBrakingCoefficients(0.05, 0.05872647384322376, 0.001561731123457261))
           .centripetalScaling(0);
 
-  public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, .35, 1);
+  public static PathConstraints pathConstraints = new PathConstraints(0.90, 100, 1, 1);
 
   public static MecanumConstants driveConstants =
       new MecanumConstants()
@@ -34,13 +35,13 @@ public class Constants {
           .leftRearMotorDirection(DcMotorSimple.Direction.FORWARD)
           .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
           .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-          .xVelocity(80.5641907218873) // 89.39393051027312
-          .yVelocity(67.41060656449926); // 64.57908233882874
+          .xVelocity(75.64281986)
+          .yVelocity(58.9247686);
 
   public static PinpointConstants localizerConstants =
       new PinpointConstants()
-          .forwardPodY(1.5)
-          .strafePodX(-4.75)
+          .forwardPodY(1.5729952)
+          .strafePodX(-4.535451)
           // center of robot -6.5
           .distanceUnit(DistanceUnit.INCH)
           .hardwareMapName("pinpoint")
