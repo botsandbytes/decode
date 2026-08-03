@@ -74,26 +74,30 @@ public class Shooter {
 
   public LaunchParameters calculateLaunchParameters(
       Pose currentPose, double goalX, double goalY, Alliance alliance) {
-    double deltaX = goalX - currentPose.getX();
-    double deltaY = goalY - currentPose.getY();
-    double distance = Math.hypot(deltaX, deltaY);
-    double angleRadians = Math.atan2(deltaY, deltaX);
+    double distanceXToGoal = goalX - currentPose.getX();
+    double distanceYToGoal = goalY - currentPose.getY();
+    double distanceToGoal = Math.hypot(distanceXToGoal, distanceYToGoal);
+    double launchAngleRadians = Math.atan2(distanceYToGoal, distanceXToGoal);
 
-    var lp = config.shooter.launch_params;
+    var launchParams = config.shooter.launch_params;
     double launchPower;
     double waitTime;
 
-    if (distance <= lp.threshold_distance) {
-      launchPower = lp.near.launch_power;
-      waitTime = lp.near.wait_time;
+    if (distanceToGoal <= launchParams.threshold_distance) {
+      launchPower = launchParams.near.launch_power;
+      waitTime = launchParams.near.wait_time;
     } else {
       double farBasePower =
-          alliance == Alliance.RED ? lp.far.red_base_power : lp.far.blue_base_power;
-      launchPower = farBasePower + ((distance - lp.threshold_distance) / lp.far.power_scale);
-      waitTime = distance * lp.far.wait_time_scale;
+          alliance == Alliance.RED
+              ? launchParams.far.red_base_power
+              : launchParams.far.blue_base_power;
+      launchPower =
+          farBasePower
+              + ((distanceToGoal - launchParams.threshold_distance) / launchParams.far.power_scale);
+      waitTime = distanceToGoal * launchParams.far.wait_time_scale;
     }
 
-    return new LaunchParameters(launchPower, waitTime, Math.toDegrees(angleRadians));
+    return new LaunchParameters(launchPower, waitTime, Math.toDegrees(launchAngleRadians));
   }
 
   private double targetPower = 0.0;

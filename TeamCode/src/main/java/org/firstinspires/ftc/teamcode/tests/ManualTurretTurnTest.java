@@ -28,7 +28,7 @@ public class ManualTurretTurnTest extends LinearOpMode {
       follower.update();
 
       if (gamepad1.dpad_down) {
-        turret.setInitialHeading(0);
+        turret.zeroAtCurrentPosition();
       } else if (gamepad1.dpad_right) {
         turret.setTargetTurnAngle(turn_degrees);
       }

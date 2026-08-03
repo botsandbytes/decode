@@ -112,7 +112,6 @@ public abstract class TeleOpBase extends OpMode {
 
     Pose savedPose = OpModeUtil.getSavedPose(alliance, profile.startPose());
     follower.setStartingPose(savedPose);
-    turret.setInitialHeading(follower.getHeading());
 
     robot.vision.initAprilTag(hardwareMap, true);
     casablanca.reset();
@@ -133,7 +132,13 @@ public abstract class TeleOpBase extends OpMode {
 
                   double[] adjusted =
                       casablanca.adjustDriveInput(
-                          follower.getPose(), follower.getVelocity(), x, y, r);
+                          follower.getPose(),
+                          follower.getVelocity(),
+                          follower.getAngularVelocity(),
+                          x,
+                          y,
+                          r,
+                          -driver.right_stick_x);
                   follower.setTeleOpDrive(adjusted[1], adjusted[0], adjusted[2], false);
                 })
             .requiring(follower);
@@ -144,7 +149,7 @@ public abstract class TeleOpBase extends OpMode {
   @Override
   public void start() {
     follower.startTeleopDrive();
-    OpModeUtil.setupTurretAndShooter(turret, shooter, follower.getHeading());
+    OpModeUtil.setupTurretAndShooter(turret, shooter);
     teleOpDriveCommand.schedule();
   }
 
@@ -200,20 +205,28 @@ public abstract class TeleOpBase extends OpMode {
   }
 
   private void handleVision() {
+    if (operatorDpadDown.onTrue()) {
+      robot.vision.resumeStreaming();
+    }
+
     if (operator.dpad_down) {
       Pose visionPose = robot.vision.updateAprilTagPose();
-      if (robot.vision.isTagFound()) {
+      if (robot.vision.isTagFound() && visionPose != null) {
         follower.setPose(visionPose);
         telemetryM.addLine(
             "Pose updated: X="
-                + visionPose.getX()
+                + String.format("%.2f", visionPose.getX())
                 + " Y="
-                + visionPose.getY()
+                + String.format("%.2f", visionPose.getY())
                 + " H="
-                + visionPose.getHeading());
+                + String.format("%.2f", Math.toDegrees(visionPose.getHeading())));
+        robot.vision.stopStreaming();
       } else {
-        telemetryM.addData("Vision", "No Tag Found");
+        telemetryM.addData("Vision [On-Demand]", "Searching for Tag...");
       }
+    }
+
+    if (operatorDpadDown.onFalse()) {
       robot.vision.stopStreaming();
     }
   }

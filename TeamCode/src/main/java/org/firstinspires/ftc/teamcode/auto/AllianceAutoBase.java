@@ -79,7 +79,7 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     turret = robot.turret;
 
     Pose startPose = extractStartPose(config);
-    OpModeUtil.setupTurretAndShooter(turret, shooter, startPose.getHeading());
+    OpModeUtil.setupTurretAndShooter(turret, shooter);
 
     follower.setStartingPose(startPose);
     buildPaths();

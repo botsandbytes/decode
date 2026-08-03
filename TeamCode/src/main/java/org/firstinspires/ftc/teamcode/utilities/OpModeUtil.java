@@ -33,11 +33,9 @@ public final class OpModeUtil {
     OpMode.blackboard.put(getBlackboardPoseKey(alliance), pose);
   }
 
-  public static void setupTurretAndShooter(
-      Turret turret, Shooter shooter, double initialHeadingRad) {
-    turret.setInitialHeading(initialHeadingRad);
+  public static void setupTurretAndShooter(Turret turret, Shooter shooter) {
     shooter.setShooterPIDFCoefficients();
-    turret.setHoldAngle(Math.toDegrees(initialHeadingRad));
+    turret.setHoldAngle(0.0);
     turret.setAimMode(Turret.AimMode.IDLE);
   }
 

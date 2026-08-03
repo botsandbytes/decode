@@ -89,37 +89,44 @@ public class ShotController {
       return;
     }
 
-    var s = config.shooter;
-    double targetVel = s.max_rpm * targetPower;
-    double currentVel = shooter.getShooterVelocity();
+    var shooterConfig = config.shooter;
+    double targetFlywheelVelocity = shooterConfig.max_rpm * targetPower;
+    double currentFlywheelVelocity = shooter.getShooterVelocity();
 
-    double minThreshold = s.min_transfer_threshold;
-    boolean velocityReady = Math.abs(currentVel) >= Math.abs(targetVel) * minThreshold;
-    boolean turretAligned = true;
+    double minTransferThreshold = shooterConfig.min_transfer_threshold;
+    boolean isFlywheelAtMinSpeed =
+        Math.abs(currentFlywheelVelocity)
+            >= Math.abs(targetFlywheelVelocity) * minTransferThreshold;
+    boolean isFlywheelReady = isFlywheelAtMinSpeed;
+    boolean isTurretAligned = true;
 
     Pose pose = poseSupplier.get();
     if (checkAlignment && pose != null) {
-      // Keep velocity within a reasonable upper bound to avoid overshooting
-      velocityReady = velocityReady && Math.abs(currentVel) < Math.abs(targetVel) * 1.05;
-      turretAligned = turret.isAimed(pose);
+      boolean isFlywheelBelowMaxThreshold =
+          Math.abs(currentFlywheelVelocity)
+              < Math.abs(targetFlywheelVelocity) * shooterConfig.max_velocity_threshold;
+      isFlywheelReady = isFlywheelAtMinSpeed && isFlywheelBelowMaxThreshold;
+      isTurretAligned = turret.isAimed(pose);
 
       if (telemetry != null) {
         telemetry.addData("ShotController State", "Aiming & Firing");
-        telemetry.addData("current v", Math.abs(currentVel));
-        telemetry.addData("target v threshold", Math.abs(targetVel) * minThreshold);
+        telemetry.addData("current v", Math.abs(currentFlywheelVelocity));
+        telemetry.addData(
+            "target v threshold", Math.abs(targetFlywheelVelocity) * minTransferThreshold);
         telemetry.addData("Turret Error (deg)", turret.getAimError(pose));
-        telemetry.addData("Turret Aligned", turretAligned);
+        telemetry.addData("Turret Aligned", isTurretAligned);
       }
     } else {
       if (telemetry != null) {
         telemetry.addData("ShotController State", "Firing Raw");
-        telemetry.addData("current v", Math.abs(currentVel));
-        telemetry.addData("target v threshold", Math.abs(targetVel) * minThreshold);
+        telemetry.addData("current v", Math.abs(currentFlywheelVelocity));
+        telemetry.addData(
+            "target v threshold", Math.abs(targetFlywheelVelocity) * minTransferThreshold);
       }
     }
 
-    if (velocityReady && turretAligned) {
-      intake.run(1.0, 1.0);
+    if (isFlywheelReady && isTurretAligned) {
+      intake.run(shooterConfig.feed_intake_power, shooterConfig.feed_transfer_power);
     } else {
       intake.stop();
     }
