@@ -37,30 +37,18 @@ public class Lumos {
 
   private final Servo light;
 
-  /**
-   * Initialize the Lumos light controller
-   *
-   * @param hardwareMap The hardware map from the OpMode
-   */
   public Lumos(HardwareMap hardwareMap) {
     light = hardwareMap.get(Servo.class, "light");
-    if (light instanceof ServoImplEx) {
-      ServoImplEx lightEx = (ServoImplEx) light;
+    if (light instanceof ServoImplEx lightEx) {
       lightEx.setPwmRange(new PwmControl.PwmRange(500, 2500));
       lightEx.setPwmEnable();
     }
   }
 
-  /** Set the light to the given color */
   public void setColor(Color color) {
     light.setPosition(color.position);
   }
 
-  /**
-   * Get the current color position
-   *
-   * @return The current servo position (0.0 - 1.0)
-   */
   public double getPosition() {
     return light.getPosition();
   }
