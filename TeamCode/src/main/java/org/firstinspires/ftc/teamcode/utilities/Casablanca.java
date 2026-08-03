@@ -1,10 +1,12 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.control.PIDFController;
 import com.pedropathing.control.PredictiveBrakingController;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.pedropathing.util.NanoTimer;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 import org.locationtech.jts.geom.Envelope;
@@ -12,37 +14,41 @@ import org.locationtech.jts.geom.Envelope;
 @Configurable
 public class Casablanca {
 
-  public boolean enableFrictionComp = true;
-  public double frictionX;
-  public double frictionY;
-  public double frictionRot;
+  public static boolean enableFrictionComp = true;
+  public static double frictionX;
+  public static double frictionY;
+  public static double frictionRot;
 
-  public boolean enableInputSmoothing = true;
-  public double smoothTime;
-  public boolean extraSmoothBackLift = true;
-  public double backLiftMultiplier;
+  public static boolean enableInputSmoothing = true;
+  public static double smoothTime;
+  public static boolean extraSmoothBackLift = true;
+  public static double backLiftMultiplier;
 
-  public double wallRepulsionPower;
-  private final double decelSafetyFactor;
+  public static double wallRepulsionPower;
+  public static double decelSafetyFactor;
 
-  public boolean enableDepthProtection = true;
-  public double depthSlowDown;
-  public double depthHardStop;
+  public static boolean enableDepthProtection = true;
+  public static double depthSlowDown;
+  public static double depthHardStop;
 
-  public boolean enableSideProtection = true;
-  public double sideSlowDown;
-  public double sideHardStop;
+  public static boolean enableSideProtection = true;
+  public static double sideSlowDown;
+  public static double sideHardStop;
 
-  public double laneBlendDistance;
-  private final double rotationLookaheadRad;
+  public static double laneBlendDistance;
+  public static double rotationLookaheadTimeSeconds;
 
-  public boolean enableHeadingLock;
-  public double headingLockKp;
-  public double headingLockMaxPower;
-  public double headingLockDeadband;
+  public static boolean enableHeadingLock;
+  public static double headingLockIntentThreshold;
+  public static double headingLockKsMoving;
+  public static double headingLockMovingSpeedThreshold;
+  public static double headingLockMaxPower;
+  public static double headingLockErrorDeadbandRad;
+  public static double headingLockSettleRateRad;
 
   private double targetHeading = 0.0;
-  private boolean isLockActive = false;
+  private boolean headingLockInitialized = false;
+  private final PIDFController headingPidf;
 
   private final NanoTimer timer = new NanoTimer();
   private double currentForward = 0;
@@ -51,36 +57,123 @@ public class Casablanca {
 
   private final Sentinel sentinel;
 
+  private double lastLookaheadRad = 0.0;
+  private boolean lastRotationSafe = true;
+  private double lastAngularVelocityUsed = 0.0;
+
+  private double lastLaneFadeX = 0.0;
+  private double lastLaneFadeY = 0.0;
+  private double lastDepthScale = 1.0;
+  private double lastSideScale = 1.0;
+  private boolean lastDepthRepulsion = false;
+  private boolean lastSideRepulsion = false;
+  private Envelope lastRobotBounds;
+  private Envelope lastProtectedZone;
+
+  public double getLastLaneFadeX() {
+    return lastLaneFadeX;
+  }
+
+  public double getLastLaneFadeY() {
+    return lastLaneFadeY;
+  }
+
+  public double getLastDepthScale() {
+    return lastDepthScale;
+  }
+
+  public double getLastSideScale() {
+    return lastSideScale;
+  }
+
+  public boolean getLastDepthRepulsion() {
+    return lastDepthRepulsion;
+  }
+
+  public boolean getLastSideRepulsion() {
+    return lastSideRepulsion;
+  }
+
+  public Envelope getLastRobotBounds() {
+    return lastRobotBounds;
+  }
+
+  public Envelope getLastProtectedZone() {
+    return lastProtectedZone;
+  }
+
+  public double getLastLookaheadRad() {
+    return lastLookaheadRad;
+  }
+
+  public boolean getLastRotationSafe() {
+    return lastRotationSafe;
+  }
+
+  public double getLastAngularVelocityUsed() {
+    return lastAngularVelocityUsed;
+  }
+
   public Casablanca(Sentinel sentinel) {
     this.sentinel = sentinel;
 
     var c = config.casablanca;
-    this.frictionX = c.friction.x;
-    this.frictionY = c.friction.y;
-    this.frictionRot = c.friction.rot;
+    frictionX = c.friction.x;
+    frictionY = c.friction.y;
+    frictionRot = c.friction.rot;
 
-    this.smoothTime = c.smoothing.time;
-    this.backLiftMultiplier = c.smoothing.back_lift_multiplier;
+    smoothTime = c.smoothing.time;
+    backLiftMultiplier = c.smoothing.back_lift_multiplier;
 
-    this.wallRepulsionPower = c.repulsion.power;
-    this.decelSafetyFactor = c.repulsion.decel_safety_factor;
+    wallRepulsionPower = c.repulsion.power;
+    decelSafetyFactor = c.repulsion.decel_safety_factor;
 
-    this.depthSlowDown = c.depth.slow_down;
-    this.depthHardStop = c.depth.hard_stop;
+    enableDepthProtection = c.enable_depth_protection;
+    depthSlowDown = c.depth.slow_down;
+    depthHardStop = c.depth.hard_stop;
 
-    this.sideSlowDown = c.side.slow_down;
-    this.sideHardStop = c.side.hard_stop;
+    enableSideProtection = c.enable_side_protection;
+    sideSlowDown = c.side.slow_down;
+    sideHardStop = c.side.hard_stop;
 
-    this.laneBlendDistance = c.lane_blend_distance;
-    this.rotationLookaheadRad = config.sentinel.rotation_lookahead;
+    laneBlendDistance = c.lane_blend_distance;
+    rotationLookaheadTimeSeconds = config.sentinel.rotation_lookahead_time;
 
     var hl = c.heading_lock;
-    this.enableHeadingLock = hl.enabled;
-    this.headingLockKp = hl.kp;
-    this.headingLockMaxPower = hl.max_power;
-    this.headingLockDeadband = hl.deadband;
+    enableHeadingLock = hl.enabled;
+    headingLockIntentThreshold = hl.intent_threshold;
+    headingLockKsMoving = hl.ks_moving;
+    headingLockMovingSpeedThreshold = hl.moving_speed_threshold;
+    headingLockMaxPower = hl.max_power;
+    headingLockErrorDeadbandRad = Math.toRadians(hl.error_deadband_deg);
+    headingLockSettleRateRad = Math.toRadians(hl.settle_rate_dps);
+
+    this.headingPidf = new PIDFController(Constants.followerConstants.getCoefficientsHeadingPIDF());
+
+    performBrakingSanityCheck();
 
     reset();
+  }
+
+  private void performBrakingSanityCheck() {
+    PredictiveBrakingController controller =
+        new PredictiveBrakingController(Constants.followerConstants.predictiveBrakingCoefficients);
+    double maxVelX = Constants.driveConstants.xVelocity;
+    double maxVelY = Constants.driveConstants.yVelocity;
+    double minBrakingX =
+        Math.abs(controller.computeBrakingDisplacement(maxVelX, 1.0)) / decelSafetyFactor;
+    double minBrakingY =
+        Math.abs(controller.computeBrakingDisplacement(maxVelY, 1.0)) / decelSafetyFactor;
+
+    com.qualcomm.robotcore.util.RobotLog.ii(
+        "Casablanca",
+        "Init check: depthHardStop=%.2f in (physics stopping dist at max %.1f in/s is %.2f in), sideHardStop=%.2f in (physics stopping dist at max %.1f in/s is %.2f in)",
+        depthHardStop,
+        maxVelX,
+        minBrakingX,
+        sideHardStop,
+        maxVelY,
+        minBrakingY);
   }
 
   public final void reset() {
@@ -88,34 +181,92 @@ public class Casablanca {
     currentForward = 0;
     currentStrafe = 0;
     currentTurn = 0;
-    isLockActive = false;
+    headingLockInitialized = false;
+    if (headingPidf != null) {
+      headingPidf.reset();
+    }
   }
 
   public double[] adjustDriveInput(
-      Pose pose, Vector currentVelocity, double strafe, double forward, double turn) {
+      Pose pose,
+      Vector currentVelocity,
+      double currentAngularVelocity,
+      double strafe,
+      double forward,
+      double turn) {
+    return adjustDriveInput(
+        pose, currentVelocity, currentAngularVelocity, strafe, forward, turn, turn);
+  }
+
+  /**
+   * @param turn the shaped (e.g. cubic-curved, speed-scaled) turn power to command
+   * @param rawTurnIntent the driver's unshaped stick deflection, used only to decide whether they
+   *     are steering at all. Shaping curves compress small deflections towards zero, so testing
+   *     intent against the shaped value would read light steering as "hands off".
+   */
+  public double[] adjustDriveInput(
+      Pose pose,
+      Vector currentVelocity,
+      double currentAngularVelocity,
+      double strafe,
+      double forward,
+      double turn,
+      double rawTurnIntent) {
+    if (!Double.isFinite(currentAngularVelocity)) {
+      currentAngularVelocity = 0.0;
+    }
+    if (!Double.isFinite(currentVelocity.getXComponent())
+        || !Double.isFinite(currentVelocity.getYComponent())) {
+      currentVelocity = new Vector();
+    }
+    boolean poseFinite =
+        Double.isFinite(pose.getX())
+            && Double.isFinite(pose.getY())
+            && Double.isFinite(pose.getHeading());
+
     if (enableFrictionComp) {
       forward = applyFriction(forward, frictionX);
       strafe = applyFriction(strafe, frictionY);
       turn = applyFriction(turn, frictionRot);
     }
 
-    if (enableHeadingLock) {
-      if (Math.abs(turn) > headingLockDeadband) {
-        targetHeading = pose.getHeading();
-        isLockActive = false;
-      } else {
-        if (!isLockActive) {
+    boolean stickReleased = Math.abs(rawTurnIntent) < headingLockIntentThreshold;
+
+    if (enableHeadingLock && poseFinite && stickReleased) {
+      if (!headingLockInitialized) {
+        // Capture the heading to hold only once the robot has actually stopped turning. Latching
+        // the instant the stick is released picks a heading the robot is still coasting away from,
+        // so the lock immediately fights its own momentum and rings before settling.
+        if (Math.abs(currentAngularVelocity) < headingLockSettleRateRad) {
           targetHeading = pose.getHeading();
-          isLockActive = true;
+          headingLockInitialized = true;
+          headingPidf.reset();
         }
-        double headingError =
-            com.pedropathing.math.MathFunctions.getSmallestAngleDifference(
-                pose.getHeading(), targetHeading);
-        double turnDir =
-            com.pedropathing.math.MathFunctions.getTurnDirection(pose.getHeading(), targetHeading);
-        double correction = headingError * turnDir * headingLockKp;
-        turn = Math.clamp(correction, -headingLockMaxPower, headingLockMaxPower);
+        turn = 0.0;
+      } else {
+        double headingError = AngleUnit.normalizeRadians(targetHeading - pose.getHeading());
+
+        if (Math.abs(headingError) < headingLockErrorDeadbandRad) {
+          // Within tolerance: hold silently, don't let sensor noise near the zero crossing chatter
+          // the drivetrain via the signum-based feedforward below.
+          headingPidf.reset();
+          turn = 0.0;
+        } else {
+          headingPidf.updateFeedForwardInput(Math.signum(headingError));
+          headingPidf.updateError(headingError);
+
+          double speedMag = currentVelocity.getMagnitude();
+          double speedRatio = Math.clamp(speedMag / headingLockMovingSpeedThreshold, 0.0, 1.0);
+          double ks = frictionRot + speedRatio * (headingLockKsMoving - frictionRot);
+
+          double correction = headingPidf.run() + Math.signum(headingError) * ks;
+          turn = Math.clamp(correction, -headingLockMaxPower, headingLockMaxPower);
+        }
       }
+    } else {
+      // Driver is actively steering (or lock disabled): give them full, unfought authority.
+      // Re-latch onto whatever heading they leave the robot at next time the stick is released.
+      headingLockInitialized = false;
     }
 
     if (enableInputSmoothing) {
@@ -166,6 +317,15 @@ public class Casablanca {
             protectedZone.getMaxX(),
             laneBlendDistance);
 
+    lastRobotBounds = robotBounds;
+    lastProtectedZone = protectedZone;
+    lastLaneFadeX = laneFadeX;
+    lastLaneFadeY = laneFadeY;
+    lastDepthScale = 1.0;
+    lastSideScale = 1.0;
+    lastDepthRepulsion = false;
+    lastSideRepulsion = false;
+
     if (enableDepthProtection && laneFadeY > 0) {
       AxisState xState =
           calculateAxisState(
@@ -178,9 +338,11 @@ public class Casablanca {
               depthSlowDown,
               depthHardStop);
 
+      lastDepthScale = xState.scale;
       adjFieldX *= (1.0 + laneFadeY * (xState.scale - 1.0));
       if (laneFadeY >= 0.9 && xState.triggerRepulsion) {
         adjFieldX = xState.repulsionDir * wallRepulsionPower;
+        lastDepthRepulsion = true;
       }
     }
 
@@ -196,13 +358,24 @@ public class Casablanca {
               sideSlowDown,
               sideHardStop);
 
+      lastSideScale = yState.scale;
       adjFieldY *= (1.0 + laneFadeX * (yState.scale - 1.0));
       if (laneFadeX >= 0.9 && yState.triggerRepulsion) {
         adjFieldY = yState.repulsionDir * wallRepulsionPower;
+        lastSideRepulsion = true;
       }
     }
 
-    if (turn != 0 && !sentinel.isRotationSafe(pose, turn, rotationLookaheadRad)) {
+    double lookaheadRad = Math.abs(currentAngularVelocity) * rotationLookaheadTimeSeconds;
+    lastLookaheadRad = lookaheadRad;
+    lastAngularVelocityUsed = currentAngularVelocity;
+    boolean rotationSafe =
+        poseFinite
+            && Double.isFinite(turn)
+            && Double.isFinite(lookaheadRad)
+            && sentinel.isRotationSafe(pose, turn, lookaheadRad);
+    lastRotationSafe = rotationSafe;
+    if (turn != 0 && !rotationSafe) {
       turn = 0;
     }
 
