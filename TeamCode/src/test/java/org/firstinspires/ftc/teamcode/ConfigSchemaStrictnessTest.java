@@ -67,8 +67,8 @@ public class ConfigSchemaStrictnessTest {
   @Test
   public void rejects_aboveMaximum() {
     Map<String, Object> cfg = freshConfig();
-    // turret.max_turn_power has "maximum": 1.0
-    child(cfg, "turret").put("max_turn_power", 5.0);
+    // turret.max_power_output has "maximum": 1.0
+    child(cfg, "turret").put("max_power_output", 5.0);
     assertFalse("schema must reject a value above its documented maximum", valid(cfg));
   }
 

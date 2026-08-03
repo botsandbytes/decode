@@ -16,6 +16,40 @@ import org.junit.Test;
 public class ConfigLoaderEdgeCaseTest {
 
   @Test
+  public void deepMerge_staleOverrideKeepsSectionsItDoesNotMention() {
+    // Reproduces the failure that hard-crashed the robot app: an ADB-pushed config.yaml written
+    // before turret.travel existed. Before the override was merged onto the bundled baseline it
+    // replaced it outright, so turret.travel came back null and the generated facade NPE'd inside
+    // a static initializer -- killing the app before any OpMode could run.
+    java.util.Map<String, Object> bundled = new java.util.HashMap<>();
+    java.util.Map<String, Object> bundledTurret = new java.util.HashMap<>();
+    java.util.Map<String, Object> bundledTravel = new java.util.HashMap<>();
+    bundledTravel.put("min_angle", -45.0);
+    bundledTravel.put("max_angle", 45.0);
+    bundledTurret.put("travel", bundledTravel);
+    bundledTurret.put("ks", 0.08);
+    bundled.put("turret", bundledTurret);
+
+    // A stale push: has turret, tweaks one value, knows nothing about travel.
+    java.util.Map<String, Object> stale = new java.util.HashMap<>();
+    java.util.Map<String, Object> staleTurret = new java.util.HashMap<>();
+    staleTurret.put("ks", 0.12);
+    stale.put("turret", staleTurret);
+
+    ConfigLoader.deepMerge(bundled, stale);
+
+    @SuppressWarnings("unchecked")
+    java.util.Map<String, Object> turret = (java.util.Map<String, Object>) bundled.get("turret");
+    assertNotNull("stale override must not delete unmentioned sections", turret.get("travel"));
+
+    @SuppressWarnings("unchecked")
+    java.util.Map<String, Object> travel = (java.util.Map<String, Object>) turret.get("travel");
+    org.junit.Assert.assertEquals(-45.0, (Double) travel.get("min_angle"), 1e-9);
+    // ...while the value the override *did* specify still wins.
+    org.junit.Assert.assertEquals(0.12, (Double) turret.get("ks"), 1e-9);
+  }
+
+  @Test
   public void loadMerged_autoPoses_bindsListPosesAndGlobals() {
     config.NormalAuto cfg =
         ConfigLoader.loadMerged(config.NormalAuto.class, "auto_poses.normal.blue", "auto");

@@ -58,29 +58,72 @@ public final class ConfigLoader {
       }
     }
 
-    if (inputStream == null) {
-      inputStream = ConfigLoader.class.getResourceAsStream(CLASSPATH_RESOURCE);
-      loadedSource = "bundled classpath resource: " + CLASSPATH_RESOURCE;
+    // The bundled resource always provides the baseline. An ADB-pushed override is layered on
+    // top of it rather than replacing it: a pushed file written before a new key was added would
+    // otherwise leave that key's whole section null, and the generated facade reads those fields
+    // in a static initializer -- so one stale push hard-crashes the robot app with an opaque NPE
+    // before any OpMode can run. Merging means a stale or partial override degrades to bundled
+    // defaults for whatever it does not mention.
+    Map<String, Object> merged = new HashMap<>();
+    Yaml yaml = new Yaml();
+
+    try (InputStream bundled = ConfigLoader.class.getResourceAsStream(CLASSPATH_RESOURCE)) {
+      if (bundled != null) {
+        Map<String, Object> base = yaml.load(bundled);
+        if (base != null) {
+          merged = base;
+        }
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to load bundled config.yaml", e);
     }
 
-    if (inputStream == null) {
+    if (inputStream == null && merged.isEmpty()) {
       throw new RuntimeException("Could not find config.yaml on classpath or external storage");
     }
 
-    try (InputStream is = inputStream) {
-      Yaml yaml = new Yaml();
-      Map<String, Object> loaded = yaml.load(is);
-      config = loaded != null ? loaded : new HashMap<>();
-      try {
-        loadDocs();
-      } catch (Throwable ignored) {}
-      try {
-        android.util.Log.i("ConfigLoader", "Config loaded from " + loadedSource);
-      } catch (Throwable ignored) {
-        System.out.println("ConfigLoader: Config loaded from " + loadedSource);
+    if (inputStream != null) {
+      try (InputStream is = inputStream) {
+        Map<String, Object> override = yaml.load(is);
+        if (override != null) {
+          deepMerge(merged, override);
+        }
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to load config.yaml from " + loadedSource, e);
       }
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to load config.yaml from " + loadedSource, e);
+    } else {
+      loadedSource = "bundled classpath resource: " + CLASSPATH_RESOURCE;
+    }
+
+    config = merged;
+    try {
+      loadDocs();
+    } catch (Throwable ignored) {
+    }
+    try {
+      android.util.Log.i("ConfigLoader", "Config loaded from " + loadedSource);
+    } catch (Throwable ignored) {
+      System.out.println("ConfigLoader: Config loaded from " + loadedSource);
+    }
+  }
+
+  /**
+   * Recursively layers {@code override} onto {@code base}, mutating {@code base}. Nested maps are
+   * merged key by key so an override may specify only the values it wants to change; scalars and
+   * lists replace wholesale.
+   */
+  @SuppressWarnings("unchecked")
+  public static void deepMerge(Map<String, Object> base, Map<String, Object> override) {
+    for (Map.Entry<String, Object> entry : override.entrySet()) {
+      String key = entry.getKey();
+      Object overrideValue = entry.getValue();
+      Object baseValue = base.get(key);
+
+      if (baseValue instanceof Map && overrideValue instanceof Map) {
+        deepMerge((Map<String, Object>) baseValue, (Map<String, Object>) overrideValue);
+      } else {
+        base.put(key, overrideValue);
+      }
     }
   }
 
@@ -585,8 +628,16 @@ public final class ConfigLoader {
           return Class.forName("com.qualcomm.robotcore.hardware.PIDFCoefficients")
               .getConstructor(double.class, double.class, double.class, double.class)
               .newInstance(p, i, d, f);
-        } catch (Exception e) {
-          throw new RuntimeException("Failed to instantiate PIDFCoefficients", e);
+        } catch (Exception e1) {
+          try {
+            Class<?> algEnum = Class.forName("com.qualcomm.robotcore.hardware.MotorControlAlgorithm");
+            Object defaultAlg = algEnum.getEnumConstants()[0];
+            return Class.forName("com.qualcomm.robotcore.hardware.PIDFCoefficients")
+                .getConstructor(double.class, double.class, double.class, double.class, algEnum)
+                .newInstance(p, i, d, f, defaultAlg);
+          } catch (Exception e2) {
+            throw new RuntimeException("Failed to instantiate com.qualcomm.robotcore.hardware.PIDFCoefficients", e1);
+          }
         }
       } else {
         return new com.pedropathing.control.PIDFCoefficients(p, i, d, f);
