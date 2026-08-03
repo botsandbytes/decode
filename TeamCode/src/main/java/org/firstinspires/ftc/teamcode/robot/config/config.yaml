@@ -1,33 +1,38 @@
 # yaml-language-server: $schema=generated/config-schema.json
 turret:
-  max_turn_power: 0.5
-  min_turn_power: 0.12
   max_power_output: 0.5
-  feed_forward: 0.08
+  ks: 0.044
+  servo_direction_inverted: true
   orientation:
-    logo: "RIGHT"
+    logo: "LEFT"
     usb: "UP"
-  turn:
-    offset_const: 260
-    limit_const: 160
+  travel:
+    min_angle: -32.3
+    max_angle: 32.3
+  aim_hysteresis: 2.0
+  stall:
+    timeout_sec: 0.25
+    kick_power: 0.10
+    progress_deg: 0.3
   pidf:
-    p: 0.01
-    i: 0.0005
-    d: 0.003
+    p: 0.01424
+    i: 0
+    d: 0
     f: 0
   tolerance:
     max_drift: 3
     near_cutoff: 1
-    near_val: 45
+    near_val: 1.5
     min_deg: 0.5
     max_deg: 2
   analog_encoder:
     enabled: true
-    zero_voltage: 1.65
-    degrees_per_volt: 109.09
-    min_voltage: 0.1
-    max_voltage: 3.2
-    inverted: false
+    zero_voltage: 2.5420
+    degrees_per_volt: 42.15
+    min_voltage: 0.079
+    max_voltage: 1.705
+    full_scale_voltage: 3.3
+    inverted: true
 
 vision:
   camera_position:
@@ -41,7 +46,7 @@ vision:
 
 sentinel:
   robot_width: 18
-  rotation_lookahead: 0.45
+  rotation_lookahead_time: 0.0685
   goals:
     size: 6
     min_y: 69
@@ -51,36 +56,45 @@ sentinel:
     blue_goal_y: 135
 
 casablanca:
+  enable_depth_protection: true
+  enable_side_protection: true
   repulsion:
     power: 0.12
     decel_safety_factor: 0.7
   depth:
-    slow_down: 8
+    slow_down: 15.0
     hard_stop: 10
   side:
     slow_down: 4
     hard_stop: 3
   lane_blend_distance: 12
   friction:
-    x: 0.0411
-    y: 0.0657
-    rot: 0.0711
+    x: 0.1041
+    y: 0.1488
+    rot: 0.1041
   smoothing:
     time: 0.22
     back_lift_multiplier: 2.5
   heading_lock:
     enabled: true
-    kp: 3.37
-    max_power: 0.04
-    deadband: 0.01
+    intent_threshold: 0.05
+    ks_moving: 0.0003
+    moving_speed_threshold: 10.0
+    max_power: 0.30
+    error_deadband_deg: 2.0
+    settle_rate_dps: 15.0
+
 
 shooter:
   max_rpm: 1500
-  auto_shoot_mode: true
   min_transfer_threshold: 0.93
+  max_velocity_threshold: 1.05
+  feed_intake_power: 1.0
+  feed_transfer_power: 1.0
+  long_hood_power_threshold: 0.7
   hood:
     low_position: 0.156
-    high_position: k+0.5
+    high_position: k+0.7
   pidf:
     p: 150
     i: 0
@@ -89,7 +103,7 @@ shooter:
   launch_params:
     threshold_distance: 33
     near:
-      launch_power: 0.59
+      launch_power: 0.4
       wait_time: 2000
     far:
       blue_base_power: 0.58
@@ -102,18 +116,19 @@ auto:
   shoot_wait_ms: 1300
   launch_power: 0.71
   transfer_power: 0.12
-  min_transfer_threshold: 0.93
   opposite_drink_wait_ms: 1250
   opposite_shoot_wait_ms: 2450
   opposite_launch_power: 0.86
   opposite_transfer_power: 0.12
-  opposite_min_transfer_threshold: 0.95
 
 teleop:
-  max_speed: 0.6
+  max_speed: 1
+  intake_power: 1.0
+  transfer_power: 0.1
+  manual_rev_power: 0.6
   poses:
     red:
-      start: [87, 8, 90]
+      start: [87, 8, 91]
       score: [61, 21, 0]
       drink: [129, 60.5, 42]
       park: [37.5, 32, 270]
@@ -138,7 +153,7 @@ auto_poses:
       pickup3_cp: [56, 25, 180]
       pickup3_end: [11, 36, 180]
     red:
-      start: m
+      start: m+1
       score: m
       final_score: m
       drink_cp: m

@@ -18,14 +18,17 @@ public final class config {
   public static Auto auto;
   public static Teleop teleop;
 
-  public static double TURRET_MAX_TURN_POWER;
-  public static double TURRET_MIN_TURN_POWER;
   public static double TURRET_MAX_POWER_OUTPUT;
-  public static double TURRET_FEED_FORWARD;
+  public static double TURRET_KS;
+  public static boolean TURRET_SERVO_DIRECTION_INVERTED;
   public static String TURRET_ORIENTATION_LOGO;
   public static String TURRET_ORIENTATION_USB;
-  public static double TURRET_TURN_OFFSET_CONST;
-  public static double TURRET_TURN_LIMIT_CONST;
+  public static double TURRET_TRAVEL_MIN_ANGLE;
+  public static double TURRET_TRAVEL_MAX_ANGLE;
+  public static double TURRET_AIM_HYSTERESIS;
+  public static double TURRET_STALL_TIMEOUT_SEC;
+  public static double TURRET_STALL_KICK_POWER;
+  public static double TURRET_STALL_PROGRESS_DEG;
   public static double TURRET_PIDF_P;
   public static double TURRET_PIDF_I;
   public static double TURRET_PIDF_D;
@@ -40,6 +43,7 @@ public final class config {
   public static double TURRET_ANALOG_ENCODER_DEGREES_PER_VOLT;
   public static double TURRET_ANALOG_ENCODER_MIN_VOLTAGE;
   public static double TURRET_ANALOG_ENCODER_MAX_VOLTAGE;
+  public static double TURRET_ANALOG_ENCODER_FULL_SCALE_VOLTAGE;
   public static boolean TURRET_ANALOG_ENCODER_INVERTED;
   public static double VISION_CAMERA_POSITION_X;
   public static double VISION_CAMERA_POSITION_Y;
@@ -48,13 +52,15 @@ public final class config {
   public static double VISION_CAMERA_ORIENTATION_PITCH;
   public static double VISION_CAMERA_ORIENTATION_ROLL;
   public static double SENTINEL_ROBOT_WIDTH;
-  public static double SENTINEL_ROTATION_LOOKAHEAD;
+  public static double SENTINEL_ROTATION_LOOKAHEAD_TIME;
   public static double SENTINEL_GOALS_SIZE;
   public static double SENTINEL_GOALS_MIN_Y;
   public static double SENTINEL_GOALS_RED_GOAL_X;
   public static double SENTINEL_GOALS_RED_GOAL_Y;
   public static double SENTINEL_GOALS_BLUE_GOAL_X;
   public static double SENTINEL_GOALS_BLUE_GOAL_Y;
+  public static boolean CASABLANCA_ENABLE_DEPTH_PROTECTION;
+  public static boolean CASABLANCA_ENABLE_SIDE_PROTECTION;
   public static double CASABLANCA_REPULSION_POWER;
   public static double CASABLANCA_REPULSION_DECEL_SAFETY_FACTOR;
   public static double CASABLANCA_DEPTH_SLOW_DOWN;
@@ -68,12 +74,18 @@ public final class config {
   public static double CASABLANCA_SMOOTHING_TIME;
   public static double CASABLANCA_SMOOTHING_BACK_LIFT_MULTIPLIER;
   public static boolean CASABLANCA_HEADING_LOCK_ENABLED;
-  public static double CASABLANCA_HEADING_LOCK_KP;
+  public static double CASABLANCA_HEADING_LOCK_INTENT_THRESHOLD;
+  public static double CASABLANCA_HEADING_LOCK_KS_MOVING;
+  public static double CASABLANCA_HEADING_LOCK_MOVING_SPEED_THRESHOLD;
   public static double CASABLANCA_HEADING_LOCK_MAX_POWER;
-  public static double CASABLANCA_HEADING_LOCK_DEADBAND;
+  public static double CASABLANCA_HEADING_LOCK_ERROR_DEADBAND_DEG;
+  public static double CASABLANCA_HEADING_LOCK_SETTLE_RATE_DPS;
   public static double SHOOTER_MAX_RPM;
-  public static boolean SHOOTER_AUTO_SHOOT_MODE;
   public static double SHOOTER_MIN_TRANSFER_THRESHOLD;
+  public static double SHOOTER_MAX_VELOCITY_THRESHOLD;
+  public static double SHOOTER_FEED_INTAKE_POWER;
+  public static double SHOOTER_FEED_TRANSFER_POWER;
+  public static double SHOOTER_LONG_HOOD_POWER_THRESHOLD;
   public static double SHOOTER_HOOD_LOW_POSITION;
   public static double SHOOTER_HOOD_HIGH_POSITION;
   public static double SHOOTER_PIDF_P;
@@ -91,13 +103,14 @@ public final class config {
   public static int AUTO_SHOOT_WAIT_MS;
   public static double AUTO_LAUNCH_POWER;
   public static double AUTO_TRANSFER_POWER;
-  public static double AUTO_MIN_TRANSFER_THRESHOLD;
   public static int AUTO_OPPOSITE_DRINK_WAIT_MS;
   public static int AUTO_OPPOSITE_SHOOT_WAIT_MS;
   public static double AUTO_OPPOSITE_LAUNCH_POWER;
   public static double AUTO_OPPOSITE_TRANSFER_POWER;
-  public static double AUTO_OPPOSITE_MIN_TRANSFER_THRESHOLD;
   public static double TELEOP_MAX_SPEED;
+  public static double TELEOP_INTAKE_POWER;
+  public static double TELEOP_TRANSFER_POWER;
+  public static double TELEOP_MANUAL_REV_POWER;
   public static Pose TELEOP_POSES_RED_START;
   public static Pose TELEOP_POSES_RED_SCORE;
   public static Pose TELEOP_POSES_RED_DRINK;
@@ -120,14 +133,17 @@ public final class config {
     shooter = ConfigLoader.load(Shooter.class, "shooter");
     auto = ConfigLoader.load(Auto.class, "auto");
     teleop = ConfigLoader.load(Teleop.class, "teleop");
-    TURRET_MAX_TURN_POWER = turret.max_turn_power;
-    TURRET_MIN_TURN_POWER = turret.min_turn_power;
     TURRET_MAX_POWER_OUTPUT = turret.max_power_output;
-    TURRET_FEED_FORWARD = turret.feed_forward;
+    TURRET_KS = turret.ks;
+    TURRET_SERVO_DIRECTION_INVERTED = turret.servo_direction_inverted;
     TURRET_ORIENTATION_LOGO = turret.orientation.logo;
     TURRET_ORIENTATION_USB = turret.orientation.usb;
-    TURRET_TURN_OFFSET_CONST = turret.turn.offset_const;
-    TURRET_TURN_LIMIT_CONST = turret.turn.limit_const;
+    TURRET_TRAVEL_MIN_ANGLE = turret.travel.min_angle;
+    TURRET_TRAVEL_MAX_ANGLE = turret.travel.max_angle;
+    TURRET_AIM_HYSTERESIS = turret.aim_hysteresis;
+    TURRET_STALL_TIMEOUT_SEC = turret.stall.timeout_sec;
+    TURRET_STALL_KICK_POWER = turret.stall.kick_power;
+    TURRET_STALL_PROGRESS_DEG = turret.stall.progress_deg;
     TURRET_PIDF_P = turret.pidf.p;
     TURRET_PIDF_I = turret.pidf.i;
     TURRET_PIDF_D = turret.pidf.d;
@@ -142,6 +158,7 @@ public final class config {
     TURRET_ANALOG_ENCODER_DEGREES_PER_VOLT = turret.analog_encoder.degrees_per_volt;
     TURRET_ANALOG_ENCODER_MIN_VOLTAGE = turret.analog_encoder.min_voltage;
     TURRET_ANALOG_ENCODER_MAX_VOLTAGE = turret.analog_encoder.max_voltage;
+    TURRET_ANALOG_ENCODER_FULL_SCALE_VOLTAGE = turret.analog_encoder.full_scale_voltage;
     TURRET_ANALOG_ENCODER_INVERTED = turret.analog_encoder.inverted;
     VISION_CAMERA_POSITION_X = vision.camera_position.x;
     VISION_CAMERA_POSITION_Y = vision.camera_position.y;
@@ -150,13 +167,15 @@ public final class config {
     VISION_CAMERA_ORIENTATION_PITCH = vision.camera_orientation.pitch;
     VISION_CAMERA_ORIENTATION_ROLL = vision.camera_orientation.roll;
     SENTINEL_ROBOT_WIDTH = sentinel.robot_width;
-    SENTINEL_ROTATION_LOOKAHEAD = sentinel.rotation_lookahead;
+    SENTINEL_ROTATION_LOOKAHEAD_TIME = sentinel.rotation_lookahead_time;
     SENTINEL_GOALS_SIZE = sentinel.goals.size;
     SENTINEL_GOALS_MIN_Y = sentinel.goals.min_y;
     SENTINEL_GOALS_RED_GOAL_X = sentinel.goals.red_goal_x;
     SENTINEL_GOALS_RED_GOAL_Y = sentinel.goals.red_goal_y;
     SENTINEL_GOALS_BLUE_GOAL_X = sentinel.goals.blue_goal_x;
     SENTINEL_GOALS_BLUE_GOAL_Y = sentinel.goals.blue_goal_y;
+    CASABLANCA_ENABLE_DEPTH_PROTECTION = casablanca.enable_depth_protection;
+    CASABLANCA_ENABLE_SIDE_PROTECTION = casablanca.enable_side_protection;
     CASABLANCA_REPULSION_POWER = casablanca.repulsion.power;
     CASABLANCA_REPULSION_DECEL_SAFETY_FACTOR = casablanca.repulsion.decel_safety_factor;
     CASABLANCA_DEPTH_SLOW_DOWN = casablanca.depth.slow_down;
@@ -170,12 +189,18 @@ public final class config {
     CASABLANCA_SMOOTHING_TIME = casablanca.smoothing.time;
     CASABLANCA_SMOOTHING_BACK_LIFT_MULTIPLIER = casablanca.smoothing.back_lift_multiplier;
     CASABLANCA_HEADING_LOCK_ENABLED = casablanca.heading_lock.enabled;
-    CASABLANCA_HEADING_LOCK_KP = casablanca.heading_lock.kp;
+    CASABLANCA_HEADING_LOCK_INTENT_THRESHOLD = casablanca.heading_lock.intent_threshold;
+    CASABLANCA_HEADING_LOCK_KS_MOVING = casablanca.heading_lock.ks_moving;
+    CASABLANCA_HEADING_LOCK_MOVING_SPEED_THRESHOLD = casablanca.heading_lock.moving_speed_threshold;
     CASABLANCA_HEADING_LOCK_MAX_POWER = casablanca.heading_lock.max_power;
-    CASABLANCA_HEADING_LOCK_DEADBAND = casablanca.heading_lock.deadband;
+    CASABLANCA_HEADING_LOCK_ERROR_DEADBAND_DEG = casablanca.heading_lock.error_deadband_deg;
+    CASABLANCA_HEADING_LOCK_SETTLE_RATE_DPS = casablanca.heading_lock.settle_rate_dps;
     SHOOTER_MAX_RPM = shooter.max_rpm;
-    SHOOTER_AUTO_SHOOT_MODE = shooter.auto_shoot_mode;
     SHOOTER_MIN_TRANSFER_THRESHOLD = shooter.min_transfer_threshold;
+    SHOOTER_MAX_VELOCITY_THRESHOLD = shooter.max_velocity_threshold;
+    SHOOTER_FEED_INTAKE_POWER = shooter.feed_intake_power;
+    SHOOTER_FEED_TRANSFER_POWER = shooter.feed_transfer_power;
+    SHOOTER_LONG_HOOD_POWER_THRESHOLD = shooter.long_hood_power_threshold;
     SHOOTER_HOOD_LOW_POSITION = shooter.hood.low_position;
     SHOOTER_HOOD_HIGH_POSITION = shooter.hood.high_position;
     SHOOTER_PIDF_P = shooter.pidf.p;
@@ -193,13 +218,14 @@ public final class config {
     AUTO_SHOOT_WAIT_MS = auto.shoot_wait_ms;
     AUTO_LAUNCH_POWER = auto.launch_power;
     AUTO_TRANSFER_POWER = auto.transfer_power;
-    AUTO_MIN_TRANSFER_THRESHOLD = auto.min_transfer_threshold;
     AUTO_OPPOSITE_DRINK_WAIT_MS = auto.opposite_drink_wait_ms;
     AUTO_OPPOSITE_SHOOT_WAIT_MS = auto.opposite_shoot_wait_ms;
     AUTO_OPPOSITE_LAUNCH_POWER = auto.opposite_launch_power;
     AUTO_OPPOSITE_TRANSFER_POWER = auto.opposite_transfer_power;
-    AUTO_OPPOSITE_MIN_TRANSFER_THRESHOLD = auto.opposite_min_transfer_threshold;
     TELEOP_MAX_SPEED = teleop.max_speed;
+    TELEOP_INTAKE_POWER = teleop.intake_power;
+    TELEOP_TRANSFER_POWER = teleop.transfer_power;
+    TELEOP_MANUAL_REV_POWER = teleop.manual_rev_power;
     TELEOP_POSES_RED_START = teleop.poses.red.start;
     TELEOP_POSES_RED_SCORE = teleop.poses.red.score;
     TELEOP_POSES_RED_DRINK = teleop.poses.red.drink;
@@ -212,29 +238,22 @@ public final class config {
 
   public static final class Turret {
     /**
-     * Upper speed limit (0.0 to 1.0) allowed for chassis turn adjustments when auto-aligning to the
-     * goal. Minimum: 0.0 Maximum: 1.0
-     */
-    public double max_turn_power;
-
-    /**
-     * Minimum power (0.0 to 1.0) sent to the drivetrain during auto-turn corrections. Overcomes
-     * static wheel friction (stiction). If the robot stops turning before aligning, increase this.
-     * Minimum: 0.0 Maximum: 1.0
-     */
-    public double min_turn_power;
-
-    /**
      * Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret
      * rotation speed. Minimum: 0.0 Maximum: 1.0
      */
     public double max_power_output;
 
     /**
-     * Feedforward power component (0.0 to 1.0) added to turret rotation to overcome gear backlash
-     * and friction. Applied in the direction of movement. Minimum: 0.0 Maximum: 1.0
+     * Static friction compensation power (0.0 to 1.0) added to turret rotation to overcome gear
+     * backlash and stiction. Applied in the direction of movement. Minimum: 0.0 Maximum: 1.0
      */
-    public double feed_forward;
+    public double ks;
+
+    /**
+     * Flips which CRServo direction counts as increasing turret angle. Set this (not the analog
+     * encoder's 'inverted' flag) when the turret drives away from its target.
+     */
+    public boolean servo_direction_inverted;
 
     public static final class Orientation {
       /**
@@ -249,21 +268,49 @@ public final class config {
 
     public Orientation orientation;
 
-    public static final class Turn {
+    public static final class Travel {
       /**
-       * Encoder-to-angle mapping offset (degrees) to align the physical turret zero orientation
-       * with the chassis.
+       * Most negative turret angle (degrees, relative to the chassis) the turret is allowed to
+       * reach. Minimum: -180.0 Maximum: 0.0
        */
-      public double offset_const;
+      public double min_angle;
 
       /**
-       * Mechanical rotation boundary (degrees) measured from center. Prevents the turret from
-       * rotating past this limit and tearing internal wires.
+       * Most positive turret angle (degrees, relative to the chassis) the turret is allowed to
+       * reach. Minimum: 0.0 Maximum: 180.0
        */
-      public double limit_const;
+      public double max_angle;
     }
 
-    public Turn turn;
+    public Travel travel;
+
+    /**
+     * Multiplier applied to the aim tolerance to decide when the turret leaves the 'aimed' state.
+     * 1.0 disables hysteresis and makes the turret chatter on the tolerance boundary; 2.0 means it
+     * must drift to twice the tolerance before driving again. Minimum: 1.0
+     */
+    public double aim_hysteresis;
+
+    public static final class Stall {
+      /**
+       * Seconds the turret may be actively commanded to move without measurable progress before a
+       * stiction kick is applied. Minimum: 0.0
+       */
+      public double timeout_sec;
+
+      /**
+       * Power applied once a stall is detected, in place of the normal PIDF command, to break
+       * static friction. Minimum: 0.0
+       */
+      public double kick_power;
+
+      /**
+       * Angular movement that counts as 'making progress' and resets the stall timer. Minimum: 0.0
+       */
+      public double progress_deg;
+    }
+
+    public Stall stall;
     public com.qualcomm.robotcore.hardware.PIDFCoefficients pidf;
 
     public static final class Tolerance {
@@ -321,6 +368,12 @@ public final class config {
       /** Maximum safe voltage limit for the analog encoder. Minimum: 0.0 Maximum: 3.3 */
       public double max_voltage;
 
+      /**
+       * Full electrical span (volts) of the turret potentiometer, i.e. the voltage at which it
+       * wraps back to zero. Minimum: 0.0
+       */
+      public double full_scale_voltage;
+
       /** True if increasing turret angle produces decreasing analog voltage. */
       public boolean inverted;
     }
@@ -364,10 +417,11 @@ public final class config {
     public double robot_width;
 
     /**
-     * Angle (radians) used to project the robot's future rotation. If the robot would violate a
-     * goal zone at this lookahead angle, it prevents the turn. Minimum: 0.0
+     * Time horizon (seconds) used to project future rotation based on live angular velocity
+     * (|omega| * time). Seeded at 0.075s (derived from 0.45rad / assumed 6.0rad/s max omega);
+     * calibrate on robot using Friction Calibration TeleOp. Minimum: 0.0
      */
-    public double rotation_lookahead;
+    public double rotation_lookahead_time;
 
     public static final class Goals {
       /** Length (inches) of one side of the square scoring goal zones on the field. Minimum: 0.0 */
@@ -396,17 +450,28 @@ public final class config {
   }
 
   public static final class Casablanca {
+    /**
+     * Enable/disable depth (X-axis) goal zone proximity protection. Safety policy parameter; leave
+     * true outside of debugging.
+     */
+    public boolean enable_depth_protection;
+
+    /**
+     * Enable/disable side (Y-axis) goal zone proximity protection. Safety policy parameter; leave
+     * true outside of debugging.
+     */
+    public boolean enable_side_protection;
+
     public static final class Repulsion {
       /**
        * Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone
-       * boundary. Minimum: 0.0 Maximum: 1.0
+       * boundary. Driver/safety policy parameter. Minimum: 0.0 Maximum: 1.0
        */
       public double power;
 
       /**
-       * Scale factor (0.0 to 1.0) for predictive braking. Lowering this makes braking engage
-       * sooner/more aggressively to guarantee the robot doesn't enter the goal zone. Minimum: 0.0
-       * Maximum: 1.0
+       * Safety margin factor (0.0 to 1.0) for predictive braking (e.g. 0.7 = 30% safety margin over
+       * physics model prediction). Risk tolerance/policy parameter. Minimum: 0.0 Maximum: 1.0
        */
       public double decel_safety_factor;
     }
@@ -415,13 +480,14 @@ public final class config {
 
     public static final class Depth {
       /**
-       * Distance (inches) from the goal zone at which speed reduction warning starts. Minimum: 0.0
+       * Distance (inches) from goal zone at which proximity speed reduction starts. Driver comfort
+       * / early-warning feel parameter. Minimum: 0.0
        */
       public double slow_down;
 
       /**
-       * Distance (inches) from the goal zone where drive power towards the zone is cut to zero.
-       * Minimum: 0.0
+       * Distance (inches) from goal zone where drive power towards zone is cut to zero. Safety
+       * policy parameter. Minimum: 0.0
        */
       public double hard_stop;
     }
@@ -430,13 +496,14 @@ public final class config {
 
     public static final class Side {
       /**
-       * Distance (inches) from the goal zone at which speed reduction warning starts. Minimum: 0.0
+       * Distance (inches) from goal zone at which proximity speed reduction starts. Driver comfort
+       * / early-warning feel parameter. Minimum: 0.0
        */
       public double slow_down;
 
       /**
-       * Distance (inches) from the goal zone where drive power towards the zone is cut to zero.
-       * Minimum: 0.0
+       * Distance (inches) from goal zone where drive power towards zone is cut to zero. Safety
+       * policy parameter. Minimum: 0.0
        */
       public double hard_stop;
     }
@@ -489,22 +556,42 @@ public final class config {
       public boolean enabled;
 
       /**
-       * Proportional gain for the controller loop. Higher values correct errors more aggressively.
-       * Minimum: 0.0
+       * Raw joystick turn threshold (0.0 to 1.0) above which driver active steering takes control
+       * and disengages heading lock. Minimum: 0.0 Maximum: 1.0
        */
-      public double kp;
+      public double intent_threshold;
+
+      /**
+       * Minimum rotational drive power (0.0 to 1.0) needed to overcome friction while the robot is
+       * already translating. Minimum: 0.0 Maximum: 1.0
+       */
+      public double ks_moving;
+
+      /**
+       * Chassis translational speed threshold (inches/sec) above which full ks_moving friction
+       * feedforward is applied. Minimum: 0.0
+       */
+      public double moving_speed_threshold;
 
       /**
        * Maximum motor power (0.0 to 1.0) the loop is allowed to command. Clamped to be completely
-       * imperceptible. Minimum: 0.0 Maximum: 1.0
+       * imperceptible. Minimum: 0.0
        */
       public double max_power;
 
       /**
-       * Joystick threshold (0.0 to 1.0) below which the heading lock engages. Minimum: 0.0 Maximum:
-       * 1.0
+       * Heading error (degrees) below which heading lock applies zero correction, to avoid
+       * chattering/jitter from sensor noise while holding a heading at rest. Minimum: 0.0 Maximum:
+       * 15.0
        */
-      public double deadband;
+      public double error_deadband_deg;
+
+      /**
+       * Rotation rate (degrees/sec) below which the robot counts as settled. Heading lock waits for
+       * this before capturing the heading to hold, so it does not latch mid-coast and fight the
+       * robot's own momentum. Minimum: 0.0
+       */
+      public double settle_rate_dps;
     }
 
     public HeadingLock heading_lock;
@@ -517,13 +604,34 @@ public final class config {
      */
     public double max_rpm;
 
-    public boolean auto_shoot_mode;
-
     /**
      * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
      * Prevents launching rings before the shooter is up to speed. Minimum: 0.0 Maximum: 1.0
      */
     public double min_transfer_threshold;
+
+    /**
+     * Flywheel velocity upper bound scale factor (e.g. 1.05) to prevent overshooting before feeding
+     * rings. Minimum: 1.0 Maximum: 2.0
+     */
+    public double max_velocity_threshold;
+
+    /**
+     * Front intake power (0.0 to 1.0) when feeding rings to the shooter. Minimum: 0.0 Maximum: 1.0
+     */
+    public double feed_intake_power;
+
+    /**
+     * Transfer motor power (0.0 to 1.0) when feeding rings to the shooter. Minimum: 0.0 Maximum:
+     * 1.0
+     */
+    public double feed_transfer_power;
+
+    /**
+     * Launch power ratio threshold above which the high hood position is selected for long-range
+     * shots. Minimum: 0.0 Maximum: 1.0
+     */
+    public double long_hood_power_threshold;
 
     public static final class Hood {
       /**
@@ -614,12 +722,6 @@ public final class config {
     public double transfer_power;
 
     /**
-     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
-     * Prevents launching rings before the shooter is up to speed. Minimum: 0.0 Maximum: 1.0
-     */
-    public double min_transfer_threshold;
-
-    /**
      * Wait delay (milliseconds) at the drink gate for opposite alliance autonomous. Minimum: 0.0
      */
     public int opposite_drink_wait_ms;
@@ -641,12 +743,6 @@ public final class config {
      * Maximum: 1.0
      */
     public double opposite_transfer_power;
-
-    /**
-     * Shooter minimum transfer threshold velocity ratio for opposite auto. Minimum: 0.0 Maximum:
-     * 1.0
-     */
-    public double opposite_min_transfer_threshold;
   }
 
   public static final class Teleop {
@@ -655,6 +751,21 @@ public final class config {
      * Maximum: 1.0
      */
     public double max_speed;
+
+    /** Target motor power (0.0 to 1.0) for intake rollers in TeleOp. Minimum: 0.0 Maximum: 1.0 */
+    public double intake_power;
+
+    /**
+     * Target power coefficient (0.0 to 1.0) for autonomous transfer motor. Minimum: 0.0 Maximum:
+     * 1.0
+     */
+    public double transfer_power;
+
+    /**
+     * Target flywheel power ratio (0.0 to 1.0) for manual rev command in TeleOp. Minimum: 0.0
+     * Maximum: 1.0
+     */
+    public double manual_rev_power;
 
     public static final class Poses {
       public static final class Red {
@@ -740,12 +851,6 @@ public final class config {
     /** Target power coefficient (0.0 to 1.0) for autonomous transfer motor. */
     public double transferPower;
 
-    /**
-     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
-     * Prevents launching rings before the shooter is up to speed.
-     */
-    public double minTransferThreshold;
-
     /** Wait delay (milliseconds) at the drink gate for opposite alliance autonomous. */
     public int oppositeDrinkWaitMs;
 
@@ -757,9 +862,6 @@ public final class config {
 
     /** Target power coefficient (0.0 to 1.0) for opposite alliance autonomous transfer. */
     public double oppositeTransferPower;
-
-    /** Shooter minimum transfer threshold velocity ratio for opposite auto. */
-    public double oppositeMinTransferThreshold;
   }
 
   public static final class OppositeAuto {
@@ -808,12 +910,6 @@ public final class config {
 
     /** Target power coefficient (0.0 to 1.0) for autonomous transfer motor. */
     public double transferPower;
-
-    /**
-     * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
-     * Prevents launching rings before the shooter is up to speed.
-     */
-    public double minTransferThreshold;
   }
 
   public static MatchProfile loadMatchProfile(Alliance alliance) {

@@ -6,34 +6,6 @@
     "turret": {
       "type": "object",
       "properties": {
-        "max_turn_power": {
-          "description": "Upper speed limit (0.0 to 1.0) allowed for chassis turn adjustments when auto-aligning to the goal.",
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0.0,
-              "maximum": 1.0
-            },
-            {
-              "type": "string",
-              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
-            }
-          ]
-        },
-        "min_turn_power": {
-          "description": "Minimum power (0.0 to 1.0) sent to the drivetrain during auto-turn corrections. Overcomes static wheel friction (stiction). If the robot stops turning before aligning, increase this.",
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0.0,
-              "maximum": 1.0
-            },
-            {
-              "type": "string",
-              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
-            }
-          ]
-        },
         "max_power_output": {
           "description": "Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret rotation speed.",
           "oneOf": [
@@ -48,8 +20,8 @@
             }
           ]
         },
-        "feed_forward": {
-          "description": "Feedforward power component (0.0 to 1.0) added to turret rotation to overcome gear backlash and friction. Applied in the direction of movement.",
+        "ks": {
+          "description": "Static friction compensation power (0.0 to 1.0) added to turret rotation to overcome gear backlash and stiction. Applied in the direction of movement.",
           "oneOf": [
             {
               "type": "number",
@@ -61,6 +33,10 @@
               "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
             }
           ]
+        },
+        "servo_direction_inverted": {
+          "description": "Flips which CRServo direction counts as increasing turret angle. Set this (not the analog encoder's 'inverted' flag) when the turret drives away from its target.",
+          "type": "boolean"
         },
         "orientation": {
           "type": "object",
@@ -79,14 +55,16 @@
             "usb"
           ]
         },
-        "turn": {
+        "travel": {
           "type": "object",
           "properties": {
-            "offset_const": {
-              "description": "Encoder-to-angle mapping offset (degrees) to align the physical turret zero orientation with the chassis.",
+            "min_angle": {
+              "description": "Most negative turret angle (degrees, relative to the chassis) the turret is allowed to reach.",
               "oneOf": [
                 {
-                  "type": "number"
+                  "type": "number",
+                  "minimum": -180.0,
+                  "maximum": 0.0
                 },
                 {
                   "type": "string",
@@ -94,11 +72,13 @@
                 }
               ]
             },
-            "limit_const": {
-              "description": "Mechanical rotation boundary (degrees) measured from center. Prevents the turret from rotating past this limit and tearing internal wires.",
+            "max_angle": {
+              "description": "Most positive turret angle (degrees, relative to the chassis) the turret is allowed to reach.",
               "oneOf": [
                 {
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 180.0
                 },
                 {
                   "type": "string",
@@ -108,8 +88,70 @@
             }
           },
           "required": [
-            "offset_const",
-            "limit_const"
+            "min_angle",
+            "max_angle"
+          ]
+        },
+        "aim_hysteresis": {
+          "description": "Multiplier applied to the aim tolerance to decide when the turret leaves the 'aimed' state. 1.0 disables hysteresis and makes the turret chatter on the tolerance boundary; 2.0 means it must drift to twice the tolerance before driving again.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "stall": {
+          "type": "object",
+          "properties": {
+            "timeout_sec": {
+              "description": "Seconds the turret may be actively commanded to move without measurable progress before a stiction kick is applied.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "kick_power": {
+              "description": "Power applied once a stall is detected, in place of the normal PIDF command, to break static friction.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "progress_deg": {
+              "description": "Angular movement that counts as 'making progress' and resets the stall timer.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "timeout_sec",
+            "kick_power",
+            "progress_deg"
           ]
         },
         "pidf": {
@@ -309,6 +351,19 @@
                 }
               ]
             },
+            "full_scale_voltage": {
+              "description": "Full electrical span (volts) of the turret potentiometer, i.e. the voltage at which it wraps back to zero.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
             "inverted": {
               "description": "True if increasing turret angle produces decreasing analog voltage.",
               "type": "boolean"
@@ -320,17 +375,19 @@
             "degrees_per_volt",
             "min_voltage",
             "max_voltage",
+            "full_scale_voltage",
             "inverted"
           ]
         }
       },
       "required": [
-        "max_turn_power",
-        "min_turn_power",
         "max_power_output",
-        "feed_forward",
+        "ks",
+        "servo_direction_inverted",
         "orientation",
-        "turn",
+        "travel",
+        "aim_hysteresis",
+        "stall",
         "pidf",
         "tolerance",
         "analog_encoder"
@@ -453,8 +510,8 @@
             }
           ]
         },
-        "rotation_lookahead": {
-          "description": "Angle (radians) used to project the robot's future rotation. If the robot would violate a goal zone at this lookahead angle, it prevents the turn.",
+        "rotation_lookahead_time": {
+          "description": "Time horizon (seconds) used to project future rotation based on live angular velocity (|omega| * time). Seeded at 0.075s (derived from 0.45rad / assumed 6.0rad/s max omega); calibrate on robot using Friction Calibration TeleOp.",
           "oneOf": [
             {
               "type": "number",
@@ -560,18 +617,26 @@
       },
       "required": [
         "robot_width",
-        "rotation_lookahead",
+        "rotation_lookahead_time",
         "goals"
       ]
     },
     "casablanca": {
       "type": "object",
       "properties": {
+        "enable_depth_protection": {
+          "description": "Enable/disable depth (X-axis) goal zone proximity protection. Safety policy parameter; leave true outside of debugging.",
+          "type": "boolean"
+        },
+        "enable_side_protection": {
+          "description": "Enable/disable side (Y-axis) goal zone proximity protection. Safety policy parameter; leave true outside of debugging.",
+          "type": "boolean"
+        },
         "repulsion": {
           "type": "object",
           "properties": {
             "power": {
-              "description": "Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone boundary.",
+              "description": "Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone boundary. Driver/safety policy parameter.",
               "oneOf": [
                 {
                   "type": "number",
@@ -585,7 +650,7 @@
               ]
             },
             "decel_safety_factor": {
-              "description": "Scale factor (0.0 to 1.0) for predictive braking. Lowering this makes braking engage sooner/more aggressively to guarantee the robot doesn't enter the goal zone.",
+              "description": "Safety margin factor (0.0 to 1.0) for predictive braking (e.g. 0.7 = 30% safety margin over physics model prediction). Risk tolerance/policy parameter.",
               "oneOf": [
                 {
                   "type": "number",
@@ -608,7 +673,7 @@
           "type": "object",
           "properties": {
             "slow_down": {
-              "description": "Distance (inches) from the goal zone at which speed reduction warning starts.",
+              "description": "Distance (inches) from goal zone at which proximity speed reduction starts. Driver comfort / early-warning feel parameter.",
               "oneOf": [
                 {
                   "type": "number",
@@ -621,7 +686,7 @@
               ]
             },
             "hard_stop": {
-              "description": "Distance (inches) from the goal zone where drive power towards the zone is cut to zero.",
+              "description": "Distance (inches) from goal zone where drive power towards zone is cut to zero. Safety policy parameter.",
               "oneOf": [
                 {
                   "type": "number",
@@ -643,7 +708,7 @@
           "type": "object",
           "properties": {
             "slow_down": {
-              "description": "Distance (inches) from the goal zone at which speed reduction warning starts.",
+              "description": "Distance (inches) from goal zone at which proximity speed reduction starts. Driver comfort / early-warning feel parameter.",
               "oneOf": [
                 {
                   "type": "number",
@@ -656,7 +721,7 @@
               ]
             },
             "hard_stop": {
-              "description": "Distance (inches) from the goal zone where drive power towards the zone is cut to zero.",
+              "description": "Distance (inches) from goal zone where drive power towards zone is cut to zero. Safety policy parameter.",
               "oneOf": [
                 {
                   "type": "number",
@@ -777,8 +842,36 @@
               "description": "Enable/disable automatic heading lock when the driver releases the turn joystick in TeleOp.",
               "type": "boolean"
             },
-            "kp": {
-              "description": "Proportional gain for the controller loop. Higher values correct errors more aggressively.",
+            "intent_threshold": {
+              "description": "Raw joystick turn threshold (0.0 to 1.0) above which driver active steering takes control and disengages heading lock.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "ks_moving": {
+              "description": "Minimum rotational drive power (0.0 to 1.0) needed to overcome friction while the robot is already translating.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "moving_speed_threshold": {
+              "description": "Chassis translational speed threshold (inches/sec) above which full ks_moving friction feedforward is applied.",
               "oneOf": [
                 {
                   "type": "number",
@@ -795,8 +888,7 @@
               "oneOf": [
                 {
                   "type": "number",
-                  "minimum": 0.0,
-                  "maximum": 1.0
+                  "minimum": 0.0
                 },
                 {
                   "type": "string",
@@ -804,13 +896,26 @@
                 }
               ]
             },
-            "deadband": {
-              "description": "Joystick threshold (0.0 to 1.0) below which the heading lock engages.",
+            "error_deadband_deg": {
+              "description": "Heading error (degrees) below which heading lock applies zero correction, to avoid chattering/jitter from sensor noise while holding a heading at rest.",
               "oneOf": [
                 {
                   "type": "number",
                   "minimum": 0.0,
-                  "maximum": 1.0
+                  "maximum": 15.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "settle_rate_dps": {
+              "description": "Rotation rate (degrees/sec) below which the robot counts as settled. Heading lock waits for this before capturing the heading to hold, so it does not latch mid-coast and fight the robot's own momentum.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
                 },
                 {
                   "type": "string",
@@ -821,13 +926,18 @@
           },
           "required": [
             "enabled",
-            "kp",
+            "intent_threshold",
+            "ks_moving",
+            "moving_speed_threshold",
             "max_power",
-            "deadband"
+            "error_deadband_deg",
+            "settle_rate_dps"
           ]
         }
       },
       "required": [
+        "enable_depth_protection",
+        "enable_side_protection",
         "repulsion",
         "depth",
         "side",
@@ -853,11 +963,64 @@
             }
           ]
         },
-        "auto_shoot_mode": {
-          "type": "boolean"
-        },
         "min_transfer_threshold": {
           "description": "Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "max_velocity_threshold": {
+          "description": "Flywheel velocity upper bound scale factor (e.g. 1.05) to prevent overshooting before feeding rings.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 1.0,
+              "maximum": 2.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "feed_intake_power": {
+          "description": "Front intake power (0.0 to 1.0) when feeding rings to the shooter.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "feed_transfer_power": {
+          "description": "Transfer motor power (0.0 to 1.0) when feeding rings to the shooter.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "long_hood_power_threshold": {
+          "description": "Launch power ratio threshold above which the high hood position is selected for long-range shots.",
           "oneOf": [
             {
               "type": "number",
@@ -1086,8 +1249,11 @@
       },
       "required": [
         "max_rpm",
-        "auto_shoot_mode",
         "min_transfer_threshold",
+        "max_velocity_threshold",
+        "feed_intake_power",
+        "feed_transfer_power",
+        "long_hood_power_threshold",
         "hood",
         "pidf",
         "launch_params"
@@ -1138,20 +1304,6 @@
         },
         "transfer_power": {
           "description": "Target power coefficient (0.0 to 1.0) for autonomous transfer motor.",
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0.0,
-              "maximum": 1.0
-            },
-            {
-              "type": "string",
-              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
-            }
-          ]
-        },
-        "min_transfer_threshold": {
-          "description": "Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed.",
           "oneOf": [
             {
               "type": "number",
@@ -1217,9 +1369,24 @@
               "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
             }
           ]
-        },
-        "opposite_min_transfer_threshold": {
-          "description": "Shooter minimum transfer threshold velocity ratio for opposite auto.",
+        }
+      },
+      "required": [
+        "drink_wait_ms",
+        "shoot_wait_ms",
+        "launch_power",
+        "transfer_power",
+        "opposite_drink_wait_ms",
+        "opposite_shoot_wait_ms",
+        "opposite_launch_power",
+        "opposite_transfer_power"
+      ]
+    },
+    "teleop": {
+      "type": "object",
+      "properties": {
+        "max_speed": {
+          "description": "Maximum speed scaler (0.0 to 1.0) applied to chassis manual TeleOp drive inputs.",
           "oneOf": [
             {
               "type": "number",
@@ -1231,26 +1398,37 @@
               "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
             }
           ]
-        }
-      },
-      "required": [
-        "drink_wait_ms",
-        "shoot_wait_ms",
-        "launch_power",
-        "transfer_power",
-        "min_transfer_threshold",
-        "opposite_drink_wait_ms",
-        "opposite_shoot_wait_ms",
-        "opposite_launch_power",
-        "opposite_transfer_power",
-        "opposite_min_transfer_threshold"
-      ]
-    },
-    "teleop": {
-      "type": "object",
-      "properties": {
-        "max_speed": {
-          "description": "Maximum speed scaler (0.0 to 1.0) applied to chassis manual TeleOp drive inputs.",
+        },
+        "intake_power": {
+          "description": "Target motor power (0.0 to 1.0) for intake rollers in TeleOp.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "transfer_power": {
+          "description": "Target power coefficient (0.0 to 1.0) for autonomous transfer motor.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "manual_rev_power": {
+          "description": "Target flywheel power ratio (0.0 to 1.0) for manual rev command in TeleOp.",
           "oneOf": [
             {
               "type": "number",
@@ -1353,6 +1531,9 @@
       },
       "required": [
         "max_speed",
+        "intake_power",
+        "transfer_power",
+        "manual_rev_power",
         "poses"
       ]
     },
