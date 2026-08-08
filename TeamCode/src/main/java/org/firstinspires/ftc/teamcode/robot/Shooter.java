@@ -49,13 +49,18 @@ public class Shooter {
     hood = hardwareMap.get(Servo.class, "hood");
     voltageSensor = hardwareMap.voltageSensor.iterator().next();
 
+    DcMotor.RunMode initialMode =
+        config.shooter.use_ftc_pid
+            ? DcMotor.RunMode.RUN_USING_ENCODER
+            : DcMotor.RunMode.RUN_WITHOUT_ENCODER;
+
     shooter1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    shooter1.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-    shooter1.setDirection(DcMotorSimple.Direction.REVERSE);
+    shooter1.setMode(initialMode);
+    shooter1.setDirection(DcMotorSimple.Direction.FORWARD);
 
     shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    shooter2.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-    shooter2.setDirection(DcMotorSimple.Direction.FORWARD);
+    shooter2.setMode(initialMode);
+    shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
 
     // Pedro's I is held at 0 — the integral term is run by AntiWindupIntegrator instead, because
     // PIDFController accumulates its integral unbounded. See setShooterPIDFCoefficients().
@@ -64,22 +69,38 @@ public class Shooter {
             config.shooter.pidf.p, 0.0, config.shooter.pidf.d, config.shooter.pidf.f);
     pidfController = new PIDFController(coefficients);
 
+    setShooterPIDFCoefficients();
+
     this.targetHoodPosition = config.shooter.ballistics.min_hood_servo_pos;
     hood.setPosition(this.targetHoodPosition);
   }
 
   /**
    * Re-reads the PIDF gains from config so a hot-pushed config.yaml takes effect without an APK
-   * rebuild. This mutates the coefficients object in place rather than handing the controller a new
-   * one: {@link PIDFController#run()} re-reads its gains from the {@code PIDFCoefficientSupplier}
-   * it was constructed with, so a {@code setCoefficients(new ...)} call is silently discarded on
-   * the very next run().
+   * rebuild, for whichever control path {@code use_ftc_pid} currently selects.
+   *
+   * <p>The software path mutates {@link #coefficients} in place rather than handing the controller
+   * a new object: {@link PIDFController#run()} re-reads its gains from the {@code
+   * PIDFCoefficientSupplier} it was constructed with, so a {@code setCoefficients(new ...)} call is
+   * silently discarded on the very next {@code run()}.
+   *
+   * <p>The firmware path pushes {@code shooter.motor_pidf} straight to the REV hub. Its {@code i}
+   * must stay 0 — a live integral on the motor accumulates through a feed's velocity sag and then
+   * overshoots the setpoint once the ball leaves, which is what stalled the third shot of a
+   * magazine: the flywheel sat outside {@code max_velocity_threshold} for most of a second and a
+   * half with the gate shut. This mirrors the last known-working competition build, which ran the
+   * REV firmware PID with I=0 for exactly this reason.
    */
   public final void setShooterPIDFCoefficients() {
     // I stays 0 here on purpose; config.shooter.pidf.i feeds the AntiWindupIntegrator in
     // periodic().
     coefficients.setCoefficients(
         config.shooter.pidf.p, 0.0, config.shooter.pidf.d, config.shooter.pidf.f);
+
+    if (config.shooter.use_ftc_pid) {
+      shooter1.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, config.shooter.motor_pidf);
+      shooter2.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, config.shooter.motor_pidf);
+    }
   }
 
   public double getShooterVelocity() {
@@ -93,6 +114,10 @@ public class Shooter {
   public void stop() {
     shooter1.setPower(0);
     shooter2.setPower(0);
+    if (config.shooter.use_ftc_pid) {
+      shooter1.setVelocity(0);
+      shooter2.setVelocity(0);
+    }
     if (pidfController != null) {
       pidfController.reset();
     }
@@ -124,6 +149,15 @@ public class Shooter {
     return hood.getPosition();
   }
 
+  /**
+   * Motor power that holds the flywheel at the configured {@code constant_rpm} cruise speed — the
+   * power every shot starts from before the solver re-commands it per distance, and the power the
+   * flywheel idles at between shots so a scoring cycle is not paying for a spin-up from zero.
+   */
+  public static double constantPower() {
+    return config.shooter.constant_rpm / config.shooter.max_rpm;
+  }
+
   public void setTargetPower(double power) {
     // A setpoint change invalidates the accumulated steady-state correction for the old setpoint.
     if (Math.abs(power - this.targetPower) > 1e-6) {
@@ -150,54 +184,75 @@ public class Shooter {
       // positive-feedback loop that pinned the motor at full power.
       double currentVel = Math.abs(getShooterVelocity());
 
-      pidfController.setTargetPosition(targetVel);
-      pidfController.updatePosition(currentVel);
-      double pidOutput = pidfController.run();
+      if (config.shooter.use_ftc_pid) {
+        if (shooter1.getMode() != DcMotor.RunMode.RUN_USING_ENCODER) {
+          shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+          shooter2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+        shooter1.setVelocity(targetVel);
+        shooter2.setVelocity(targetVel);
 
-      double error = targetVel - currentVel;
-      double integralTerm =
-          integrator.update(
-              error,
-              loopTimer.seconds(),
-              config.shooter.pidf.i,
-              config.shooter.integral.band_ticks,
-              config.shooter.integral.max_contribution,
-              lastSaturationSign);
-      loopTimer.reset();
+        lastTargetVelocity = targetVel;
+        lastError = targetVel - currentVel;
+        lastPidTerm = 0.0;
+        lastIntegralTerm = 0.0;
+        lastFeedforwardTerm = 0.0;
+        lastCommand = targetPower;
+      } else {
+        if (shooter1.getMode() != DcMotor.RunMode.RUN_WITHOUT_ENCODER) {
+          shooter1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+          shooter2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
 
-      double ks = config.shooter.ks;
-      double ff = (config.shooter.pidf.f * targetVel) / 32767.0;
+        pidfController.setTargetPosition(targetVel);
+        pidfController.updatePosition(currentVel);
+        double pidOutput = pidfController.run();
 
-      // Motor power is a duty cycle, not a torque, so the same command produces less wheel speed
-      // as the pack sags. kS and kV were fit in one characterization run at one battery state; by
-      // the end of a match the same feedforward lands the flywheel well short, and with P this
-      // small (a 0.05 power shortfall needs ~340 ticks/s of standing error to correct) the loop
-      // cannot make it up. Rescaling to the measured bus voltage makes the plant look
-      // voltage-invariant to everything upstream, which is why it wraps the whole command and not
-      // just the feedforward.
-      refreshBusVoltage();
-      lastVoltageScale =
-          voltageCompensationScale(
-              config.shooter.nominal_voltage,
-              lastBusVoltage,
-              config.shooter.max_voltage_compensation);
+        double error = targetVel - currentVel;
+        double integralTerm =
+            integrator.update(
+                error,
+                loopTimer.seconds(),
+                config.shooter.pidf.i,
+                config.shooter.integral.band_ticks,
+                config.shooter.integral.max_contribution,
+                lastSaturationSign);
+        loopTimer.reset();
 
-      double raw =
-          (pidOutput + integralTerm + ff + Math.copySign(ks, targetVel)) * lastVoltageScale;
-      double command = Math.clamp(raw, -1.0, 1.0);
+        double ks = config.shooter.ks;
+        double ff = (config.shooter.pidf.f * targetVel) / 32767.0;
 
-      // Feed this pass's saturation state back to the integrator on the next pass.
-      lastSaturationSign = raw > 1.0 ? 1 : (raw < -1.0 ? -1 : 0);
+        // Motor power is a duty cycle, not a torque, so the same command produces less wheel speed
+        // as the pack sags. kS and kV were fit in one characterization run at one battery state; by
+        // the end of a match the same feedforward lands the flywheel well short, and with P this
+        // small (a 0.05 power shortfall needs ~340 ticks/s of standing error to correct) the loop
+        // cannot make it up. Rescaling to the measured bus voltage makes the plant look
+        // voltage-invariant to everything upstream, which is why it wraps the whole command and not
+        // just the feedforward.
+        refreshBusVoltage();
+        lastVoltageScale =
+            voltageCompensationScale(
+                config.shooter.nominal_voltage,
+                lastBusVoltage,
+                config.shooter.max_voltage_compensation);
 
-      lastTargetVelocity = targetVel;
-      lastError = error;
-      lastPidTerm = pidOutput;
-      lastIntegralTerm = integralTerm;
-      lastFeedforwardTerm = ff + Math.copySign(ks, targetVel);
-      lastCommand = command;
+        double raw =
+            (pidOutput + integralTerm + ff + Math.copySign(ks, targetVel)) * lastVoltageScale;
+        double command = Math.clamp(raw, -1.0, 1.0);
 
-      shooter1.setPower(command);
-      shooter2.setPower(command);
+        // Feed this pass's saturation state back to the integrator on the next pass.
+        lastSaturationSign = raw > 1.0 ? 1 : (raw < -1.0 ? -1 : 0);
+
+        lastTargetVelocity = targetVel;
+        lastError = error;
+        lastPidTerm = pidOutput;
+        lastIntegralTerm = integralTerm;
+        lastFeedforwardTerm = ff + Math.copySign(ks, targetVel);
+        lastCommand = command;
+
+        shooter1.setPower(command);
+        shooter2.setPower(command);
+      }
     }
   }
 

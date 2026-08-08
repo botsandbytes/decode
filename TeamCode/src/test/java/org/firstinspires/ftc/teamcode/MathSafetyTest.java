@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.pedropathing.geometry.Pose;
@@ -11,10 +12,15 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.ballistics.ShotTimeTable;
+import org.firstinspires.ftc.teamcode.config.ConfigLoader;
 import org.firstinspires.ftc.teamcode.records.Alliance;
+import org.firstinspires.ftc.teamcode.records.Field;
 import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
+import org.firstinspires.ftc.teamcode.utilities.CalibrationRay;
 import org.firstinspires.ftc.teamcode.utilities.Casablanca;
+import org.firstinspires.ftc.teamcode.utilities.FlywheelDipDetector;
 import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 import org.junit.Before;
 import org.junit.Test;
@@ -265,6 +271,341 @@ public class MathSafetyTest {
     assertFalse(sentinel.isRotationSafe(poseRotationSafeCheck, 1.0, 0.5));
   }
 
+  /**
+   * Every pose autonomous shoots from has to be inside a launch zone.
+   *
+   * <p>Auto fires the same aimed shot TeleOp does, and that command ends itself the moment {@code
+   * Sentinel.isLaunchAllowed} goes false. So a score pose that sits a few inches short of the zone
+   * does not shoot badly — it does not shoot at all, silently, for a whole match. That failure has
+   * no signature on the driver station beyond a zero, which is exactly why it belongs in a test.
+   *
+   * <p>This checks the configured poses. What the robot actually reaches after following a path is
+   * reported live by the "Launch Legal" telemetry line in {@code AllianceAutoBase}.
+   */
+  @Test
+  public void testAutoScorePosesAreInsideLaunchZone() {
+    for (Alliance alliance : Alliance.values()) {
+      // isLaunchAllowed checks both zones and is alliance-independent; the alliance here selects
+      // which set of (mirrored) poses gets checked.
+      Sentinel sentinel = new Sentinel(alliance);
+      String side = alliance == Alliance.RED ? "red" : "blue";
+
+      config.NormalAuto normal =
+          ConfigLoader.loadMerged(config.NormalAuto.class, "auto_poses.normal." + side, "auto");
+      assertTrue(
+          side + " normal auto score pose is outside every launch zone",
+          sentinel.isLaunchAllowed(normal.score));
+      assertTrue(
+          side + " normal auto final_score pose is outside every launch zone",
+          sentinel.isLaunchAllowed(normal.finalScore));
+
+      config.OppositeAuto opposite =
+          ConfigLoader.loadMerged(config.OppositeAuto.class, "auto_poses.opposite." + side, "auto");
+      assertTrue(
+          side + " opposite auto score pose is outside every launch zone",
+          sentinel.isLaunchAllowed(opposite.score));
+    }
+  }
+
+  /**
+   * The ball counter behind the Shot Timing Tuner.
+   *
+   * <p>Everything that makes this detector correct is a threshold, and every one of them fails in a
+   * way that still looks like a plausible answer: no refractory turns one ball into four, a missing
+   * latch re-fires the same dip the instant the refractory expires, and a baseline that averages
+   * during a dip stops counting halfway through a feed. None of that is visible from a driver
+   * station reading "6 balls" — you would simply tune auto's window against a number that was never
+   * real.
+   */
+  @Test
+  public void testFlywheelDipDetectorCountsOneEventPerBall() {
+    // 5% below reference triggers, 5% rebound off the trough re-arms, refractory 120 ms.
+    FlywheelDipDetector detector = new FlywheelDipDetector(0.05, 0.05, 0.03, 120);
+
+    // Settle a baseline at 1000 ticks/s.
+    for (int i = 0; i < 100; i++) {
+      assertFalse(detector.update(1000.0, i * 10L));
+    }
+    assertEquals(1000.0, detector.getBaselineVelocity(), 1e-6);
+
+    // One ball: a dip held over several loops fires exactly once, on the leading edge.
+    assertTrue(detector.update(920.0, 1000L));
+    assertFalse(detector.update(900.0, 1010L));
+    assertFalse(detector.update(910.0, 1020L));
+    assertEquals(1, detector.getEventCount());
+    assertEquals(0.10, detector.getDeepestDipFraction(), 1e-9);
+
+    // Recovery above the re-arm line, then a second ball past the refractory window.
+    assertFalse(detector.update(1000.0, 1030L));
+    assertTrue(detector.update(930.0, 1400L));
+    assertEquals(2, detector.getEventCount());
+
+    // A dip that re-crosses inside the refractory window is the same ball's ragged floor.
+    assertFalse(detector.update(1000.0, 1410L));
+    assertFalse(detector.update(930.0, 1450L));
+    assertEquals(2, detector.getEventCount());
+
+    // Noise that never reaches the trigger is not a ball.
+    assertFalse(detector.update(1000.0, 2000L));
+    assertFalse(detector.update(970.0, 2010L));
+    assertEquals(2, detector.getEventCount());
+
+    // Sign is ignored, as everywhere else that reads flywheel velocity.
+    assertFalse(detector.update(-1000.0, 2100L));
+    assertEquals(2, detector.getEventCount());
+  }
+
+  /**
+   * Replays the shape of a real two-ball trace off this robot, where the second ball arrives long
+   * before the wheel has recovered from the first.
+   *
+   * <p>The numbers are from {@code shot_timing_log.csv}: idling at 1020 ticks/s, ball one drops it
+   * to a 740 trough, the controller claws back to 980 over about 1.4 s, and ball two lands on top
+   * of that partial recovery. An earlier version ended a dip only when the wheel returned within 2%
+   * of its pre-ball reference — which took 2.2 s, so it stayed latched through ball two and
+   * reported one ball for the magazine. Ending the dip on a rebound off the trough is what makes
+   * the second one visible.
+   */
+  @Test
+  public void testFlywheelDipDetectorCountsBallLandingBeforeFullRecovery() {
+    FlywheelDipDetector detector = new FlywheelDipDetector(0.05, 0.05, 0.03, 120);
+
+    long t = 0;
+    for (int i = 0; i < 20; i++, t += 10) {
+      assertFalse(detector.update(1020.0, t));
+    }
+
+    // Ball one: 1020 -> 740 trough.
+    assertTrue("ball one missed", detector.update(920.0, t));
+    t += 10;
+    for (double v : new double[] {860, 800, 760, 740}) {
+      detector.update(v, t);
+      t += 10;
+    }
+    assertEquals(1, detector.getEventCount());
+
+    // Partial recovery — nowhere near the 1020 it started from.
+    for (double v : new double[] {760, 800, 840, 860, 880, 920, 940, 980}) {
+      detector.update(v, t);
+      t += 10;
+    }
+    assertEquals("recovery must not be counted as a ball", 1, detector.getEventCount());
+
+    // Ball two lands on that partial recovery.
+    assertTrue("ball two missed — detector latched in ball one's dip", detector.update(800.0, t));
+    assertEquals(2, detector.getEventCount());
+  }
+
+  /**
+   * A feed that never lets the wheel back up to its setpoint still has to count every ball.
+   *
+   * <p>This is the case that rules out measuring dips against the commanded target: during a
+   * sustained feed the flywheel sits well below setpoint the whole time — that sag is exactly why
+   * {@code feed_release_threshold} is 0.80 while the arm window is 0.97 — so a target-relative
+   * threshold sees one enormous dip and reports a single ball for the entire burst.
+   */
+  @Test
+  public void testFlywheelDipDetectorCountsBallsWhileWheelStaysSagged() {
+    FlywheelDipDetector detector = new FlywheelDipDetector(0.05, 0.05, 0.2, 100);
+
+    // Wheel has settled at 850 ticks/s under a continuous feed — 15% under a 1000 setpoint.
+    for (int i = 0; i < 100; i++) {
+      detector.update(850.0, i * 10L);
+    }
+    assertEquals(850.0, detector.getBaselineVelocity(), 1e-3);
+
+    long t = 2000L;
+    for (int ball = 0; ball < 4; ball++) {
+      assertTrue("ball " + ball + " missed", detector.update(780.0, t));
+      assertEquals(ball + 1, detector.getEventCount());
+      // Recover to the local baseline, not to the setpoint.
+      for (int i = 0; i < 12; i++) {
+        detector.update(850.0, t + 10L + i * 10L);
+      }
+      t += 300L;
+    }
+    assertEquals(4, detector.getEventCount());
+  }
+
+  /**
+   * A wheel pinned at the bottom of a dip is one ball, however long it stays there.
+   *
+   * <p>The reference must not average downward toward it: if it tracks the ball down, the wheel
+   * eventually looks "recovered" without having moved, and the same stuck ball counts again.
+   */
+  /**
+   * The flywheel coasting down must not read as a ball.
+   *
+   * <p>This is the failure that corrupted a whole calibration run. After the last ball the wheel
+   * sits above its setpoint and bleeds back down over more than a second, one encoder quantum per
+   * loop. Because the reference follows the wheel up instantly and down slowly, it hangs above the
+   * decay — and with the trigger set at 5% it eventually crossed, reporting a third ball in all 11
+   * recorded shots and cutting each measurement short before the real one landed. Real balls
+   * measured 12.2%-26.4% deep against a 5.4% worst case for the coast, so the trigger belongs
+   * between them.
+   */
+  @Test
+  public void testFlywheelDipDetectorIgnoresCoastDown() {
+    FlywheelDipDetector detector = new FlywheelDipDetector(0.09, 0.05, 0.03, 120);
+
+    // Overshoot peak, then the real measured bleed-down: 1280 -> 1180 in 20-tick steps.
+    long t = 0;
+    for (int i = 0; i < 20; i++, t += 20) {
+      detector.update(1280.0, t);
+    }
+    for (double v :
+        new double[] {
+          1280, 1260, 1280, 1260, 1240, 1260, 1240, 1220, 1220, 1200, 1200, 1200, 1180, 1180
+        }) {
+      assertFalse("coast-down at " + v + " must not count as a ball", detector.update(v, t));
+      t += 20;
+    }
+    assertEquals(0, detector.getEventCount());
+
+    // A real ball off that same decayed wheel is still caught: 1180 -> 980 is 17%.
+    assertTrue("a real ball after the coast must still register", detector.update(980.0, t));
+    assertEquals(1, detector.getEventCount());
+  }
+
+  @Test
+  public void testFlywheelDipDetectorHoldsOneEventWhilePinnedInDip() {
+    FlywheelDipDetector detector = new FlywheelDipDetector(0.05, 0.05, 0.2, 50);
+    for (int i = 0; i < 100; i++) {
+      detector.update(1000.0, i * 10L);
+    }
+
+    double baselineBefore = detector.getBaselineVelocity();
+    for (int i = 0; i < 40; i++) {
+      detector.update(900.0, 2000L + i * 10L);
+    }
+    assertEquals(baselineBefore, detector.getBaselineVelocity(), 1e-9);
+    assertEquals(1, detector.getEventCount());
+  }
+
+  /**
+   * The calibration ray must stay inside the legal drive box and always face the goal.
+   *
+   * <p>{@code maxDistance} is what stops an unreachable endpoint being clamped onto a different
+   * bearing and recorded under the distance that was asked for rather than the one actually shot.
+   */
+  @Test
+  public void testCalibrationRayStaysInBoxAndFacesGoal() {
+    double gx = Field.getBlueGoalX();
+    double gy = Field.getBlueGoalY();
+
+    double maxDistance = CalibrationRay.maxDistance(gx, gy);
+    assertTrue("ray should reach well past the shot table's near end", maxDistance > 50.0);
+
+    Pose atLimit = CalibrationRay.waypoint(gx, gy, maxDistance);
+    assertTrue(
+        "ray must not leave the box in x", atLimit.getX() <= CalibrationRay.MAX_TARGET_X + 1e-6);
+    assertTrue(
+        "ray must not leave the box in y", atLimit.getY() >= CalibrationRay.MIN_TARGET_Y - 1e-6);
+
+    for (double distance : new double[] {40.0, 72.0, 120.0}) {
+      Pose waypoint = CalibrationRay.waypoint(gx, gy, distance);
+      // The waypoint sits exactly `distance` from the goal...
+      assertEquals(distance, Math.hypot(gx - waypoint.getX(), gy - waypoint.getY()), 1e-6);
+      // ...and points straight back at it, which is what makes the turret's job the same at every
+      // endpoint and the recorded distance the only thing that varies.
+      assertEquals(
+          Math.atan2(gy - waypoint.getY(), gx - waypoint.getX()), waypoint.getHeading(), 1e-9);
+    }
+  }
+
+  /**
+   * The measured shoot-window lookup that bounds every autonomous scoring cycle.
+   *
+   * <p>Clamping outside the measured range is the deliberate choice, and the opposite of what
+   * {@link org.firstinspires.ftc.teamcode.ballistics.ShotTable} does with an uncalibrated distance:
+   * a window that is too long only costs autonomous time, while one that is too short leaves balls
+   * in the robot with no indication that it happened.
+   */
+  @Test
+  public void testShotTimeTableInterpolatesAndClamps() {
+    ShotTimeTable table = ShotTimeTable.fromPoints(new double[] {50.0, 5000, 100.0, 3000});
+    assertEquals(2, table.size());
+
+    // Exact rows.
+    assertEquals(5000, table.lookupMs(50.0));
+    assertEquals(3000, table.lookupMs(100.0));
+
+    // Linear between them.
+    assertEquals(4000, table.lookupMs(75.0));
+
+    // Clamped, not extrapolated: a shot 30 in closer than anything measured does not get faster.
+    assertEquals(5000, table.lookupMs(10.0));
+    assertEquals(3000, table.lookupMs(300.0));
+
+    // A non-finite distance must still yield a usable window rather than an exception, since the
+    // alternative is a scoring cycle with no bound on it at all.
+    assertEquals(5000, table.lookupMs(Double.NaN));
+  }
+
+  /** An absent or malformed table must never leave a scoring cycle with no bound on it. */
+  @Test
+  public void testShotTimeTableFallsBackWhenUnusable() {
+    assertNull(ShotTimeTable.fromPoints(new double[] {}));
+    assertNull(ShotTimeTable.fromPoints(null));
+
+    // windowMsFor never throws and never returns zero, whatever it is handed — a zero window feeds
+    // nothing, and a missing one never gives the chassis back to the next path.
+    for (double d : new double[] {Double.NaN, -50.0, 0.0, 68.0, 1e9}) {
+      assertTrue("window must be positive at " + d, ShotTimeTable.windowMsFor(d) > 0);
+    }
+
+    try {
+      ShotTimeTable.fromPoints(new double[] {50.0, 5000, 100.0});
+      org.junit.Assert.fail("an odd number of values is not distance,window pairs");
+    } catch (IllegalStateException expected) {
+      assertTrue(expected.getMessage().contains("pairs"));
+    }
+
+    try {
+      ShotTimeTable.fromPoints(new double[] {50.0, 5000, 40.0, 3000});
+      org.junit.Assert.fail("distances going backwards must be rejected, not silently sorted");
+    } catch (IllegalStateException expected) {
+      assertTrue(expected.getMessage().contains("strictly increase"));
+    }
+  }
+
+  /**
+   * The shipped table has to actually cover where the autos shoot from.
+   *
+   * <p>Outside the measured range {@link ShotTimeTable} clamps, and clamping across a long gap is
+   * how a scoring cycle silently gets the wrong budget. The curve runs backwards — near shots take
+   * longer than far ones — so a far shot clamped onto a near row is handed seconds it does not
+   * need, and a near shot clamped onto a far row is cut off with balls still in the robot. A few
+   * inches of clamp is noise against the ~100 ms/in slope; truncating the table is not.
+   */
+  @Test
+  public void testConfiguredShotTimeTableCoversAutoScoreDistances() {
+    ShotTimeTable table = ShotTimeTable.fromConfig();
+    assertTrue(
+        "auto.shot_time_points is empty — autos fall back to the flat window", table != null);
+
+    // The opposite auto scores from 123 in against a table measured out to 122.
+    double allowedClampInches = 5.0;
+
+    config.NormalAuto normal =
+        ConfigLoader.loadMerged(config.NormalAuto.class, "auto_poses.normal.blue", "auto");
+    config.OppositeAuto opposite =
+        ConfigLoader.loadMerged(config.OppositeAuto.class, "auto_poses.opposite.blue", "auto");
+
+    for (Object[] which : new Object[][] {{"normal", normal.score}, {"opposite", opposite.score}}) {
+      Pose score = (Pose) which[1];
+      double distance =
+          Math.hypot(Field.getBlueGoalX() - score.getX(), Field.getBlueGoalY() - score.getY());
+      assertTrue(
+          String.format(
+              "%s auto scores at %.0f in, more than %.0f in outside the measured %.0f-%.0f in"
+                  + " table — re-run the Shot Timing Tuner to cover it",
+              which[0], distance, allowedClampInches, table.minDistance(), table.maxDistance()),
+          distance >= table.minDistance() - allowedClampInches
+              && distance <= table.maxDistance() + allowedClampInches);
+    }
+  }
+
   @Test
   public void testCasablancaSymmetryAndCollisionMath() {
     Sentinel sentinel = new Sentinel(Alliance.RED);
@@ -297,6 +638,65 @@ public class MathSafetyTest {
             new Pose(3.0, poseY, 0), new com.pedropathing.math.Vector(0, 0), 0.0, 1.0, 0.0, 0.0);
     // Adjusted strafe (index 0) should be scaled down significantly
     assertTrue(Math.abs(outputY[0]) < 0.8);
+  }
+
+  @Test
+  public void testCasablancaGoalHeadingLock() {
+    Sentinel sentinel = new Sentinel(Alliance.RED);
+    Casablanca casablanca = new Casablanca(sentinel);
+
+    Casablanca.enableInputSmoothing = false;
+    Casablanca.enableFrictionComp = false;
+    Casablanca.fieldCentric = false;
+    // The driver's face-the-goal button is an explicit request, so it must engage even with the
+    // automatic "hold the last heading you were left at" lock switched off in config.
+    Casablanca.enableHeadingLock = false;
+
+    // Field centre, clear of both goal zones, so the rotation-safety gate cannot zero the turn.
+    Pose pose = new Pose(72, 72, 0.0);
+    com.pedropathing.math.Vector rest = new com.pedropathing.math.Vector(0, 0);
+
+    // Lock off: no turn stick means no turn, because the automatic lock is disabled.
+    assertEquals(0.0, casablanca.adjustDriveInput(pose, rest, 0.0, 0.0, 0.0, 0.0)[2], 1e-9);
+    assertFalse(casablanca.isGoalHeadingLockActive());
+
+    // Goal 90 deg to the robot's left. The bearing comes from the raw goal position, matching what
+    // TeleOp publishes via Turret.alignPose -- no velocity lead, so a stationary robot and a
+    // moving one at the same place get the same target.
+    double goalBearing = Turret.alignPose(pose.getX(), pose.getY(), 72, 100).getHeading();
+    assertEquals(Math.PI / 2, goalBearing, 1e-6);
+
+    casablanca.setGoalHeadingLock(goalBearing, true);
+    assertTrue(casablanca.isGoalHeadingLockActive());
+
+    // Corrects on the very first loop: unlike the latching lock, there is no wait for the robot to
+    // stop turning before a target exists.
+    double turnToGoal = casablanca.adjustDriveInput(pose, rest, 0.0, 0.0, 0.0, 0.0)[2];
+    assertTrue(turnToGoal > 0);
+    assertTrue(Math.abs(turnToGoal) <= Casablanca.headingLockMaxPower + 1e-9);
+
+    // Same target while translating: the lock is a heading-only override, so a moving robot still
+    // gets a correction toward the unmodified goal bearing rather than a lead-compensated one.
+    double turnWhileMoving =
+        casablanca
+            .adjustDriveInput(pose, new com.pedropathing.math.Vector(30, 0), 0.0, 0.0, 1.0, 0.0)[2];
+    assertTrue(turnWhileMoving > 0);
+
+    // ShotController's armed aim outranks it: both channels active, the solved azimuth wins.
+    casablanca.setArmedAimTarget(-Math.PI / 2, true);
+    double turnArmed = casablanca.adjustDriveInput(pose, rest, 0.0, 0.0, 0.0, 0.0)[2];
+    assertTrue(turnArmed < 0);
+
+    // Clearing armed aim (stopShot) falls back to the driver's lock, not to no lock at all.
+    casablanca.setArmedAimTarget(0.0, false);
+    assertTrue(casablanca.adjustDriveInput(pose, rest, 0.0, 0.0, 0.0, 0.0)[2] > 0);
+
+    // Toggling the lock off hands the turn axis back to the driver.
+    casablanca.setGoalHeadingLock(goalBearing, false);
+    assertFalse(casablanca.isGoalHeadingLockActive());
+    assertEquals(0.0, casablanca.adjustDriveInput(pose, rest, 0.0, 0.0, 0.0, 0.0)[2], 1e-9);
+
+    Casablanca.enableHeadingLock = true;
   }
 
   @Test

@@ -73,6 +73,7 @@ public abstract class TeleOpBase extends OpMode {
   protected ButtonTracker operatorRightTrigger = new ButtonTracker();
   protected ButtonTracker operatorLeftTrigger = new ButtonTracker();
 
+  protected ButtonTracker driverX = new ButtonTracker();
   protected ButtonTracker driverDpadLeft = new ButtonTracker();
   protected ButtonTracker driverDpadRight = new ButtonTracker();
   protected ButtonTracker driverRightTrigger = new ButtonTracker();
@@ -169,6 +170,7 @@ public abstract class TeleOpBase extends OpMode {
     operatorRightTrigger.update(operator.right_trigger > 0.5);
     operatorLeftTrigger.update(operator.left_trigger > 0.5);
 
+    driverX.update(driver.x);
     driverDpadLeft.update(driver.dpad_left);
     driverDpadRight.update(driver.dpad_right);
     driverRightTrigger.update(driver.right_trigger > 0.5);
@@ -199,6 +201,8 @@ public abstract class TeleOpBase extends OpMode {
     telemetryM.addData("Alliance", profile.alliance());
     telemetryM.addData("Pose", follower.getPose());
     telemetryM.addData("Drive Mode", Casablanca.fieldCentric ? "FIELD-CENTRIC" : "ROBOT-CENTRIC");
+    telemetryM.addData(
+        "Heading Lock", casablanca.isGoalHeadingLockActive() ? "GOAL (driver X)" : "last heading");
     if (casablanca.wasPoseUntrusted()) {
       telemetryM.addLine("!! DRIVE REFUSED: localizer pose is non-finite !!");
     }

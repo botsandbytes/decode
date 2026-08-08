@@ -72,11 +72,11 @@ public class ShooterCharacterizationOpMode extends LinearOpMode {
 
     shooter1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     shooter1.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-    shooter1.setDirection(DcMotorSimple.Direction.REVERSE);
+    shooter1.setDirection(DcMotorSimple.Direction.FORWARD);
 
     shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     shooter2.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-    shooter2.setDirection(DcMotorSimple.Direction.FORWARD);
+    shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
 
     stopMotors();
 

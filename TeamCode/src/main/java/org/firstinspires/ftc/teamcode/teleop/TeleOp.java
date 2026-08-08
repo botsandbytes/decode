@@ -1,10 +1,13 @@
 package org.firstinspires.ftc.teamcode.teleop;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.geometry.Pose;
 import com.pedropathing.ivy.Command;
 import com.pedropathing.ivy.Scheduler;
+import org.firstinspires.ftc.teamcode.robot.Shooter;
 import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
+import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 
 @Configurable
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "TeleOp", group = "!")
@@ -18,6 +21,9 @@ public class TeleOp extends TeleOpBase {
   private Command aimCommand;
   private Command shootManualCommand;
   private Command manualRevCommand;
+
+  /** Latched state of the driver's face-the-goal heading lock; toggled by driver X. */
+  private boolean goalHeadingLockEngaged = false;
 
   @Override
   protected void buildCommands() {
@@ -41,18 +47,9 @@ public class TeleOp extends TeleOpBase {
             .setEnd(interrupted -> intake.stop())
             .requiring(intake);
 
-    double constantPower = config.shooter.constant_rpm / config.shooter.max_rpm;
-
-    aimAndShootCommand =
-        Command.build()
-            .setStart(
-                () -> {
-                  follower.holdPoint(follower.getPose());
-                  shotController.startShot(constantPower, true);
-                })
-            .setDone(() -> !sentinel.isLaunchAllowed(follower.getPose()))
-            .setEnd(interrupted -> shotController.stopShot())
-            .requiring(follower, shooter, turret, intake);
+    // Built by ShotController so autonomous fires the exact same shot; see
+    // ShotController#aimAndShootCommand.
+    aimAndShootCommand = shotController.aimAndShootCommand(follower, sentinel);
 
     // Turret only, no flywheel. Aim (operator Y) and rev (operator X) are deliberately separate
     // commands over disjoint subsystems so holding both composes into aim-and-spin-up instead of
@@ -69,7 +66,7 @@ public class TeleOp extends TeleOpBase {
 
     shootManualCommand =
         Command.build()
-            .setStart(() -> shotController.startShot(constantPower, false))
+            .setStart(() -> shotController.startShot(Shooter.constantPower(), false))
             .setEnd(interrupted -> shotController.stopShot())
             .requiring(shooter, intake);
 
@@ -147,6 +144,34 @@ public class TeleOp extends TeleOpBase {
     if (driverLeftTrigger.onTrue()) {
       drinkCommand.schedule();
     }
+
+    // Driver X toggles the heading lock between facing the goal continuously and its default of
+    // holding whatever heading the turn stick was last released at. While engaged it owns the turn
+    // axis (translation is untouched); pressing X again or steering releases it, and the telemetry
+    // line in TeleOpBase reports which mode is live.
+    //
+    // The target is republished every loop rather than latched once, so the bearing tracks the
+    // robot as the driver translates. Deliberately the raw goal bearing, not ShotController's
+    // lead-compensated azimuth: the lead offset is proportional to robot velocity, so folding it
+    // in would make the chassis chase its own motion — the lock turns the robot, the turn adds
+    // velocity, the target moves again.
+    if (driverX.onTrue()) {
+      goalHeadingLockEngaged = !goalHeadingLockEngaged;
+    }
+
+    // Steering releases the lock, so a latched mode can never leave the driver unable to turn.
+    // Checked after the toggle above so reaching for the stick in the same loop as the press wins.
+    // Reuses the configured "is the driver steering at all" threshold that the automatic heading
+    // lock already unlatches on, rather than a second hand-picked deadband — the stick has to feel
+    // the same in both modes. Deliberately turn-only: strafing while facing the goal is the point.
+    if (Math.abs(driver.right_stick_x) > Casablanca.headingLockIntentThreshold) {
+      goalHeadingLockEngaged = false;
+    }
+
+    Pose pose = follower.getPose();
+    casablanca.setGoalHeadingLock(
+        Turret.alignPose(pose.getX(), pose.getY(), profile.goalX(), profile.goalY()).getHeading(),
+        goalHeadingLockEngaged);
 
     boolean driverStickDeflected =
         Math.abs(driver.left_stick_y) > 0.2

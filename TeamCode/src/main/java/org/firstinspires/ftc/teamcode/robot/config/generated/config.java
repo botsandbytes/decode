@@ -84,6 +84,7 @@ public final class config {
   public static double CASABLANCA_HEADING_LOCK_MAX_POWER;
   public static double CASABLANCA_HEADING_LOCK_ERROR_DEADBAND_DEG;
   public static double CASABLANCA_HEADING_LOCK_SETTLE_RATE_DPS;
+  public static boolean SHOOTER_USE_FTC_PID;
   public static double SHOOTER_KS;
   public static double SHOOTER_NOMINAL_VOLTAGE;
   public static double SHOOTER_MAX_VOLTAGE_COMPENSATION;
@@ -96,10 +97,18 @@ public final class config {
   public static double SHOOTER_FEED_INTAKE_POWER;
   public static double SHOOTER_FEED_TRANSFER_POWER;
   public static double SHOOTER_LONG_HOOD_POWER_THRESHOLD;
+  public static double SHOOTER_BALL_DETECTION_DIP_FRACTION;
+  public static double SHOOTER_BALL_DETECTION_REBOUND_FRACTION;
+  public static double SHOOTER_BALL_DETECTION_BASELINE_ALPHA;
+  public static int SHOOTER_BALL_DETECTION_REFRACTORY_MS;
   public static double SHOOTER_PIDF_P;
   public static double SHOOTER_PIDF_I;
   public static double SHOOTER_PIDF_D;
   public static double SHOOTER_PIDF_F;
+  public static double SHOOTER_MOTOR_PIDF_P;
+  public static double SHOOTER_MOTOR_PIDF_I;
+  public static double SHOOTER_MOTOR_PIDF_D;
+  public static double SHOOTER_MOTOR_PIDF_F;
   public static double SHOOTER_INTEGRAL_BAND_TICKS;
   public static double SHOOTER_INTEGRAL_MAX_CONTRIBUTION;
   public static double SHOOTER_BALLISTICS_V0;
@@ -124,6 +133,8 @@ public final class config {
   public static double SHOOTER_BALLISTICS_FLIGHT_TIME_SEC_PER_INCH;
   public static double SHOOTER_BALLISTICS_LEAD_MIN_SPEED_IPS;
   public static double[] SHOOTER_SHOT_TABLE_POINTS;
+  public static double[] AUTO_SHOT_TIME_POINTS;
+  public static int AUTO_BALLS_PER_SHOT_COUNT;
   public static int AUTO_DRINK_WAIT_MS;
   public static int AUTO_SHOOT_WAIT_MS;
   public static double AUTO_LAUNCH_POWER;
@@ -226,6 +237,7 @@ public final class config {
     CASABLANCA_HEADING_LOCK_MAX_POWER = casablanca.heading_lock.max_power;
     CASABLANCA_HEADING_LOCK_ERROR_DEADBAND_DEG = casablanca.heading_lock.error_deadband_deg;
     CASABLANCA_HEADING_LOCK_SETTLE_RATE_DPS = casablanca.heading_lock.settle_rate_dps;
+    SHOOTER_USE_FTC_PID = shooter.use_ftc_pid;
     SHOOTER_KS = shooter.ks;
     SHOOTER_NOMINAL_VOLTAGE = shooter.nominal_voltage;
     SHOOTER_MAX_VOLTAGE_COMPENSATION = shooter.max_voltage_compensation;
@@ -238,10 +250,18 @@ public final class config {
     SHOOTER_FEED_INTAKE_POWER = shooter.feed_intake_power;
     SHOOTER_FEED_TRANSFER_POWER = shooter.feed_transfer_power;
     SHOOTER_LONG_HOOD_POWER_THRESHOLD = shooter.long_hood_power_threshold;
+    SHOOTER_BALL_DETECTION_DIP_FRACTION = shooter.ball_detection.dip_fraction;
+    SHOOTER_BALL_DETECTION_REBOUND_FRACTION = shooter.ball_detection.rebound_fraction;
+    SHOOTER_BALL_DETECTION_BASELINE_ALPHA = shooter.ball_detection.baseline_alpha;
+    SHOOTER_BALL_DETECTION_REFRACTORY_MS = shooter.ball_detection.refractory_ms;
     SHOOTER_PIDF_P = shooter.pidf.p;
     SHOOTER_PIDF_I = shooter.pidf.i;
     SHOOTER_PIDF_D = shooter.pidf.d;
     SHOOTER_PIDF_F = shooter.pidf.f;
+    SHOOTER_MOTOR_PIDF_P = shooter.motor_pidf.p;
+    SHOOTER_MOTOR_PIDF_I = shooter.motor_pidf.i;
+    SHOOTER_MOTOR_PIDF_D = shooter.motor_pidf.d;
+    SHOOTER_MOTOR_PIDF_F = shooter.motor_pidf.f;
     SHOOTER_INTEGRAL_BAND_TICKS = shooter.integral.band_ticks;
     SHOOTER_INTEGRAL_MAX_CONTRIBUTION = shooter.integral.max_contribution;
     SHOOTER_BALLISTICS_V0 = shooter.ballistics.v0;
@@ -266,6 +286,8 @@ public final class config {
     SHOOTER_BALLISTICS_FLIGHT_TIME_SEC_PER_INCH = shooter.ballistics.flight_time_sec_per_inch;
     SHOOTER_BALLISTICS_LEAD_MIN_SPEED_IPS = shooter.ballistics.lead_min_speed_ips;
     SHOOTER_SHOT_TABLE_POINTS = shooter.shot_table.points;
+    AUTO_SHOT_TIME_POINTS = auto.shot_time_points;
+    AUTO_BALLS_PER_SHOT_COUNT = auto.balls_per_shot_count;
     AUTO_DRINK_WAIT_MS = auto.drink_wait_ms;
     AUTO_SHOOT_WAIT_MS = auto.shoot_wait_ms;
     AUTO_LAUNCH_POWER = auto.launch_power;
@@ -670,6 +692,14 @@ public final class config {
   }
 
   public static final class Shooter {
+    /**
+     * When true, uses the REV firmware velocity PID on the motor (RUN_USING_ENCODER with
+     * setVelocity, gains from shooter.motor_pidf). When false, uses the custom Pedro PIDF
+     * controller, anti-windup integrator, and voltage compensation (RUN_WITHOUT_ENCODER, gains from
+     * shooter.pidf).
+     */
+    public boolean use_ftc_pid;
+
     public double ks;
 
     /**
@@ -746,7 +776,50 @@ public final class config {
      */
     public double long_hood_power_threshold;
 
+    public static final class BallDetection {
+      /**
+       * How far flywheel speed must fall below its running reference, as a fraction, to count as a
+       * ball leaving the shooter. Measured on this robot: real balls dip 12.2%-26.4%, the deepest
+       * non-ball (the wheel coasting down after a shot) reaches 5.4%. Keep this between them; see
+       * FlywheelDipDetector. Minimum: 0.0 Maximum: 1.0
+       */
+      public double dip_fraction;
+
+      /**
+       * How far flywheel speed must climb back up off a dip's own trough, as a fraction, before the
+       * next ball can register. Must be strictly below dip_fraction. Ending a dip on a rebound off
+       * the trough — not on a return to the pre-ball reference — is what lets balls that arrive
+       * close together each get counted; see FlywheelDipDetector. Minimum: 0.0 Maximum: 1.0
+       */
+      public double rebound_fraction;
+
+      /**
+       * EMA weight per control loop for the ball detector's running reference speed. Small enough
+       * that one ball cannot drag the reference down with it, large enough to track a flywheel
+       * settling into a new cruise speed between shots. Minimum: 0.0 Maximum: 1.0
+       */
+      public double baseline_alpha;
+
+      /**
+       * Minimum spacing (milliseconds) between counted ball events. One ball produces a dip with a
+       * ragged floor; without this, noise on the way back up would count as a second ball. Minimum:
+       * 0.0
+       */
+      public int refractory_ms;
+    }
+
+    public BallDetection ball_detection;
     public com.qualcomm.robotcore.hardware.PIDFCoefficients pidf;
+
+    /**
+     * REV firmware velocity PIDF (p, i, d, f) applied directly to the flywheel motors via
+     * DcMotorEx.setPIDFCoefficients when shooter.use_ftc_pid is true. Distinct from shooter.pidf,
+     * which only feeds the software PIDFController used when use_ftc_pid is false and is never sent
+     * to the motor. Keep i at 0 here: a live integral on the motor firmware winds up during a
+     * feed's velocity sag and overshoots the setpoint once the ball leaves, which is what stalled
+     * the third shot of a magazine.
+     */
+    public com.qualcomm.robotcore.hardware.PIDFCoefficients motor_pidf;
 
     public static final class Integral {
       /**
@@ -899,11 +972,30 @@ public final class config {
   }
 
   public static final class Auto {
+    /**
+     * Measured shoot windows as flat distance_in, shoot_window_ms pairs, recorded by the Shot
+     * Timing Tuner OpMode. Distances must strictly increase. Looked up by linear interpolation and
+     * clamped outside the measured range, since a shot just past the last row does not suddenly get
+     * faster. ShotController ends a scoring cycle when it counts auto.balls_per_shot_count balls OR
+     * this window expires, whichever comes first — the window is the safety net for a jam, not the
+     * primary signal. auto.shoot_wait_ms is only the fallback when this table is empty.
+     */
+    public double[] shot_time_points;
+
+    /**
+     * Balls loaded before each autonomous scoring cycle. ShotController counts them live via
+     * shooter.ball_detection and ends the shot the moment this many are detected, without waiting
+     * out the rest of auto.shot_time_points' window. Minimum: 1.0
+     */
+    public int balls_per_shot_count;
+
     /** Wait delay (milliseconds) at the drink gate when intake gathers rings. Minimum: 0.0 */
     public int drink_wait_ms;
 
     /**
-     * Wait time (milliseconds) allowed to fire a shot before ending the shoot command. Minimum: 0.0
+     * Fallback wait time (milliseconds) allowed to fire a shot, used only when
+     * auto.shot_time_points is empty. Prefer the measured table: a single flat number cannot
+     * express that a close-range magazine takes longer than a long-range one. Minimum: 0.0
      */
     public int shoot_wait_ms;
 
@@ -1047,10 +1139,31 @@ public final class config {
     public Pose start;
 
     // Shared operational parameters (same for both alliances)
+    /**
+     * Measured shoot windows as flat distance_in, shoot_window_ms pairs, recorded by the Shot
+     * Timing Tuner OpMode. Distances must strictly increase. Looked up by linear interpolation and
+     * clamped outside the measured range, since a shot just past the last row does not suddenly get
+     * faster. ShotController ends a scoring cycle when it counts auto.balls_per_shot_count balls OR
+     * this window expires, whichever comes first — the window is the safety net for a jam, not the
+     * primary signal. auto.shoot_wait_ms is only the fallback when this table is empty.
+     */
+    public double[] shotTimePoints;
+
+    /**
+     * Balls loaded before each autonomous scoring cycle. ShotController counts them live via
+     * shooter.ball_detection and ends the shot the moment this many are detected, without waiting
+     * out the rest of auto.shot_time_points' window.
+     */
+    public int ballsPerShotCount;
+
     /** Wait delay (milliseconds) at the drink gate when intake gathers rings. */
     public int drinkWaitMs;
 
-    /** Wait time (milliseconds) allowed to fire a shot before ending the shoot command. */
+    /**
+     * Fallback wait time (milliseconds) allowed to fire a shot, used only when
+     * auto.shot_time_points is empty. Prefer the measured table: a single flat number cannot
+     * express that a close-range magazine takes longer than a long-range one.
+     */
     public int shootWaitMs;
 
     public double launchPower;
@@ -1106,10 +1219,31 @@ public final class config {
     public Pose start;
 
     // Shared operational parameters (same for both alliances)
+    /**
+     * Measured shoot windows as flat distance_in, shoot_window_ms pairs, recorded by the Shot
+     * Timing Tuner OpMode. Distances must strictly increase. Looked up by linear interpolation and
+     * clamped outside the measured range, since a shot just past the last row does not suddenly get
+     * faster. ShotController ends a scoring cycle when it counts auto.balls_per_shot_count balls OR
+     * this window expires, whichever comes first — the window is the safety net for a jam, not the
+     * primary signal. auto.shoot_wait_ms is only the fallback when this table is empty.
+     */
+    public double[] shotTimePoints;
+
+    /**
+     * Balls loaded before each autonomous scoring cycle. ShotController counts them live via
+     * shooter.ball_detection and ends the shot the moment this many are detected, without waiting
+     * out the rest of auto.shot_time_points' window.
+     */
+    public int ballsPerShotCount;
+
     /** Wait delay (milliseconds) at the drink gate when intake gathers rings. */
     public int drinkWaitMs;
 
-    /** Wait time (milliseconds) allowed to fire a shot before ending the shoot command. */
+    /**
+     * Fallback wait time (milliseconds) allowed to fire a shot, used only when
+     * auto.shot_time_points is empty. Prefer the measured table: a single flat number cannot
+     * express that a close-range magazine takes longer than a long-range one.
+     */
     public int shootWaitMs;
 
     public double launchPower;

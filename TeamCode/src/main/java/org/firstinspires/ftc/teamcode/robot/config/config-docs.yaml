@@ -196,6 +196,12 @@ settle_rate_dps:
   desc: "Rotation rate (degrees/sec) below which the robot counts as settled. Heading lock waits for this before capturing the heading to hold, so it does not latch mid-coast and fight the robot's own momentum."
   min: 0.0
 
+use_ftc_pid:
+  desc: "When true, uses the REV firmware velocity PID on the motor (RUN_USING_ENCODER with setVelocity, gains from shooter.motor_pidf). When false, uses the custom Pedro PIDF controller, anti-windup integrator, and voltage compensation (RUN_WITHOUT_ENCODER, gains from shooter.pidf)."
+
+motor_pidf:
+  desc: "REV firmware velocity PIDF (p, i, d, f) applied directly to the flywheel motors via DcMotorEx.setPIDFCoefficients when shooter.use_ftc_pid is true. Distinct from shooter.pidf, which only feeds the software PIDFController used when use_ftc_pid is false and is never sent to the motor. Keep i at 0 here: a live integral on the motor firmware winds up during a feed's velocity sag and overshoots the setpoint once the ball leaves, which is what stalled the third shot of a magazine."
+
 max_rpm:
   desc: "Maximum rotational speed (RPM) of the motor. Used to scale power percentage to velocity."
   min: 0.0
@@ -340,8 +346,15 @@ drink_wait_ms:
   desc: "Wait delay (milliseconds) at the drink gate when intake gathers rings."
   min: 0
 
+shot_time_points:
+  desc: "Measured shoot windows as flat distance_in, shoot_window_ms pairs, recorded by the Shot Timing Tuner OpMode. Distances must strictly increase. Looked up by linear interpolation and clamped outside the measured range, since a shot just past the last row does not suddenly get faster. ShotController ends a scoring cycle when it counts auto.balls_per_shot_count balls OR this window expires, whichever comes first — the window is the safety net for a jam, not the primary signal. auto.shoot_wait_ms is only the fallback when this table is empty."
+
+balls_per_shot_count:
+  desc: "Balls loaded before each autonomous scoring cycle. ShotController counts them live via shooter.ball_detection and ends the shot the moment this many are detected, without waiting out the rest of auto.shot_time_points' window."
+  min: 1
+
 shoot_wait_ms:
-  desc: "Wait time (milliseconds) allowed to fire a shot before ending the shoot command."
+  desc: "Fallback wait time (milliseconds) allowed to fire a shot, used only when auto.shot_time_points is empty. Prefer the measured table: a single flat number cannot express that a close-range magazine takes longer than a long-range one."
   min: 0
 
 transfer_power:
@@ -470,6 +483,25 @@ long_hood_power_threshold:
   desc: "Launch power ratio threshold above which the high hood position is selected for long-range shots."
   min: 0.0
   max: 1.0
+
+dip_fraction:
+  desc: "How far flywheel speed must fall below its running reference, as a fraction, to count as a ball leaving the shooter. Measured on this robot: real balls dip 12.2%-26.4%, the deepest non-ball (the wheel coasting down after a shot) reaches 5.4%. Keep this between them; see FlywheelDipDetector."
+  min: 0.0
+  max: 1.0
+
+rebound_fraction:
+  desc: "How far flywheel speed must climb back up off a dip's own trough, as a fraction, before the next ball can register. Must be strictly below dip_fraction. Ending a dip on a rebound off the trough — not on a return to the pre-ball reference — is what lets balls that arrive close together each get counted; see FlywheelDipDetector."
+  min: 0.0
+  max: 1.0
+
+baseline_alpha:
+  desc: "EMA weight per control loop for the ball detector's running reference speed. Small enough that one ball cannot drag the reference down with it, large enough to track a flywheel settling into a new cruise speed between shots."
+  min: 0.0
+  max: 1.0
+
+refractory_ms:
+  desc: "Minimum spacing (milliseconds) between counted ball events. One ball produces a dip with a ragged floor; without this, noise on the way back up would count as a second ball."
+  min: 0
 
 intake_power:
   desc: "Target motor power (0.0 to 1.0) for intake rollers in TeleOp."

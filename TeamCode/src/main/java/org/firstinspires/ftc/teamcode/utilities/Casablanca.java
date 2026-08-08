@@ -198,6 +198,7 @@ public class Casablanca {
     currentTurn = 0;
     headingLockInitialized = false;
     armedAimActive = false;
+    goalLockActive = false;
     if (headingPidf != null) {
       headingPidf.reset();
     }
@@ -206,9 +207,38 @@ public class Casablanca {
   private double armedAimHeadingTarget = 0.0;
   private boolean armedAimActive = false;
 
+  private double goalLockHeadingTarget = 0.0;
+  private boolean goalLockActive = false;
+
   public void setArmedAimTarget(double targetHeadingRad, boolean armed) {
     this.armedAimHeadingTarget = targetHeadingRad;
     this.armedAimActive = armed;
+  }
+
+  /**
+   * Points the chassis at a continuously-updated heading (the driver's face-the-goal button)
+   * instead of latching whatever heading the turn stick was last released at.
+   *
+   * <p>Separate from {@link #setArmedAimTarget} on purpose: ShotController rewrites its armed-aim
+   * channel every loop it solves and clears it on {@code stopShot()}, so sharing one channel would
+   * make an armed shot silently cancel the driver's lock (and vice versa). Armed aim wins where
+   * both are active, since that azimuth is the one the turret and flywheel are solved against.
+   *
+   * @param targetHeadingRad field-frame heading to hold, ignored when {@code active} is false
+   */
+  public void setGoalHeadingLock(double targetHeadingRad, boolean active) {
+    if (active && !goalLockActive) {
+      // Rising edge: drop any integral accumulated while holding the previous target, so the swing
+      // onto the goal starts from rest rather than from the tail of the last correction.
+      headingPidf.reset();
+    }
+    this.goalLockHeadingTarget = targetHeadingRad;
+    this.goalLockActive = active;
+  }
+
+  /** True while the driver has the chassis latched onto the goal bearing. */
+  public boolean isGoalHeadingLockActive() {
+    return goalLockActive;
   }
 
   public double[] adjustDriveInput(
@@ -294,9 +324,12 @@ public class Casablanca {
     if (armedAimActive && poseFinite && Double.isFinite(armedAimHeadingTarget)) {
       targetHeading = armedAimHeadingTarget;
       headingLockInitialized = true;
+    } else if (goalLockActive && poseFinite && Double.isFinite(goalLockHeadingTarget)) {
+      targetHeading = goalLockHeadingTarget;
+      headingLockInitialized = true;
     }
 
-    if ((armedAimActive || (enableHeadingLock && stickReleased)) && poseFinite) {
+    if ((armedAimActive || goalLockActive || (enableHeadingLock && stickReleased)) && poseFinite) {
       if (!headingLockInitialized) {
         // Capture the heading to hold only once the robot has actually stopped turning. Latching
         // the instant the stick is released picks a heading the robot is still coasting away from,

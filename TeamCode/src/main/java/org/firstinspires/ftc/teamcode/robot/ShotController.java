@@ -1,16 +1,20 @@
 package org.firstinspires.ftc.teamcode.robot;
 
-import static com.pedropathing.ivy.commands.Commands.instant;
+import static com.pedropathing.ivy.commands.Commands.lazy;
+import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.pedropathing.ivy.commands.Commands.waitUntil;
-import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.groups.Groups.race;
 
+import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.ivy.Command;
 import com.pedropathing.ivy.CommandBuilder;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.function.Supplier;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.ballistics.ShotSolver;
 import org.firstinspires.ftc.teamcode.ballistics.ShotTable;
+import org.firstinspires.ftc.teamcode.ballistics.ShotTimeTable;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.records.BallisticsParameters;
 import org.firstinspires.ftc.teamcode.records.Field;
@@ -18,6 +22,8 @@ import org.firstinspires.ftc.teamcode.records.ShotInputs;
 import org.firstinspires.ftc.teamcode.records.ShotSolution;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 import org.firstinspires.ftc.teamcode.utilities.Casablanca;
+import org.firstinspires.ftc.teamcode.utilities.FlywheelDipDetector;
+import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 
 public class ShotController {
   private final Shooter shooter;
@@ -36,6 +42,16 @@ public class ShotController {
 
   /** Latching state of the feed gate; see {@link #updateFeedGate()}. */
   private boolean feeding = false;
+
+  /** Whether the last {@link #periodic()} actually ran the intake, i.e. all three gates agreed. */
+  private boolean feedCommanded = false;
+
+  // Live ball counting, from the flywheel dip each one costs. Built fresh per shot rather than
+  // reused so a hot-pushed config.yaml threshold takes effect on the very next shot, the same as
+  // every other config read in this class.
+  private FlywheelDipDetector ballDetector = newBallDetector();
+  private boolean ballDetectionArmed = false;
+  private int ballsFired = 0;
 
   /** Flywheel setpoint most recently commanded from a solution; NaN until the first one lands. */
   private double commandedSolvedRpm = Double.NaN;
@@ -114,6 +130,9 @@ public class ShotController {
     this.commandedSolvedRpm = Double.NaN;
     this.feeding = false;
     this.timer.reset();
+    this.ballDetector = newBallDetector();
+    this.ballDetectionArmed = false;
+    this.ballsFired = 0;
     shooter.setTargetPower(power);
     if (checkAlignment && turret != null && turret.isEnabled()) {
       turret.setAimMode(Turret.AimMode.AIM_AT_GOAL);
@@ -218,23 +237,96 @@ public class ShotController {
     }
   }
 
-  public CommandBuilder shootCommand(double power) {
-    return shootCommand(power, config.auto.shoot_wait_ms);
+  /**
+   * The aim-and-shoot command — one implementation, shared by TeleOp and autonomous.
+   *
+   * <p>Holds the chassis where it stands, drives the turret to {@code AIM_AT_GOAL}, lets the solver
+   * pick the hood angle and a per-distance flywheel RPM, and feeds only once all three readiness
+   * gates in {@link #periodic()} agree. It ends itself the moment the robot is no longer inside a
+   * launch zone.
+   *
+   * <p>Autonomous used to run a second, strictly worse shot of its own: fixed {@code constant_rpm}
+   * power at every distance, the turret left parked at 0 so the shot was only ever aimed by the
+   * path's chassis heading, and a feed gated on flywheel speed alone. Every improvement to aiming,
+   * the shot table, and lead compensation reached TeleOp and stopped there. There is one shot in
+   * this codebase now.
+   */
+  public CommandBuilder aimAndShootCommand(Follower follower, Sentinel sentinel) {
+    return Command.build()
+        .setStart(
+            () -> {
+              follower.holdPoint(follower.getPose());
+              startShot(Shooter.constantPower(), true);
+            })
+        .setDone(() -> !sentinel.isLaunchAllowed(follower.getPose()))
+        .setEnd(interrupted -> stopShot())
+        .requiring(follower, shooter, turret, intake);
   }
 
-  public CommandBuilder shootCommand(double power, int shootWaitMs) {
-    return sequential(
-        instant(
-            () -> {
-              intake.stop();
-              startShot(power, false);
-            }),
-        waitUntil(() -> getElapsedTimeMs() > shootWaitMs),
-        instant(this::stopShot));
+  /**
+   * The same shot, ended by whichever comes first: the magazine emptying, or a time budget measured
+   * for the distance it is fired from. Autonomous has no trigger to release, so something has to
+   * decide when a scoring cycle is over and the next path may start.
+   *
+   * <p>Counting balls (see {@link #getBallsFired()}) is the primary signal — a shot that has put
+   * {@code auto.balls_per_shot_count} balls into the air is done regardless of how much of its
+   * window is left, which is what actually shortened the scoring cycle once the flywheel overshoot
+   * that used to eat the third ball's feed time was fixed. The window from {@link ShotTimeTable} is
+   * the fallback for everything counting can't cover: a shot whose gates never open, a jam, a
+   * miscount. It also covers aiming and spin-up, not just feeding, so a shot that never arms still
+   * hands the chassis back instead of hanging the auto.
+   *
+   * <p>The distance is read when the command <i>starts</i> rather than when the auto is built: the
+   * whole sequence is constructed during init from a robot sitting on the wall, where every score
+   * pose is still in the future. That is what {@code lazy} is for here.
+   */
+  public CommandBuilder timedAimAndShootCommand(Follower follower, Sentinel sentinel) {
+    return lazy(
+        () ->
+            race(
+                aimAndShootCommand(follower, sentinel),
+                waitUntil(() -> ballsFired >= config.auto.balls_per_shot_count),
+                waitMs(ShotTimeTable.windowMsFor(distanceToGoal(follower.getPose())))));
+  }
+
+  /** Window this shot would be given if it were fired from {@code pose}, for telemetry. */
+  public int shotWindowMsAt(Pose pose) {
+    return ShotTimeTable.windowMsFor(distanceToGoal(pose));
+  }
+
+  private double distanceToGoal(Pose pose) {
+    return Math.hypot(
+        Field.getGoalY(alliance) - pose.getY(), Field.getGoalX(alliance) - pose.getX());
   }
 
   public boolean isActive() {
     return active;
+  }
+
+  /**
+   * Whether the last {@link #periodic()} actually commanded the intake to feed.
+   *
+   * <p>Distinct from {@link #isFlywheelReady()}, which is only the first of three gates. A ball
+   * cannot leave the robot unless this was true, which makes it the ground truth for anything
+   * counting shots: without it, a slow decay in flywheel speed long after the feed stopped looks
+   * exactly like a ball passing through.
+   */
+  public boolean isFeedCommanded() {
+    return feedCommanded;
+  }
+
+  private static FlywheelDipDetector newBallDetector() {
+    var bd = config.shooter.ball_detection;
+    return new FlywheelDipDetector(
+        bd.dip_fraction, bd.rebound_fraction, bd.baseline_alpha, bd.refractory_ms);
+  }
+
+  /**
+   * Balls counted out of the flywheel so far this shot, from the speed each one costs it; see
+   * {@link FlywheelDipDetector}. Reset to 0 by every {@link #startShot}.
+   */
+  public int getBallsFired() {
+    return ballsFired;
   }
 
   public double getElapsedTimeMs() {
@@ -423,6 +515,7 @@ public class ShotController {
 
     if (!active) {
       feeding = false;
+      feedCommanded = false;
       return;
     }
 
@@ -431,6 +524,21 @@ public class ShotController {
 
     // 1. Flywheel Readiness Gate (latching; arms on the full window, releases on the lower bound)
     boolean isFlywheelReady = updateFeedGate();
+
+    // Ball counting piggybacks on the same readiness signal: only start watching for dips once the
+    // wheel has reached its arm window at least once this shot. Spin-up is one long ramp from a
+    // stopped or idling wheel up to setpoint, and feeding that climb to the detector — whose
+    // reference tracks upward instantly — would either score the ramp itself as noise or, worse,
+    // leave a stale reference from before the shot armed. Resetting right at arm time gives the
+    // detector a clean baseline at the speed the first real ball actually falls from.
+    if (!ballDetectionArmed && isFlywheelReady) {
+      ballDetectionArmed = true;
+      ballDetector.reset();
+    }
+    if (ballDetectionArmed
+        && ballDetector.update(getFlywheelVelocity(), (long) timer.milliseconds())) {
+      ballsFired++;
+    }
 
     // 2. Alignment Readiness Gate
     boolean isTurretAligned = true;
@@ -455,6 +563,7 @@ public class ShotController {
               : "closed");
       telemetry.addData("Gate 2 (Alignment)", isTurretAligned);
       telemetry.addData("Gate 3 (Solver Valid)", isSolutionValid);
+      telemetry.addData("Balls Fired", ballsFired);
       telemetry.addData("Solution Dist (in)", lastSolution.distanceInches());
       telemetry.addData("Target Hood Pos", lastSolution.targetHoodPosition());
       telemetry.addData("Solved RPM", lastSolution.targetRpm());
@@ -467,7 +576,8 @@ public class ShotController {
       }
     }
 
-    if (isFlywheelReady && isTurretAligned && isSolutionValid) {
+    feedCommanded = isFlywheelReady && isTurretAligned && isSolutionValid;
+    if (feedCommanded) {
       intake.run(shooterConfig.feed_intake_power, shooterConfig.feed_transfer_power);
     } else {
       intake.stop();

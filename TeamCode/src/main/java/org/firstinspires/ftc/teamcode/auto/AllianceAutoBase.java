@@ -15,8 +15,10 @@ import org.firstinspires.ftc.teamcode.records.MatchProfile;
 import org.firstinspires.ftc.teamcode.robot.Intake;
 import org.firstinspires.ftc.teamcode.robot.Robot;
 import org.firstinspires.ftc.teamcode.robot.Shooter;
+import org.firstinspires.ftc.teamcode.robot.ShotController;
 import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.utilities.OpModeUtil;
+import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 
 /**
  * Generic, season-agnostic autonomous base class encapsulating alliance state, hardware lifecycle,
@@ -37,6 +39,7 @@ public abstract class AllianceAutoBase<T> extends OpMode {
   protected Shooter shooter;
   protected Turret turret;
   protected Follower follower;
+  protected Sentinel sentinel;
   protected FieldManager field;
 
   protected AllianceAutoBase(Alliance alliance, Class<T> configClass, String posePrefix) {
@@ -50,6 +53,15 @@ public abstract class AllianceAutoBase<T> extends OpMode {
   protected abstract void buildPaths();
 
   protected abstract CommandBuilder buildAuto();
+
+  /**
+   * One scoring cycle's shot: the same aimed shot TeleOp's operator fires, capped at the window
+   * measured for whatever distance the robot is standing at when it starts — see {@link
+   * ShotController#timedAimAndShootCommand(Follower, Sentinel)}.
+   */
+  protected CommandBuilder shoot() {
+    return robot.shotController.timedAimAndShootCommand(follower, sentinel);
+  }
 
   private Pose extractStartPose(T config) {
     try {
@@ -77,6 +89,7 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     intake = robot.intake;
     shooter = robot.shooter;
     turret = robot.turret;
+    sentinel = robot.sentinel;
 
     Pose startPose = extractStartPose(config);
     OpModeUtil.setupTurretAndShooter(turret, shooter);
@@ -113,6 +126,11 @@ public abstract class AllianceAutoBase<T> extends OpMode {
    * the pose, and a flywheel that was failing to reach its setpoint looked identical to one that
    * was fine. These lines are the difference between "auto did not shoot" and knowing which of
    * spin-up, aim, or the solver is responsible.
+   *
+   * <p>"Launch Legal" is the fourth way a shot can fail and the only silent one: the shot command
+   * ends itself the instant the robot is outside every launch zone, so a score pose that lands a
+   * few inches short does not shoot badly, it does not shoot at all. Watch this line at each score
+   * pose before blaming the flywheel.
    */
   private void addShooterDiagnostics() {
     double target = shooter.getLastTargetVelocity();
@@ -132,6 +150,11 @@ public abstract class AllianceAutoBase<T> extends OpMode {
             shooter.getLastVoltageScale()));
     telemetry.addData("Bus Voltage", String.format("%.2f V", shooter.getLastBusVoltage()));
     telemetry.addData("Hood", shooter.getTargetHoodPosition());
+    telemetry.addData(
+        "Launch Legal",
+        sentinel.isLaunchAllowed(follower.getPose()) ? "yes" : "NO - a shot here would not fire");
+    telemetry.addData(
+        "Shoot Window Here", "%d ms", robot.shotController.shotWindowMsAt(follower.getPose()));
 
     var solution = robot.shotController.getLastSolution();
     telemetry.addData(

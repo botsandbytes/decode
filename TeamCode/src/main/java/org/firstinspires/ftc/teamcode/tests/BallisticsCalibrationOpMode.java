@@ -18,6 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.records.MatchProfile;
 import org.firstinspires.ftc.teamcode.robot.Robot;
+import org.firstinspires.ftc.teamcode.utilities.CalibrationRay;
 import org.firstinspires.ftc.teamcode.utilities.DrawingUtil;
 import org.firstinspires.ftc.teamcode.utilities.OpModeUtil;
 
@@ -49,43 +50,14 @@ public class BallisticsCalibrationOpMode extends LinearOpMode {
   // Starting pose (72, 72, 0) in Pedro Pathing coordinates
   private static final Pose START_POSE = new Pose(72, 72, 0);
 
-  // Legal drive box for the calibration target, in Pedro Pathing field coordinates.
-  private static final double MAX_TARGET_X = 85.0;
-  private static final double MIN_TARGET_Y = 11.0;
-
-  // Endpoint of the ray the calibration walks out along, away from the blue goal. Aimed straight
-  // at the corner (MAX_TARGET_X, MIN_TARGET_Y) on purpose: distance from the goal grows with both
-  // +x and -y, so that corner is the single farthest reachable point in the box, and this bearing
-  // is therefore the one that maximises calibration range. It reaches 142.1 in, where the previous
-  // ray toward (45, 15) left the box at y = 15 after only 123.6 in.
-  //
-  // 142.1 in is a hard geometric ceiling for this box, not a tuning choice: 144 and 150 in are
-  // unreachable here by ANY ray and need the box widened past x = 85 / below y = 11.
-  private static final double RAY_END_X = MAX_TARGET_X;
-  private static final double RAY_END_Y = MIN_TARGET_Y;
-
   // Target calibration distances (inches) from the Blue Goal. The top end is 138 rather than the
-  // 142.1 ceiling so the far endpoint keeps ~2 in of margin on both bounds, since moveToWaypoint
-  // only settles to within 0.8 in and the ceiling sits exactly on the corner.
+  // 142.1 in ceiling CalibrationRay imposes, so the far endpoint keeps ~2 in of margin on both
+  // bounds — moveToWaypoint only settles to within 0.8 in and the ceiling sits exactly on the
+  // corner of the legal box.
   private static final double[] CALIBRATION_DISTANCES =
       new double[] {48.0, 72.0, 96.0, 114.0, 126.0, 138.0};
 
   private final List<Double> skippedDistances = new ArrayList<>();
-
-  /**
-   * Distance along the unit ray from the goal at which it first leaves the legal drive box. Each
-   * bound contributes a limit only when the ray actually travels toward it.
-   */
-  private static double maxOnRayDistance(double gx, double gy, double unitX, double unitY) {
-    double limit = Double.MAX_VALUE;
-    if (unitX > 1e-6) {
-      limit = Math.min(limit, (MAX_TARGET_X - gx) / unitX);
-    }
-    if (unitY < -1e-6) {
-      limit = Math.min(limit, (MIN_TARGET_Y - gy) / unitY);
-    }
-    return limit;
-  }
 
   @Override
   public void runOpMode() throws InterruptedException {
@@ -132,19 +104,13 @@ public class BallisticsCalibrationOpMode extends LinearOpMode {
         double gx = org.firstinspires.ftc.teamcode.records.Field.getBlueGoalX();
         double gy = org.firstinspires.ftc.teamcode.records.Field.getBlueGoalY();
 
-        double dx = RAY_END_X - gx;
-        double dy = RAY_END_Y - gy;
-        double distCenter = Math.hypot(dx, dy);
-        double unitX = dx / Math.max(1e-6, distCenter);
-        double unitY = dy / Math.max(1e-6, distCenter);
-
         // A distance past where the ray leaves the legal box is simply not calibratable along this
         // bearing, so skip it rather than shoot it anyway. The previous code clamped X and Y
         // independently, which silently slid the target OFF the ray: a requested 144 in became
         // (49.9, 15.0), an actual 124.8 in from the goal on a different bearing, and got logged as
         // a 144 in trial. That is a corrupt calibration point, and it is also why long endpoints
         // looked like the robot "gave up" partway.
-        double maxOnRayDistance = maxOnRayDistance(gx, gy, unitX, unitY);
+        double maxOnRayDistance = CalibrationRay.maxDistance(gx, gy);
         if (distance > maxOnRayDistance) {
           skippedDistances.add(distance);
           telemetry.clearAll();
@@ -158,12 +124,8 @@ public class BallisticsCalibrationOpMode extends LinearOpMode {
           continue;
         }
 
-        double targetX = gx + distance * unitX;
-        double targetY = gy + distance * unitY;
-        double targetHeadingRad = Math.atan2(gy - targetY, gx - targetX);
-        double targetHeadingDeg = Math.toDegrees(targetHeadingRad);
-
-        Pose targetPose = new Pose(targetX, targetY, targetHeadingRad);
+        Pose targetPose = CalibrationRay.waypoint(gx, gy, distance);
+        double targetHeadingDeg = Math.toDegrees(targetPose.getHeading());
 
         // --- STEP 1: DRIVER CONFIRMATION PROMPT ---
         boolean confirmed = promptDriverConfirmation(distance, targetPose, targetHeadingDeg);

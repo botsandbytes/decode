@@ -9,8 +9,8 @@ turret:
     logo: "LEFT"
     usb: "UP"
   travel:
-    min_angle: -30.7
-    max_angle: 30.7
+    min_angle: -30.1
+    max_angle: 30.1
   stall:
     enabled: true
     power_threshold: 0.12
@@ -32,10 +32,10 @@ turret:
     max_deg: 2
   analog_encoder:
     enabled: true
-    zero_voltage: 2.0215
+    zero_voltage: 1.079
     degrees_per_volt: 42.15
-    min_voltage: 1.223
-    max_voltage: 2.820
+    min_voltage: 0.293
+    max_voltage: 1.865
     full_scale_voltage: 3.3
     inverted: true
 
@@ -91,6 +91,7 @@ casablanca:
 
 
 shooter:
+  use_ftc_pid: true
   ks: 0.1811
   nominal_voltage: 12.0
   max_voltage_compensation: 1.4
@@ -103,11 +104,31 @@ shooter:
   feed_intake_power: 1.0
   feed_transfer_power: 1.0
   long_hood_power_threshold: 0.7
+  ball_detection:
+    # Same thresholds the Shot Timing Tuner settled on: real balls measured 12.2%-26.4% deep on this
+    # robot's flywheel, the deepest non-ball (post-shot coast-down) reached 5.4%, so 9% sits in the
+    # clear gap between them. See FlywheelDipDetector for the detection algorithm.
+    dip_fraction: 0.09
+    rebound_fraction: 0.05
+    baseline_alpha: 0.03
+    refractory_ms: 120
   pidf:
     p: 0.0001472
     i: 0.0008
     d: 0
     f: 16.0744
+  motor_pidf:
+    # REV firmware velocity PIDF for RUN_USING_ENCODER (use_ftc_pid: true), applied to the motor
+    # directly via DcMotorEx.setPIDFCoefficients — distinct from shooter.pidf above, which only
+    # feeds the software PIDFController used when use_ftc_pid is false, and is never sent to the
+    # motor. These are the values from the last known-working competition build (I=0, so no
+    # integral to wind up during a feed and fling the wheel past setpoint once the ball leaves).
+    # f is rescaled from that build's 22.8 @ max_rpm=1450 to this robot's max_rpm=1500
+    # (22.8 * 1450/1500 = 22.04) since firmware F is referenced to max_rpm; retune if it undershoots.
+    p: 150
+    i: 0
+    d: 0
+    f: 22.04
   integral:
     band_ticks: 150.0
     max_contribution: 0.15
@@ -165,6 +186,24 @@ shooter:
       ]
 
 auto:
+  # Flat distance_in, shoot_window_ms pairs, from the Shot Timing Tuner at the 9% dip trigger and
+  # after shooter.motor_pidf killed the post-shot overshoot (see that key's doc). Re-measured
+  # 2026-08-08 against the fixed detector; the previous points here were contaminated by a false
+  # trigger on the wheel's coast-down and were all too short.
+  #
+  # This table is now a SAFETY-NET TIMEOUT, not the primary end condition: ShotController counts
+  # balls itself via shooter.ball_detection and ends the shot at auto.balls_per_shot_count, whichever
+  # comes first. A shot that runs its full window without reaching the count means something
+  # actually jammed, not that the window was mis-measured.
+  shot_time_points: [
+      52.0, 1028,
+      68.0, 2056,
+      86.0, 1181,
+      104.0, 1911,
+      122.0, 4209,
+      136.0, 4014
+    ]
+  balls_per_shot_count: 3
   drink_wait_ms: 1200
   shoot_wait_ms: 1300
   launch_power: 0.71
