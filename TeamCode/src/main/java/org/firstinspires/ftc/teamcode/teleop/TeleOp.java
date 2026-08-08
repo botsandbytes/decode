@@ -28,7 +28,6 @@ public class TeleOp extends TeleOpBase {
         Command.build()
             .setStart(
                 () -> {
-                  shooter.setHoodLongShotPosition();
                   follower.holdPoint(profile.scorePose());
                 })
             .requiring(follower);
@@ -42,62 +41,43 @@ public class TeleOp extends TeleOpBase {
             .setEnd(interrupted -> intake.stop())
             .requiring(intake);
 
+    double constantPower = config.shooter.constant_rpm / config.shooter.max_rpm;
+
     aimAndShootCommand =
         Command.build()
             .setStart(
                 () -> {
                   follower.holdPoint(follower.getPose());
-                  shotController.startShot(currentParams.launchPower(), true);
+                  shotController.startShot(constantPower, true);
                 })
-            .setExecute(
-                () -> {
-                  if (currentParams.launchPower() > config.shooter.long_hood_power_threshold) {
-                    shooter.setHoodLongShotPosition();
-                  } else {
-                    shooter.setHoodShortShotPosition();
-                  }
-                })
-            .setDone(
-                () ->
-                    shotController.getElapsedTimeMs() > currentParams.waitTime()
-                        || !sentinel.isLaunchAllowed(follower.getPose()))
+            .setDone(() -> !sentinel.isLaunchAllowed(follower.getPose()))
             .setEnd(interrupted -> shotController.stopShot())
             .requiring(follower, shooter, turret, intake);
 
+    // Turret only, no flywheel. Aim (operator Y) and rev (operator X) are deliberately separate
+    // commands over disjoint subsystems so holding both composes into aim-and-spin-up instead of
+    // one overriding the other.
     aimCommand =
         Command.build()
             .setStart(() -> turret.setAimMode(Turret.AimMode.AIM_AT_GOAL))
-            .setExecute(
-                () -> {
-                  if (currentParams.launchPower() > config.shooter.long_hood_power_threshold) {
-                    shooter.setHoodLongShotPosition();
-                  } else {
-                    shooter.setHoodShortShotPosition();
-                  }
-                  shooter.setTargetPower(currentParams.launchPower());
-                })
             .setEnd(
                 interrupted -> {
-                  turret.setHoldAngle(Math.toDegrees(follower.getHeading()));
+                  turret.setHoldAngle(0.0);
                   turret.setAimMode(Turret.AimMode.HOLD);
-                  shooter.setTargetPower(0.0);
                 })
-            .requiring(shooter, turret);
+            .requiring(turret);
 
     shootManualCommand =
         Command.build()
-            .setStart(() -> shotController.startShot(currentParams.launchPower(), false))
-            .setDone(() -> shotController.getElapsedTimeMs() > currentParams.waitTime())
+            .setStart(() -> shotController.startShot(constantPower, false))
             .setEnd(interrupted -> shotController.stopShot())
             .requiring(shooter, intake);
 
+    // Flywheel only, no turret and no intake — intake ownership stays with intakeCommand so this
+    // does not write to a subsystem it never required.
     manualRevCommand =
         Command.build()
-            .setStart(
-                () -> {
-                  intake.stop();
-                  shooter.setTargetPower(config.teleop.manual_rev_power);
-                })
+            .setStart(() -> shooter.setTargetPower(config.teleop.manual_rev_power))
             .setEnd(interrupted -> shooter.setTargetPower(0.0))
             .requiring(shooter);
   }
@@ -114,13 +94,13 @@ public class TeleOp extends TeleOpBase {
   protected void onLoop() {
     boolean launchAllowed = sentinel.isLaunchAllowed(follower.getPose());
 
+    // A starts the intake, B stops it. B used to be a second copy of the rev button, which left no
+    // dedicated way to stop the intake once rev moved onto its own button.
     if (operatorA.onTrue()) {
       intakeCommand.schedule();
     }
-
-    if (operatorB.onTrue() || operatorY.onTrue()) {
+    if (operatorB.onTrue()) {
       intakeCommand.cancel();
-      manualRevCommand.schedule();
     }
 
     if (operatorRightTrigger.onTrue() && launchAllowed) {
@@ -130,11 +110,20 @@ public class TeleOp extends TeleOpBase {
       aimAndShootCommand.cancel();
     }
 
-    if (operatorX.onTrue() && launchAllowed) {
+    // Y aims (turret), X revs (flywheel). Both are hold-to-run; holding both gives the old
+    // combined aim-and-spin-up behavior that X alone used to have.
+    if (operatorY.onTrue() && launchAllowed) {
       aimCommand.schedule();
     }
-    if (operatorX.onFalse()) {
+    if (operatorY.onFalse()) {
       aimCommand.cancel();
+    }
+
+    if (operatorX.onTrue()) {
+      manualRevCommand.schedule();
+    }
+    if (operatorX.onFalse()) {
+      manualRevCommand.cancel();
     }
 
     if (operatorDpadUp.onTrue()) {
@@ -146,6 +135,7 @@ public class TeleOp extends TeleOpBase {
       aimCommand.cancel();
       shootManualCommand.cancel();
       manualRevCommand.cancel();
+      intakeCommand.cancel();
     }
 
     if (driverDpadLeft.onTrue()) {

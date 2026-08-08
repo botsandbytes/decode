@@ -9,55 +9,212 @@ import com.pedropathing.ivy.CommandBuilder;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.function.Supplier;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.ballistics.ShotSolver;
+import org.firstinspires.ftc.teamcode.ballistics.ShotTable;
+import org.firstinspires.ftc.teamcode.records.Alliance;
+import org.firstinspires.ftc.teamcode.records.BallisticsParameters;
+import org.firstinspires.ftc.teamcode.records.Field;
+import org.firstinspires.ftc.teamcode.records.ShotInputs;
+import org.firstinspires.ftc.teamcode.records.ShotSolution;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
+import org.firstinspires.ftc.teamcode.utilities.Casablanca;
 
 public class ShotController {
   private final Shooter shooter;
   private final Turret turret;
   private final Intake intake;
   private final Supplier<Pose> poseSupplier;
+  private final Supplier<Pose> velocitySupplier;
+  private final Casablanca casablanca;
+  private final Alliance alliance;
   private final Telemetry telemetry;
 
   private boolean active = false;
-  private double targetPower = 0.0;
   private boolean checkAlignment = false;
+  private boolean useSolvedRpm = false;
+  private boolean requireValidSolution = true;
+
+  /** Latching state of the feed gate; see {@link #updateFeedGate()}. */
+  private boolean feeding = false;
+
+  /** Flywheel setpoint most recently commanded from a solution; NaN until the first one lands. */
+  private double commandedSolvedRpm = Double.NaN;
+
   private final ElapsedTime timer = new ElapsedTime();
+
+  // ShotSolver.solve() is a full trajectory-optimization search: cheap in the common case, but
+  // slow enough on some inputs (target beyond what the calibrated model can loft to goal height)
+  // that running it synchronously in periodic() would stall the drivetrain/turret writes for the
+  // same tick. It instead runs continuously on a dedicated thread; periodic() only ever publishes
+  // the latest inputs (a cheap volatile write) and reads back the most recently completed solution,
+  // so a slow solve never blocks a control loop tick. lastFlightTime is the fixed-point warm-start
+  // seed for ShotSolver's iteration and is only ever touched by the solver thread.
+  private final Object solveLock = new Object();
+  private ShotInputs pendingInputs;
+  private double lastFlightTime = 0.4;
+  private volatile ShotSolution lastSolution =
+      new ShotSolution(0.15, 0.0, 0.0, 0.0, 0.4, 0.0, 72.0, false, "Not initialized");
+  private volatile boolean solving = false;
+  private volatile long lastSolveDurationMs = 0;
+  private volatile boolean running = true;
+  private final Thread solverThread;
 
   public ShotController(
       Shooter shooter,
       Turret turret,
       Intake intake,
       Supplier<Pose> poseSupplier,
+      Supplier<Pose> velocitySupplier,
+      Casablanca casablanca,
+      Alliance alliance,
       Telemetry telemetry) {
     this.shooter = shooter;
     this.turret = turret;
     this.intake = intake;
     this.poseSupplier = poseSupplier;
+    this.velocitySupplier = velocitySupplier;
+    this.casablanca = casablanca;
+    this.alliance = alliance;
     this.telemetry = telemetry;
+
+    solverThread = new Thread(this::solveLoop, "ShotSolver");
+    solverThread.setDaemon(true);
+    solverThread.start();
   }
 
+  /**
+   * Starts a shot. Aimed shots also solve their own flywheel RPM per distance; fixed-power shots
+   * (auto's hand-tuned launch powers, manual TeleOp shots) keep exactly the power passed in. Use
+   * {@link #startShot(double, boolean, boolean)} to control that independently.
+   */
   public void startShot(double power, boolean checkAlignment) {
+    startShot(power, checkAlignment, checkAlignment);
+  }
+
+  public void startShot(double power, boolean checkAlignment, boolean useSolvedRpm) {
+    startShot(power, checkAlignment, useSolvedRpm, true);
+  }
+
+  /**
+   * @param power initial flywheel power, used until the first solution lands (and for the whole
+   *     shot when {@code useSolvedRpm} is false)
+   * @param checkAlignment gate feeding on turret alignment, and drive the turret to AIM_AT_GOAL
+   * @param useSolvedRpm re-command the flywheel from the solver's per-distance RPM
+   * @param requireValidSolution gate feeding on the solver having a usable answer. Pass false only
+   *     when the caller is setting hood and RPM itself and the solution is not steering the shot —
+   *     notably the calibration OpMode, which exists to measure distances the shot table does not
+   *     cover yet and would otherwise be unable to fire at any of them.
+   */
+  public void startShot(
+      double power, boolean checkAlignment, boolean useSolvedRpm, boolean requireValidSolution) {
     this.active = true;
-    this.targetPower = power;
     this.checkAlignment = checkAlignment;
+    this.useSolvedRpm = useSolvedRpm;
+    this.requireValidSolution = requireValidSolution;
+    this.commandedSolvedRpm = Double.NaN;
+    this.feeding = false;
     this.timer.reset();
     shooter.setTargetPower(power);
-    if (checkAlignment) {
+    if (checkAlignment && turret != null && turret.isEnabled()) {
       turret.setAimMode(Turret.AimMode.AIM_AT_GOAL);
     }
   }
 
   public void stopShot() {
     this.active = false;
-    this.targetPower = 0.0;
     shooter.setTargetPower(0.0);
     intake.stop();
-    if (checkAlignment) {
-      Pose pose = poseSupplier.get();
-      if (pose != null) {
-        turret.setHoldAngle(Math.toDegrees(pose.getHeading()));
-      }
+    turret.setTargetAzimuth(Double.NaN);
+    if (casablanca != null) {
+      casablanca.setArmedAimTarget(0.0, false);
+    }
+    if (checkAlignment && turret != null && turret.isEnabled()) {
+      turret.setHoldAngle(0.0);
       turret.setAimMode(Turret.AimMode.HOLD);
+    }
+    this.checkAlignment = false;
+    this.useSolvedRpm = false;
+    this.commandedSolvedRpm = Double.NaN;
+    this.feeding = false;
+  }
+
+  /** True while the solver thread is mid-computation on the latest published inputs. */
+  public boolean isSolving() {
+    return solving;
+  }
+
+  /** Wall-clock cost of the most recently completed solve, for telemetry/diagnostics. */
+  public long getLastSolveDurationMs() {
+    return lastSolveDurationMs;
+  }
+
+  /**
+   * Stops the solver thread. Must be called once this ShotController is no longer in use (i.e. from
+   * the owning OpMode's teardown) or the thread leaks and keeps solving forever, since a new
+   * Robot/ShotController is constructed on every OpMode init.
+   */
+  public void shutdown() {
+    running = false;
+    synchronized (solveLock) {
+      solveLock.notifyAll();
+    }
+    solverThread.interrupt();
+    try {
+      solverThread.join(200);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  /** Publishes the latest inputs for the solver thread to pick up; drops any unconsumed input. */
+  private void publishInputs(ShotInputs inputs) {
+    synchronized (solveLock) {
+      pendingInputs = inputs;
+      solveLock.notify();
+    }
+  }
+
+  private void solveLoop() {
+    while (running) {
+      ShotInputs inputs;
+      synchronized (solveLock) {
+        while (running && pendingInputs == null) {
+          try {
+            solveLock.wait();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+          }
+        }
+        if (!running) {
+          return;
+        }
+        inputs = pendingInputs;
+        pendingInputs = null;
+      }
+
+      solving = true;
+      long startNanos = System.nanoTime();
+
+      ShotSolution result;
+      try {
+        result =
+            ShotSolver.solve(
+                inputs, ShotTable.fromConfig(), BallisticsParameters.fromConfig(), lastFlightTime);
+      } catch (RuntimeException e) {
+        // A malformed shot table must not take the whole control loop down mid-match; report it as
+        // an invalid solution so the readiness gate refuses to feed instead.
+        result =
+            new ShotSolution(
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, "Shot table error: " + e.getMessage());
+      }
+      if (result.predictedFlightTimeSec() > 0) {
+        lastFlightTime = result.predictedFlightTimeSec();
+      }
+
+      lastSolveDurationMs = (System.nanoTime() - startNanos) / 1_000_000;
+      lastSolution = result;
+      solving = false;
     }
   }
 
@@ -84,48 +241,233 @@ public class ShotController {
     return timer.milliseconds();
   }
 
+  public ShotSolution getLastSolution() {
+    return lastSolution;
+  }
+
+  /** Current measured flywheel velocity magnitude (ticks/s from shooter1). */
+  public double getFlywheelVelocity() {
+    return Math.abs(shooter.getShooterVelocity());
+  }
+
+  /**
+   * Target flywheel velocity magnitude the readiness gate measures against.
+   *
+   * <p>Derived from what the flywheel is actually commanded to hold rather than from {@code
+   * constant_rpm}, so it stays correct for solved-RPM shots and for auto's hand-tuned launch powers
+   * alike. Reading the constant instead meant a shot commanded at any other power was gated against
+   * a speed it was never asked to reach.
+   */
+  public double getFlywheelTarget() {
+    double commandedPower = shooter.getTargetPower();
+    return commandedPower > 0
+        ? Math.abs(config.shooter.max_rpm * commandedPower)
+        : Math.abs(config.shooter.constant_rpm);
+  }
+
+  /**
+   * Returns true iff the flywheel velocity magnitude is inside the arm window — the band it must
+   * enter before a feed may *start*. This is the stateless spin-up check; the running feed decision
+   * additionally carries hysteresis, see {@link #updateFeedGate()}.
+   */
+  public boolean isFlywheelReady() {
+    var shooterConfig = config.shooter;
+    double target = getFlywheelTarget();
+    double current = getFlywheelVelocity();
+    return current >= target * shooterConfig.min_transfer_threshold
+        && current <= target * shooterConfig.max_velocity_threshold;
+  }
+
+  /** Velocity as a fraction of the commanded target: 1.00 is on target. */
+  public double getFlywheelVelocityRatio() {
+    double target = getFlywheelTarget();
+    return target > 0 ? getFlywheelVelocity() / target : 0.0;
+  }
+
+  /** Which side of the arm window the flywheel is on, for telemetry. */
+  public String getFlywheelGateDetail() {
+    var shooterConfig = config.shooter;
+    double ratio = getFlywheelVelocityRatio();
+    if (ratio < shooterConfig.min_transfer_threshold) {
+      return String.format("BELOW min (%.2fx < %.2f)", ratio, shooterConfig.min_transfer_threshold);
+    }
+    if (ratio > shooterConfig.max_velocity_threshold) {
+      return String.format("ABOVE max (%.2fx > %.2f)", ratio, shooterConfig.max_velocity_threshold);
+    }
+    return String.format("PASS (%.2fx)", ratio);
+  }
+
+  /**
+   * Advances the latching feed gate and returns whether the intake may feed this loop. Call exactly
+   * once per loop.
+   *
+   * <p>Starting a feed requires the full arm window ({@code min_transfer_threshold} to {@code
+   * max_velocity_threshold}), but sustaining one only requires staying above the lower {@code
+   * feed_release_threshold}. Without that hysteresis the gate chattered: every ball that entered
+   * the flywheel dragged it below the arm floor, which cut the intake, which let the wheel recover,
+   * which re-opened the gate — the intake ran in visible short bursts instead of continuously.
+   *
+   * <p>The upper bound deliberately does not apply while already feeding. Balls only ever slow the
+   * flywheel down, so an over-speed reading mid-feed is the controller overshooting on its way back
+   * up from the previous shot, and interrupting the feed for it would reintroduce the same stutter
+   * from the other direction.
+   */
+  private boolean updateFeedGate() {
+    var shooterConfig = config.shooter;
+    feeding =
+        shouldFeed(
+            getFlywheelVelocityRatio(),
+            feeding,
+            shooterConfig.min_transfer_threshold,
+            shooterConfig.max_velocity_threshold,
+            shooterConfig.feed_release_threshold);
+    return feeding;
+  }
+
+  /**
+   * Pure hysteresis decision behind {@link #updateFeedGate()}, split out so the state machine is
+   * unit-testable without hardware.
+   *
+   * @param velocityRatio measured flywheel speed over commanded target; 1.0 is on target
+   * @param currentlyFeeding whether the gate is already open
+   * @param armLow lower edge of the window required to *open* the gate
+   * @param armHigh upper edge of the window required to *open* the gate
+   * @param releaseLow speed the gate falls back to once open; below {@code armLow} by design
+   */
+  public static boolean shouldFeed(
+      double velocityRatio,
+      boolean currentlyFeeding,
+      double armLow,
+      double armHigh,
+      double releaseLow) {
+    return currentlyFeeding
+        ? velocityRatio >= releaseLow
+        : velocityRatio >= armLow && velocityRatio <= armHigh;
+  }
+
+  /**
+   * Re-commands the flywheel from a solved per-distance RPM, but only once the change clears {@code
+   * rpm_update_deadband}.
+   *
+   * <p>The deadband is not just smoothing: {@link Shooter#setTargetPower} discards the accumulated
+   * anti-windup integral whenever the setpoint moves, so writing a continuously-drifting setpoint
+   * every loop would keep the integrator permanently reset and the flywheel permanently short of
+   * its target. Holding the setpoint piecewise-constant lets it converge between real changes.
+   */
+  private void applySolvedRpm(ShotSolution solution) {
+    if (!useSolvedRpm || !solution.isValid() || solution.targetRpm() <= 0) {
+      return;
+    }
+    double rpm =
+        Math.clamp(
+            solution.targetRpm(),
+            config.shooter.ballistics.preferred_shot_rpm,
+            config.shooter.ballistics.max_shot_rpm);
+
+    if (!Double.isNaN(commandedSolvedRpm)
+        && Math.abs(rpm - commandedSolvedRpm) < config.shooter.ballistics.rpm_update_deadband) {
+      return;
+    }
+    commandedSolvedRpm = rpm;
+    shooter.setTargetPower(rpm / config.shooter.max_rpm);
+  }
+
+  /** Flywheel setpoint currently commanded by the RPM solver, or NaN when it is not driving it. */
+  public double getCommandedSolvedRpm() {
+    return commandedSolvedRpm;
+  }
+
+  /**
+   * Called once per control loop in Robot.update(). Publishes shot inputs to the async solver
+   * thread and applies its most recently completed solution; enforces 3 independent readiness
+   * gates. Never blocks on the solve itself (see the solveLock fields above), so a slow solve
+   * delays how fresh the aim is by at most one solve's wall-clock time, but never stalls this tick.
+   */
   public void periodic() {
+    Pose pose = poseSupplier != null ? poseSupplier.get() : null;
+    Pose vel = velocitySupplier != null ? velocitySupplier.get() : new Pose(0, 0, 0);
+
+    boolean needSolve =
+        active
+            || checkAlignment
+            || (turret != null
+                && turret.isEnabled()
+                && turret.getAimMode() == Turret.AimMode.AIM_AT_GOAL);
+
+    if (pose != null && needSolve) {
+      double gx = Field.getGoalX(alliance);
+      double gy = Field.getGoalY(alliance);
+      publishInputs(new ShotInputs(pose, vel, gx, gy));
+
+      ShotSolution solution = lastSolution;
+
+      // Continuous hood position update (single-writer pattern)
+      shooter.setTargetHoodPosition(solution.targetHoodPosition());
+
+      // Per-distance flywheel speed (single-writer pattern)
+      applySolvedRpm(solution);
+
+      // Pass the lead-compensated azimuth to the Turret only once the solver has actually produced
+      // one. NaN makes Turret fall back to its own goal bearing, which is what it should aim at
+      // while waiting. Publishing the placeholder solution's 0.0 instead pointed the turret at
+      // world bearing 0 for the first loop of every shot — a hard slam to the travel stop in a
+      // direction unrelated to the goal, before the real solution arrived and swung it back.
+      turret.setTargetAzimuth(solution.isValid() ? solution.targetAzimuthRad() : Double.NaN);
+
+      // Chassis armed aim lock (only if active, checkAlignment is enabled, and solution is valid)
+      if (casablanca != null) {
+        boolean enableChassisAim = active && checkAlignment && solution.isValid();
+        casablanca.setArmedAimTarget(solution.targetAzimuthRad(), enableChassisAim);
+      }
+    }
+
     if (!active) {
+      feeding = false;
       return;
     }
 
     var shooterConfig = config.shooter;
-    double targetFlywheelVelocity = shooterConfig.max_rpm * targetPower;
-    double currentFlywheelVelocity = shooter.getShooterVelocity();
+    double targetFlywheelVelocity = getFlywheelTarget();
 
-    double minTransferThreshold = shooterConfig.min_transfer_threshold;
-    boolean isFlywheelAtMinSpeed =
-        Math.abs(currentFlywheelVelocity)
-            >= Math.abs(targetFlywheelVelocity) * minTransferThreshold;
-    boolean isFlywheelReady = isFlywheelAtMinSpeed;
+    // 1. Flywheel Readiness Gate (latching; arms on the full window, releases on the lower bound)
+    boolean isFlywheelReady = updateFeedGate();
+
+    // 2. Alignment Readiness Gate
     boolean isTurretAligned = true;
-
-    Pose pose = poseSupplier.get();
     if (checkAlignment && pose != null) {
-      boolean isFlywheelBelowMaxThreshold =
-          Math.abs(currentFlywheelVelocity)
-              < Math.abs(targetFlywheelVelocity) * shooterConfig.max_velocity_threshold;
-      isFlywheelReady = isFlywheelAtMinSpeed && isFlywheelBelowMaxThreshold;
       isTurretAligned = turret.isAimed(pose);
+    }
 
-      if (telemetry != null) {
-        telemetry.addData("ShotController State", "Aiming & Firing");
-        telemetry.addData("current v", Math.abs(currentFlywheelVelocity));
-        telemetry.addData(
-            "target v threshold", Math.abs(targetFlywheelVelocity) * minTransferThreshold);
-        telemetry.addData("Turret Error (deg)", turret.getAimError(pose));
-        telemetry.addData("Turret Aligned", isTurretAligned);
-      }
-    } else {
-      if (telemetry != null) {
-        telemetry.addData("ShotController State", "Firing Raw");
-        telemetry.addData("current v", Math.abs(currentFlywheelVelocity));
-        telemetry.addData(
-            "target v threshold", Math.abs(targetFlywheelVelocity) * minTransferThreshold);
+    // 3. Solution Validity Gate. Skipped for callers driving hood and RPM themselves, so the
+    // calibration OpMode can shoot at distances the table does not cover yet — which is the only
+    // way to ever add them to it.
+    boolean isSolutionValid = !requireValidSolution || lastSolution.isValid();
+
+    if (telemetry != null) {
+      telemetry.addData("ShotController State", active ? "ARMED" : "IDLE");
+      telemetry.addData("Gate 1 (Flywheel)", isFlywheelReady);
+      telemetry.addData("Flywheel Arm Window", getFlywheelGateDetail());
+      telemetry.addData(
+          "Feed Latch",
+          feeding
+              ? String.format(
+                  "FEEDING (releases below %.2fx)", shooterConfig.feed_release_threshold)
+              : "closed");
+      telemetry.addData("Gate 2 (Alignment)", isTurretAligned);
+      telemetry.addData("Gate 3 (Solver Valid)", isSolutionValid);
+      telemetry.addData("Solution Dist (in)", lastSolution.distanceInches());
+      telemetry.addData("Target Hood Pos", lastSolution.targetHoodPosition());
+      telemetry.addData("Solved RPM", lastSolution.targetRpm());
+      telemetry.addData("Commanded RPM", targetFlywheelVelocity);
+      telemetry.addData("Solved Exit Vel (in/s)", lastSolution.targetExitVelocityIps());
+      telemetry.addData("Solver Thinking", solving);
+      telemetry.addData("Last Solve (ms)", lastSolveDurationMs);
+      if (!isSolutionValid) {
+        telemetry.addData("Solver Reason", lastSolution.validityReason());
       }
     }
 
-    if (isFlywheelReady && isTurretAligned) {
+    if (isFlywheelReady && isTurretAligned && isSolutionValid) {
       intake.run(shooterConfig.feed_intake_power, shooterConfig.feed_transfer_power);
     } else {
       intake.stop();

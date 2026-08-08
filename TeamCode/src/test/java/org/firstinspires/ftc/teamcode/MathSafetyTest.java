@@ -45,6 +45,11 @@ public class MathSafetyTest {
     Mockito.when(hardwareMap.get(DcMotorEx.class, "rightFront")).thenReturn(mockMotor);
     Mockito.when(hardwareMap.get(DcMotorEx.class, "rightBack")).thenReturn(mockMotor);
 
+    // Tests in this class exercise turret motion/aiming behavior, not the enabled flag itself
+    // (see testTurretDisabledBehavior for that) -- config.turret.enabled defaults to false on a
+    // freshly-built robot, so force it on here regardless of test execution order.
+    config.turret.enabled = true;
+
     Telemetry mockTelemetry = Mockito.mock(Telemetry.class);
     turret = new Turret(hardwareMap, mockTelemetry);
   }
@@ -200,6 +205,26 @@ public class MathSafetyTest {
   }
 
   @Test
+  public void testTurretDirectionalKsFeedforward() {
+    turret.setKs(0.08, 0.12);
+    turret.setPIDF(0, 0, 0, 0);
+    assertEquals(0.08, turret.getKsPositive(), 1e-6);
+    assertEquals(0.12, turret.getKsNegative(), 1e-6);
+
+    // Current angle at 0 deg, target at 10 deg (error > 0)
+    setPhysicalTurretAngle(0.0);
+    turret.setTargetTurnAngle(10.0);
+    turret.updateTurret(new Pose(0, 0, 0));
+    Mockito.verify(mockServo).setPower(Mockito.eq(0.08));
+
+    // Current angle at 0 deg, target at -10 deg (error < 0)
+    setPhysicalTurretAngle(0.0);
+    turret.setTargetTurnAngle(-10.0);
+    turret.updateTurret(new Pose(0, 0, 0));
+    Mockito.verify(mockServo).setPower(Mockito.eq(-0.12));
+  }
+
+  @Test
   public void testSentinelFootprintRotationAndIntersections() {
     Sentinel sentinel = new Sentinel(Alliance.RED); // opponent is BLUE_GOAL_ZONE
 
@@ -249,6 +274,7 @@ public class MathSafetyTest {
     Casablanca.enableHeadingLock = false;
     Casablanca.enableInputSmoothing = false;
     Casablanca.enableFrictionComp = false;
+    Casablanca.fieldCentric = false;
 
     double halfWidth = config.sentinel.robot_width / 2.0;
 
@@ -276,10 +302,16 @@ public class MathSafetyTest {
   @Test
   public void testTurretHoldAngleIsChassisRelativeAndHeadingInvariant() {
     // The analog encoder reads the turret's angle relative to the chassis directly (unlike the
-    // old IMU, which read an absolute field heading). Physically center the turret 30 deg off
-    // the chassis and hold it there.
-    setPhysicalTurretAngle(30.0);
-    turret.setHoldAngle(30.0);
+    // old IMU, which read an absolute field heading). Physically offset the turret from the
+    // chassis and hold it there.
+    //
+    // Derived from configured travel rather than hardcoded: setHoldAngle() clamps to
+    // [min_angle, max_angle], so a literal angle outside the currently calibrated travel would
+    // clamp the target away from the physical angle and fail this assert for reasons that have
+    // nothing to do with heading invariance.
+    double offsetAngle = config.turret.travel.max_angle * 0.5;
+    setPhysicalTurretAngle(offsetAngle);
+    turret.setHoldAngle(offsetAngle);
     turret.setAimMode(Turret.AimMode.HOLD);
     turret.periodic();
     Mockito.reset(mockServo);
@@ -305,13 +337,13 @@ public class MathSafetyTest {
     // MANUAL mode (and therefore the relay autotuner, which drives raw power with no PIDF
     // target) has no closed-loop target to bound it, so setTurretPowerRaw must refuse to drive
     // further past the +/-45 deg mechanical limit on its own.
-    setPhysicalTurretAngle(45.0);
-    turret.setTurretPowerRaw(0.4); // positive = REVERSE = increasing angle -> would exceed +45
+    setPhysicalTurretAngle(config.turret.travel.max_angle);
+    turret.setTurretPowerRaw(0.4);
     Mockito.verify(mockServo).setPower(0.0);
 
     // Driving back the other way off the limit must still be allowed.
     turret.setTurretPowerRaw(-0.4);
-    Mockito.verify(mockServo).setPower(0.4);
+    Mockito.verify(mockServo).setPower(-0.4);
   }
 
   @Test
@@ -323,7 +355,7 @@ public class MathSafetyTest {
 
     Mockito.reset(mockServo);
     turret.setTurretPowerRaw(-0.4);
-    Mockito.verify(mockServo).setPower(0.4);
+    Mockito.verify(mockServo).setPower(-0.4);
   }
 
   @Test
@@ -406,6 +438,7 @@ public class MathSafetyTest {
     Casablanca.enableHeadingLock = true;
     Casablanca.enableFrictionComp = false;
     Casablanca.enableInputSmoothing = false;
+    Casablanca.fieldCentric = false;
     Casablanca.headingLockIntentThreshold = 0.05;
 
     // First call to initialize target heading at pose (72, 72, 0)
@@ -441,6 +474,7 @@ public class MathSafetyTest {
     Casablanca.enableHeadingLock = true;
     Casablanca.enableFrictionComp = false;
     Casablanca.enableInputSmoothing = false;
+    Casablanca.fieldCentric = false;
     Casablanca.headingLockIntentThreshold = 0.05;
 
     // Call 1: Start at heading = 0 with no stick input -> targetHeading initialized to 0
@@ -492,6 +526,7 @@ public class MathSafetyTest {
     Casablanca.enableHeadingLock = false;
     Casablanca.enableInputSmoothing = false;
     Casablanca.enableFrictionComp = false;
+    Casablanca.fieldCentric = false;
 
     // Dynamically calculate test position to be at the midpoint of the proximity braking zone
     double hardStop = Casablanca.sideHardStop;
@@ -512,6 +547,99 @@ public class MathSafetyTest {
     // Dynamic expected scale: (dMid - hardStop) / (slowDown - hardStop) = 0.5
     double expectedScale = (dMid - hardStop) / (slowDown - hardStop);
     assertEquals(expectedScale, output[0], 1e-3);
+  }
+
+  @Test
+  public void testCasablancaFieldCentricIsHeadingInvariant() {
+    Sentinel sentinel = new Sentinel(Alliance.RED);
+    Casablanca casablanca = new Casablanca(sentinel);
+
+    Casablanca.enableHeadingLock = false;
+    Casablanca.enableInputSmoothing = false;
+    Casablanca.enableFrictionComp = false;
+    Casablanca.fieldCentric = true;
+    Casablanca.fieldCentricOffsetRad = Math.toRadians(90.0);
+
+    // The whole contract of field-centric drive: one stick direction maps to one field direction
+    // no matter which way the robot is pointing. Output is {fieldY, fieldX, turn}.
+    double[] reference = null;
+    for (double headingDeg : new double[] {0.0, 90.0, 180.0, 270.0, 37.0}) {
+      casablanca.reset();
+      double[] out =
+          casablanca.adjustDriveInput(
+              new Pose(72, 72, Math.toRadians(headingDeg)),
+              new com.pedropathing.math.Vector(0, 0),
+              0.0,
+              0.0,
+              1.0,
+              0.0);
+      if (reference == null) {
+        reference = out;
+      } else {
+        assertEquals(reference[0], out[0], 1e-6);
+        assertEquals(reference[1], out[1], 1e-6);
+      }
+    }
+
+    // The 90 degree offset means a fully-forward stick drives along field +Y -- away from the
+    // driver wall at y = 0 -- rather than along field +X.
+    assertEquals(0.0, reference[1], 1e-6);
+    assertTrue(reference[0] > 0.0);
+
+    // Teeth for the assertions above: the same stick IS heading-dependent with field-centric off,
+    // so heading-invariance is the transform doing work and not a degenerate all-zero output.
+    Casablanca.fieldCentric = false;
+    casablanca.reset();
+    double[] robotAt0 =
+        casablanca.adjustDriveInput(
+            new Pose(72, 72, 0.0), new com.pedropathing.math.Vector(0, 0), 0.0, 0.0, 1.0, 0.0);
+    casablanca.reset();
+    double[] robotAt90 =
+        casablanca.adjustDriveInput(
+            new Pose(72, 72, Math.PI / 2),
+            new com.pedropathing.math.Vector(0, 0),
+            0.0,
+            0.0,
+            1.0,
+            0.0);
+    assertTrue(Math.abs(robotAt0[0] - robotAt90[0]) > 0.5);
+  }
+
+  @Test
+  public void testCasablancaRefusesToDriveOnNonFinitePose() {
+    Sentinel sentinel = new Sentinel(Alliance.RED);
+    Casablanca casablanca = new Casablanca(sentinel);
+
+    Casablanca.enableHeadingLock = false;
+    Casablanca.enableInputSmoothing = false;
+    Casablanca.enableFrictionComp = false;
+
+    // A NaN heading is a dead localizer. Vector.rotateVector(NaN) produces NaN components even for
+    // a zero-magnitude vector, and every JTS Envelope comparison against NaN is false, so the zone
+    // protections would silently disengage while NaN reached the drivetrain. Refuse instead.
+    for (boolean fieldCentric : new boolean[] {true, false}) {
+      Casablanca.fieldCentric = fieldCentric;
+      casablanca.reset();
+      double[] out =
+          casablanca.adjustDriveInput(
+              new Pose(72, 72, Double.NaN),
+              new com.pedropathing.math.Vector(0, 0),
+              0.0,
+              0.5,
+              1.0,
+              0.5);
+      assertEquals(0.0, out[0], 1e-9);
+      assertEquals(0.0, out[1], 1e-9);
+      assertEquals(0.0, out[2], 1e-9);
+      assertTrue(casablanca.wasPoseUntrusted());
+    }
+
+    // And it clears again once the localizer recovers.
+    Casablanca.fieldCentric = false;
+    casablanca.reset();
+    casablanca.adjustDriveInput(
+        new Pose(72, 72, 0.0), new com.pedropathing.math.Vector(0, 0), 0.0, 0.0, 1.0, 0.0);
+    assertFalse(casablanca.wasPoseUntrusted());
   }
 
   @Test
@@ -553,5 +681,59 @@ public class MathSafetyTest {
         Math.abs(controller.computeBrakingDisplacement(maxVelY, 1.0))
             / Casablanca.decelSafetyFactor,
         1e-6);
+  }
+
+  @Test
+  public void testShotControllerStopShotResetsHoldAngleToZero() {
+    org.firstinspires.ftc.teamcode.robot.Shooter mockShooter =
+        Mockito.mock(org.firstinspires.ftc.teamcode.robot.Shooter.class);
+    org.firstinspires.ftc.teamcode.robot.Intake mockIntake =
+        Mockito.mock(org.firstinspires.ftc.teamcode.robot.Intake.class);
+    Telemetry mockTelemetry = Mockito.mock(Telemetry.class);
+
+    // Robot has non-zero heading (e.g. 50 degrees)
+    Pose nonZeroHeadingPose = new Pose(72, 72, Math.toRadians(50.0));
+    org.firstinspires.ftc.teamcode.robot.ShotController shotController =
+        new org.firstinspires.ftc.teamcode.robot.ShotController(
+            mockShooter,
+            turret,
+            mockIntake,
+            () -> nonZeroHeadingPose,
+            () -> new Pose(0, 0, 0),
+            null,
+            Alliance.BLUE,
+            mockTelemetry);
+
+    shotController.startShot(0.8, true);
+    shotController.stopShot();
+
+    // Verify hold angle is set to 0.0 chassis-relative center, NOT 50.0 degrees
+    assertEquals(0.0, turret.getHoldAngle(), 1e-6);
+    assertEquals(Turret.AimMode.HOLD, turret.getAimMode());
+  }
+
+  @Test
+  public void testTurretDisabledBehavior() {
+    assertTrue(turret.isEnabled());
+
+    // 1. Flip via config flag
+    config.turret.enabled = false;
+    assertFalse(turret.isEnabled());
+    assertTrue(turret.isAimed(new Pose(0, 0, 0)));
+    assertTrue(turret.isTurnDone());
+
+    turret.setTurretPowerRaw(0.5);
+    assertEquals("TURRET DISABLED", turret.getPowerBlockedReason());
+    Mockito.verify(mockServo, Mockito.never()).setPower(0.5);
+
+    config.turret.enabled = true;
+    assertTrue(turret.isEnabled());
+
+    // 2. Flip dynamically via turret.setEnabled(false)
+    turret.setEnabled(false);
+    assertFalse(turret.isEnabled());
+
+    turret.setEnabled(true);
+    assertTrue(turret.isEnabled());
   }
 }

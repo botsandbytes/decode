@@ -18,17 +18,21 @@ public final class config {
   public static Auto auto;
   public static Teleop teleop;
 
+  public static boolean TURRET_ENABLED;
   public static double TURRET_MAX_POWER_OUTPUT;
-  public static double TURRET_KS;
   public static boolean TURRET_SERVO_DIRECTION_INVERTED;
+  public static double TURRET_KS_POSITIVE;
+  public static double TURRET_KS_NEGATIVE;
   public static String TURRET_ORIENTATION_LOGO;
   public static String TURRET_ORIENTATION_USB;
   public static double TURRET_TRAVEL_MIN_ANGLE;
   public static double TURRET_TRAVEL_MAX_ANGLE;
-  public static double TURRET_AIM_HYSTERESIS;
+  public static boolean TURRET_STALL_ENABLED;
+  public static double TURRET_STALL_POWER_THRESHOLD;
+  public static double TURRET_STALL_MIN_PROGRESS_DEG;
   public static double TURRET_STALL_TIMEOUT_SEC;
-  public static double TURRET_STALL_KICK_POWER;
-  public static double TURRET_STALL_PROGRESS_DEG;
+  public static boolean TURRET_RUNAWAY_ENABLED;
+  public static double TURRET_RUNAWAY_DIVERGENCE_DEG;
   public static double TURRET_PIDF_P;
   public static double TURRET_PIDF_I;
   public static double TURRET_PIDF_D;
@@ -80,25 +84,46 @@ public final class config {
   public static double CASABLANCA_HEADING_LOCK_MAX_POWER;
   public static double CASABLANCA_HEADING_LOCK_ERROR_DEADBAND_DEG;
   public static double CASABLANCA_HEADING_LOCK_SETTLE_RATE_DPS;
+  public static double SHOOTER_KS;
+  public static double SHOOTER_NOMINAL_VOLTAGE;
+  public static double SHOOTER_MAX_VOLTAGE_COMPENSATION;
+  public static double SHOOTER_VOLTAGE_REFRESH_SEC;
   public static double SHOOTER_MAX_RPM;
+  public static double SHOOTER_CONSTANT_RPM;
   public static double SHOOTER_MIN_TRANSFER_THRESHOLD;
   public static double SHOOTER_MAX_VELOCITY_THRESHOLD;
+  public static double SHOOTER_FEED_RELEASE_THRESHOLD;
   public static double SHOOTER_FEED_INTAKE_POWER;
   public static double SHOOTER_FEED_TRANSFER_POWER;
   public static double SHOOTER_LONG_HOOD_POWER_THRESHOLD;
-  public static double SHOOTER_HOOD_LOW_POSITION;
-  public static double SHOOTER_HOOD_HIGH_POSITION;
   public static double SHOOTER_PIDF_P;
   public static double SHOOTER_PIDF_I;
   public static double SHOOTER_PIDF_D;
   public static double SHOOTER_PIDF_F;
-  public static double SHOOTER_LAUNCH_PARAMS_THRESHOLD_DISTANCE;
-  public static double SHOOTER_LAUNCH_PARAMS_NEAR_LAUNCH_POWER;
-  public static double SHOOTER_LAUNCH_PARAMS_NEAR_WAIT_TIME;
-  public static double SHOOTER_LAUNCH_PARAMS_FAR_BLUE_BASE_POWER;
-  public static double SHOOTER_LAUNCH_PARAMS_FAR_RED_BASE_POWER;
-  public static double SHOOTER_LAUNCH_PARAMS_FAR_POWER_SCALE;
-  public static double SHOOTER_LAUNCH_PARAMS_FAR_WAIT_TIME_SCALE;
+  public static double SHOOTER_INTEGRAL_BAND_TICKS;
+  public static double SHOOTER_INTEGRAL_MAX_CONTRIBUTION;
+  public static double SHOOTER_BALLISTICS_V0;
+  public static double SHOOTER_BALLISTICS_K;
+  public static double SHOOTER_BALLISTICS_MAGNUS_L;
+  public static double SHOOTER_BALLISTICS_LAUNCH_HEIGHT_INCHES;
+  public static double SHOOTER_BALLISTICS_GOAL_HEIGHT_INCHES;
+  public static double SHOOTER_BALLISTICS_G_INCHES_PER_SEC2;
+  public static double SHOOTER_BALLISTICS_MIN_HOOD_ANGLE_DEG;
+  public static double SHOOTER_BALLISTICS_MAX_HOOD_ANGLE_DEG;
+  public static double SHOOTER_BALLISTICS_MIN_HOOD_SERVO_POS;
+  public static double SHOOTER_BALLISTICS_MAX_HOOD_SERVO_POS;
+  public static double SHOOTER_BALLISTICS_MAX_MOVING_SPEED_IPS;
+  public static double SHOOTER_BALLISTICS_MIN_VALID_DISTANCE;
+  public static double SHOOTER_BALLISTICS_MAX_VALID_DISTANCE;
+  public static double SHOOTER_BALLISTICS_LEAD_BIAS_GAIN;
+  public static double SHOOTER_BALLISTICS_V0_REFERENCE_RPM;
+  public static double SHOOTER_BALLISTICS_PREFERRED_SHOT_RPM;
+  public static double SHOOTER_BALLISTICS_MAX_SHOT_RPM;
+  public static double SHOOTER_BALLISTICS_V0_MARGIN_FRACTION;
+  public static double SHOOTER_BALLISTICS_RPM_UPDATE_DEADBAND;
+  public static double SHOOTER_BALLISTICS_FLIGHT_TIME_SEC_PER_INCH;
+  public static double SHOOTER_BALLISTICS_LEAD_MIN_SPEED_IPS;
+  public static double[] SHOOTER_SHOT_TABLE_POINTS;
   public static int AUTO_DRINK_WAIT_MS;
   public static int AUTO_SHOOT_WAIT_MS;
   public static double AUTO_LAUNCH_POWER;
@@ -108,6 +133,8 @@ public final class config {
   public static double AUTO_OPPOSITE_LAUNCH_POWER;
   public static double AUTO_OPPOSITE_TRANSFER_POWER;
   public static double TELEOP_MAX_SPEED;
+  public static boolean TELEOP_FIELD_CENTRIC;
+  public static double TELEOP_FIELD_CENTRIC_OFFSET_DEG;
   public static double TELEOP_INTAKE_POWER;
   public static double TELEOP_TRANSFER_POWER;
   public static double TELEOP_MANUAL_REV_POWER;
@@ -133,17 +160,21 @@ public final class config {
     shooter = ConfigLoader.load(Shooter.class, "shooter");
     auto = ConfigLoader.load(Auto.class, "auto");
     teleop = ConfigLoader.load(Teleop.class, "teleop");
+    TURRET_ENABLED = turret.enabled;
     TURRET_MAX_POWER_OUTPUT = turret.max_power_output;
-    TURRET_KS = turret.ks;
     TURRET_SERVO_DIRECTION_INVERTED = turret.servo_direction_inverted;
+    TURRET_KS_POSITIVE = turret.ks_positive;
+    TURRET_KS_NEGATIVE = turret.ks_negative;
     TURRET_ORIENTATION_LOGO = turret.orientation.logo;
     TURRET_ORIENTATION_USB = turret.orientation.usb;
     TURRET_TRAVEL_MIN_ANGLE = turret.travel.min_angle;
     TURRET_TRAVEL_MAX_ANGLE = turret.travel.max_angle;
-    TURRET_AIM_HYSTERESIS = turret.aim_hysteresis;
+    TURRET_STALL_ENABLED = turret.stall.enabled;
+    TURRET_STALL_POWER_THRESHOLD = turret.stall.power_threshold;
+    TURRET_STALL_MIN_PROGRESS_DEG = turret.stall.min_progress_deg;
     TURRET_STALL_TIMEOUT_SEC = turret.stall.timeout_sec;
-    TURRET_STALL_KICK_POWER = turret.stall.kick_power;
-    TURRET_STALL_PROGRESS_DEG = turret.stall.progress_deg;
+    TURRET_RUNAWAY_ENABLED = turret.runaway.enabled;
+    TURRET_RUNAWAY_DIVERGENCE_DEG = turret.runaway.divergence_deg;
     TURRET_PIDF_P = turret.pidf.p;
     TURRET_PIDF_I = turret.pidf.i;
     TURRET_PIDF_D = turret.pidf.d;
@@ -195,25 +226,46 @@ public final class config {
     CASABLANCA_HEADING_LOCK_MAX_POWER = casablanca.heading_lock.max_power;
     CASABLANCA_HEADING_LOCK_ERROR_DEADBAND_DEG = casablanca.heading_lock.error_deadband_deg;
     CASABLANCA_HEADING_LOCK_SETTLE_RATE_DPS = casablanca.heading_lock.settle_rate_dps;
+    SHOOTER_KS = shooter.ks;
+    SHOOTER_NOMINAL_VOLTAGE = shooter.nominal_voltage;
+    SHOOTER_MAX_VOLTAGE_COMPENSATION = shooter.max_voltage_compensation;
+    SHOOTER_VOLTAGE_REFRESH_SEC = shooter.voltage_refresh_sec;
     SHOOTER_MAX_RPM = shooter.max_rpm;
+    SHOOTER_CONSTANT_RPM = shooter.constant_rpm;
     SHOOTER_MIN_TRANSFER_THRESHOLD = shooter.min_transfer_threshold;
     SHOOTER_MAX_VELOCITY_THRESHOLD = shooter.max_velocity_threshold;
+    SHOOTER_FEED_RELEASE_THRESHOLD = shooter.feed_release_threshold;
     SHOOTER_FEED_INTAKE_POWER = shooter.feed_intake_power;
     SHOOTER_FEED_TRANSFER_POWER = shooter.feed_transfer_power;
     SHOOTER_LONG_HOOD_POWER_THRESHOLD = shooter.long_hood_power_threshold;
-    SHOOTER_HOOD_LOW_POSITION = shooter.hood.low_position;
-    SHOOTER_HOOD_HIGH_POSITION = shooter.hood.high_position;
     SHOOTER_PIDF_P = shooter.pidf.p;
     SHOOTER_PIDF_I = shooter.pidf.i;
     SHOOTER_PIDF_D = shooter.pidf.d;
     SHOOTER_PIDF_F = shooter.pidf.f;
-    SHOOTER_LAUNCH_PARAMS_THRESHOLD_DISTANCE = shooter.launch_params.threshold_distance;
-    SHOOTER_LAUNCH_PARAMS_NEAR_LAUNCH_POWER = shooter.launch_params.near.launch_power;
-    SHOOTER_LAUNCH_PARAMS_NEAR_WAIT_TIME = shooter.launch_params.near.wait_time;
-    SHOOTER_LAUNCH_PARAMS_FAR_BLUE_BASE_POWER = shooter.launch_params.far.blue_base_power;
-    SHOOTER_LAUNCH_PARAMS_FAR_RED_BASE_POWER = shooter.launch_params.far.red_base_power;
-    SHOOTER_LAUNCH_PARAMS_FAR_POWER_SCALE = shooter.launch_params.far.power_scale;
-    SHOOTER_LAUNCH_PARAMS_FAR_WAIT_TIME_SCALE = shooter.launch_params.far.wait_time_scale;
+    SHOOTER_INTEGRAL_BAND_TICKS = shooter.integral.band_ticks;
+    SHOOTER_INTEGRAL_MAX_CONTRIBUTION = shooter.integral.max_contribution;
+    SHOOTER_BALLISTICS_V0 = shooter.ballistics.v0;
+    SHOOTER_BALLISTICS_K = shooter.ballistics.k;
+    SHOOTER_BALLISTICS_MAGNUS_L = shooter.ballistics.magnus_l;
+    SHOOTER_BALLISTICS_LAUNCH_HEIGHT_INCHES = shooter.ballistics.launch_height_inches;
+    SHOOTER_BALLISTICS_GOAL_HEIGHT_INCHES = shooter.ballistics.goal_height_inches;
+    SHOOTER_BALLISTICS_G_INCHES_PER_SEC2 = shooter.ballistics.g_inches_per_sec2;
+    SHOOTER_BALLISTICS_MIN_HOOD_ANGLE_DEG = shooter.ballistics.min_hood_angle_deg;
+    SHOOTER_BALLISTICS_MAX_HOOD_ANGLE_DEG = shooter.ballistics.max_hood_angle_deg;
+    SHOOTER_BALLISTICS_MIN_HOOD_SERVO_POS = shooter.ballistics.min_hood_servo_pos;
+    SHOOTER_BALLISTICS_MAX_HOOD_SERVO_POS = shooter.ballistics.max_hood_servo_pos;
+    SHOOTER_BALLISTICS_MAX_MOVING_SPEED_IPS = shooter.ballistics.max_moving_speed_ips;
+    SHOOTER_BALLISTICS_MIN_VALID_DISTANCE = shooter.ballistics.min_valid_distance;
+    SHOOTER_BALLISTICS_MAX_VALID_DISTANCE = shooter.ballistics.max_valid_distance;
+    SHOOTER_BALLISTICS_LEAD_BIAS_GAIN = shooter.ballistics.lead_bias_gain;
+    SHOOTER_BALLISTICS_V0_REFERENCE_RPM = shooter.ballistics.v0_reference_rpm;
+    SHOOTER_BALLISTICS_PREFERRED_SHOT_RPM = shooter.ballistics.preferred_shot_rpm;
+    SHOOTER_BALLISTICS_MAX_SHOT_RPM = shooter.ballistics.max_shot_rpm;
+    SHOOTER_BALLISTICS_V0_MARGIN_FRACTION = shooter.ballistics.v0_margin_fraction;
+    SHOOTER_BALLISTICS_RPM_UPDATE_DEADBAND = shooter.ballistics.rpm_update_deadband;
+    SHOOTER_BALLISTICS_FLIGHT_TIME_SEC_PER_INCH = shooter.ballistics.flight_time_sec_per_inch;
+    SHOOTER_BALLISTICS_LEAD_MIN_SPEED_IPS = shooter.ballistics.lead_min_speed_ips;
+    SHOOTER_SHOT_TABLE_POINTS = shooter.shot_table.points;
     AUTO_DRINK_WAIT_MS = auto.drink_wait_ms;
     AUTO_SHOOT_WAIT_MS = auto.shoot_wait_ms;
     AUTO_LAUNCH_POWER = auto.launch_power;
@@ -223,6 +275,8 @@ public final class config {
     AUTO_OPPOSITE_LAUNCH_POWER = auto.opposite_launch_power;
     AUTO_OPPOSITE_TRANSFER_POWER = auto.opposite_transfer_power;
     TELEOP_MAX_SPEED = teleop.max_speed;
+    TELEOP_FIELD_CENTRIC = teleop.field_centric;
+    TELEOP_FIELD_CENTRIC_OFFSET_DEG = teleop.field_centric_offset_deg;
     TELEOP_INTAKE_POWER = teleop.intake_power;
     TELEOP_TRANSFER_POWER = teleop.transfer_power;
     TELEOP_MANUAL_REV_POWER = teleop.manual_rev_power;
@@ -237,6 +291,9 @@ public final class config {
   }
 
   public static final class Turret {
+    /** Enable/disable this subsystem, controller, watchdog, or feature. */
+    public boolean enabled;
+
     /**
      * Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret
      * rotation speed. Minimum: 0.0 Maximum: 1.0
@@ -244,16 +301,22 @@ public final class config {
     public double max_power_output;
 
     /**
-     * Static friction compensation power (0.0 to 1.0) added to turret rotation to overcome gear
-     * backlash and stiction. Applied in the direction of movement. Minimum: 0.0 Maximum: 1.0
-     */
-    public double ks;
-
-    /**
      * Flips which CRServo direction counts as increasing turret angle. Set this (not the analog
      * encoder's 'inverted' flag) when the turret drives away from its target.
      */
     public boolean servo_direction_inverted;
+
+    /**
+     * Static friction feedforward (kS) magnitude applied when turning turret in positive direction
+     * (error > 0). Minimum: 0.0 Maximum: 1.0
+     */
+    public double ks_positive;
+
+    /**
+     * Static friction feedforward (kS) magnitude applied when turning turret in negative direction
+     * (error < 0). Minimum: 0.0 Maximum: 1.0
+     */
+    public double ks_negative;
 
     public static final class Orientation {
       /**
@@ -284,33 +347,46 @@ public final class config {
 
     public Travel travel;
 
-    /**
-     * Multiplier applied to the aim tolerance to decide when the turret leaves the 'aimed' state.
-     * 1.0 disables hysteresis and makes the turret chatter on the tolerance boundary; 2.0 means it
-     * must drift to twice the tolerance before driving again. Minimum: 1.0
-     */
-    public double aim_hysteresis;
-
     public static final class Stall {
+      /** Enable/disable this subsystem, controller, watchdog, or feature. */
+      public boolean enabled;
+
       /**
-       * Seconds the turret may be actively commanded to move without measurable progress before a
-       * stiction kick is applied. Minimum: 0.0
+       * Commanded turret power above which the stall watchdog starts checking for motion. Below
+       * this the servo may legitimately not move, so no stall is inferred. Minimum: 0.0 Maximum:
+       * 1.0
+       */
+      public double power_threshold;
+
+      /**
+       * Turret motion (degrees) that counts as progress and resets the stall watchdog. Set above
+       * the analog encoder's noise floor. Minimum: 0.0
+       */
+      public double min_progress_deg;
+
+      /**
+       * Seconds of commanded power with no turret motion before the stall watchdog latches a fault
+       * and cuts power. Protects the turret from being driven into a hard stop when the encoder
+       * reading is wrong. Minimum: 0.0
        */
       public double timeout_sec;
-
-      /**
-       * Power applied once a stall is detected, in place of the normal PIDF command, to break
-       * static friction. Minimum: 0.0
-       */
-      public double kick_power;
-
-      /**
-       * Angular movement that counts as 'making progress' and resets the stall timer. Minimum: 0.0
-       */
-      public double progress_deg;
     }
 
     public Stall stall;
+
+    public static final class Runaway {
+      /** Enable/disable this subsystem, controller, watchdog, or feature. */
+      public boolean enabled;
+
+      /**
+       * How far (degrees) the turret's aim error may grow beyond its best-so-far value before the
+       * runaway watchdog cuts power. Catches an inverted control loop, where positive power moves
+       * the turret away from its target, before it reaches a hard stop. Minimum: 0.0
+       */
+      public double divergence_deg;
+    }
+
+    public Runaway runaway;
     public com.qualcomm.robotcore.hardware.PIDFCoefficients pidf;
 
     public static final class Tolerance {
@@ -345,9 +421,7 @@ public final class config {
     public Tolerance tolerance;
 
     public static final class AnalogEncoder {
-      /**
-       * Enable/disable automatic heading lock when the driver releases the turn joystick in TeleOp.
-       */
+      /** Enable/disable this subsystem, controller, watchdog, or feature. */
       public boolean enabled;
 
       /**
@@ -550,9 +624,7 @@ public final class config {
     public Smoothing smoothing;
 
     public static final class HeadingLock {
-      /**
-       * Enable/disable automatic heading lock when the driver releases the turn joystick in TeleOp.
-       */
+      /** Enable/disable this subsystem, controller, watchdog, or feature. */
       public boolean enabled;
 
       /**
@@ -598,11 +670,42 @@ public final class config {
   }
 
   public static final class Shooter {
+    public double ks;
+
+    /**
+     * Bus voltage the flywheel feedforward (ks and pidf.f) was characterized at. Shooter.periodic()
+     * scales its motor command by nominal_voltage divided by the measured bus voltage, so a sagging
+     * pack still reaches the commanded wheel speed instead of quietly landing short and failing the
+     * feed gate. Set this to the voltage shown while the Shooter Characterization OpMode is
+     * running, not to a fresh-off-the-charger reading. Minimum: 1.0 Maximum: 20.0
+     */
+    public double nominal_voltage;
+
+    /**
+     * Largest factor the flywheel voltage compensation may scale its command by. Bounds the
+     * correction so a brownout or a bad voltage reading cannot rail the flywheel; 1.4 covers a 12.0
+     * V feedforward down to about 8.6 V. Minimum: 1.0 Maximum: 3.0
+     */
+    public double max_voltage_compensation;
+
+    /**
+     * How often the flywheel re-reads bus voltage. The hub's voltage is a separate ADC round trip
+     * rather than part of the bulk read, so polling it every loop costs milliseconds per tick; a
+     * pack does not sag meaningfully inside this interval. Minimum: 0.0 Maximum: 5.0
+     */
+    public double voltage_refresh_sec;
+
     /**
      * Maximum rotational speed (RPM) of the motor. Used to scale power percentage to velocity.
      * Minimum: 0.0
      */
     public double max_rpm;
+
+    /**
+     * Continuous fixed flywheel target speed (RPM). Flywheel holds this RPM constantly so
+     * time-to-shoot collapses to alignment time. Minimum: 0.0 Maximum: 3000.0
+     */
+    public double constant_rpm;
 
     /**
      * Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt.
@@ -612,9 +715,19 @@ public final class config {
 
     /**
      * Flywheel velocity upper bound scale factor (e.g. 1.05) to prevent overshooting before feeding
-     * rings. Minimum: 1.0 Maximum: 2.0
+     * rings. Applies only when arming a feed, not while one is already running, since a ring can
+     * only ever slow the flywheel down. Minimum: 1.0 Maximum: 2.0
      */
     public double max_velocity_threshold;
+
+    /**
+     * Fraction of target flywheel speed a feed already in progress may sag to before the intake
+     * cuts out. Must be below min_transfer_threshold: it is the lower half of a hysteresis band, so
+     * each ring entering the flywheel does not drop the speed under the arming floor and stutter
+     * the intake off and back on. Raise it toward min_transfer_threshold for stricter shot energy,
+     * lower it if the intake still hitches while feeding. Minimum: 0.0 Maximum: 1.0
+     */
+    public double feed_release_threshold;
 
     /**
      * Front intake power (0.0 to 1.0) when feeding rings to the shooter. Minimum: 0.0 Maximum: 1.0
@@ -633,74 +746,156 @@ public final class config {
      */
     public double long_hood_power_threshold;
 
-    public static final class Hood {
-      /**
-       * Hood servo low/retracted position coefficient (0.0 to 1.0) for short-range shots. Minimum:
-       * 0.0 Maximum: 1.0
-       */
-      public double low_position;
-
-      /**
-       * Hood servo high/extended position coefficient (0.0 to 1.0) for long-range shots. Minimum:
-       * 0.0 Maximum: 1.0
-       */
-      public double high_position;
-    }
-
-    public Hood hood;
     public com.qualcomm.robotcore.hardware.PIDFCoefficients pidf;
 
-    public static final class LaunchParams {
+    public static final class Integral {
       /**
-       * Distance boundary (inches) separating close-range shots from long-range shots. Minimum: 0.0
+       * Flywheel velocity error (ticks/s) within which the integral term accumulates. Outside this
+       * band the integrator holds its value, so spin-up and ball-feed transients never charge it.
+       * Minimum: 0.0 Maximum: 2000.0
        */
-      public double threshold_distance;
+      public double band_ticks;
 
-      public static final class Near {
-        /**
-         * Flywheel power ratio (0.0 to 1.0) used for close-range shots. Minimum: 0.0 Maximum: 1.0
-         */
-        public double launch_power;
-
-        /**
-         * Delay (milliseconds) to keep the flywheel running after firing a near shot. Minimum: 0.0
-         */
-        public double wait_time;
-      }
-
-      public Near near;
-
-      public static final class Far {
-        /**
-         * Base flywheel power ratio (0.0 to 1.0) for Blue alliance shots beyond the threshold
-         * distance. Minimum: 0.0 Maximum: 1.0
-         */
-        public double blue_base_power;
-
-        /**
-         * Base flywheel power ratio (0.0 to 1.0) for Red alliance shots beyond the threshold
-         * distance. Red shoots from farther away so this value is intentionally higher. Minimum:
-         * 0.0 Maximum: 1.0
-         */
-        public double red_base_power;
-
-        /**
-         * Distance divisor (inches) to scale up flywheel power as distance increases (power =
-         * base_power + extra_distance / power_scale). Minimum: 0.0
-         */
-        public double power_scale;
-
-        /**
-         * Multiplier converting distance to run-time (wait_time = distance * wait_time_scale) in
-         * milliseconds. Minimum: 0.0
-         */
-        public double wait_time_scale;
-      }
-
-      public Far far;
+      /**
+       * Maximum absolute motor power the flywheel integral term may contribute. Bounds windup
+       * independently of the integral gain. Minimum: 0.0 Maximum: 1.0
+       */
+      public double max_contribution;
     }
 
-    public LaunchParams launch_params;
+    public Integral integral;
+
+    public static final class Ballistics {
+      /** Fitted initial ring exit velocity (in/s) at constant RPM. Minimum: 0.0 */
+      public double v0;
+
+      /**
+       * Fitted lumped quadratic drag coefficient (1/in) for 2D trajectory integration. Minimum: 0.0
+       */
+      public double k;
+
+      /**
+       * Fitted lumped Magnus lift coefficient (1/s) for 2D backspin trajectory integration.
+       * Minimum: 0.0
+       */
+      public double magnus_l;
+
+      /** Physical ring release height (inches) above field carpet floor. Minimum: 0.0 */
+      public double launch_height_inches;
+
+      /**
+       * Center height (inches) of target scoring goal basket above field carpet floor. Minimum: 0.0
+       */
+      public double goal_height_inches;
+
+      /** Gravitational acceleration constant (in/s²). Minimum: 0.0 */
+      public double g_inches_per_sec2;
+
+      /** Minimum physical hood elevation angle (degrees). Minimum: 0.0 Maximum: 90.0 */
+      public double min_hood_angle_deg;
+
+      /** Maximum physical hood elevation angle (degrees). Minimum: 0.0 Maximum: 90.0 */
+      public double max_hood_angle_deg;
+
+      /**
+       * Continuous servo position (0.0 to 1.0) corresponding to min_hood_angle_deg, the flattest
+       * arc. The hood linkage is reversed, so this is numerically GREATER than max_hood_servo_pos;
+       * that is expected and the angle mapping handles it. Do not 'fix' the ordering. Minimum: 0.0
+       * Maximum: 1.0
+       */
+      public double min_hood_servo_pos;
+
+      /**
+       * Continuous servo position (0.0 to 1.0) corresponding to max_hood_angle_deg, the steepest
+       * arc. Servo 0.0 is as tall as the arc gets, so this is normally the smaller number of the
+       * pair. Minimum: 0.0 Maximum: 1.0
+       */
+      public double max_hood_servo_pos;
+
+      /** Maximum allowed robot translation speed (in/s) for valid moving shots. Minimum: 0.0 */
+      public double max_moving_speed_ips;
+
+      /** Minimum calibrated shot distance (inches) for valid solution. Minimum: 0.0 */
+      public double min_valid_distance;
+
+      /** Maximum calibrated shot distance (inches) for valid solution. Minimum: 0.0 */
+      public double max_valid_distance;
+
+      /** Empirical calibration multiplier for virtual lead target calculation. Minimum: 0.0 */
+      public double lead_bias_gain;
+
+      /**
+       * Flywheel setpoint the fitted v0 exit velocity was measured at. Exit speed and flywheel
+       * setpoint convert through v0 / v0_reference_rpm, which is how the solver turns a required
+       * exit speed into an RPM. Must match the RPM the ballistics calibration actually ran at
+       * (constant_rpm), or every solved RPM is scaled wrong. Minimum: 1.0 Maximum: 3000.0
+       */
+      public double v0_reference_rpm;
+
+      /**
+       * Flywheel setpoint the hood aims around. The solver holds this speed and lets the hood alone
+       * cover every distance it can, so the flywheel stays parked at one well-calibrated,
+       * already-spun-up speed. It only rises above this when no hood angle can reach the goal, and
+       * never falls below it. This is the main shot-strength knob: raise it if shots land weak
+       * across the board. Minimum: 0.0 Maximum: 3000.0
+       */
+      public double preferred_shot_rpm;
+
+      /**
+       * Highest flywheel setpoint the RPM solver may command, for distances past the hood's
+       * authority at preferred_shot_rpm. A target that cannot reach goal height even at this speed
+       * is reported as an invalid solution instead of being silently under-shot. Minimum: 0.0
+       * Maximum: 3000.0
+       */
+      public double max_shot_rpm;
+
+      /**
+       * Headroom above the slowest exit speed that still reaches the goal (0.12 = 12% faster),
+       * applied only to long shots that had to raise RPM past preferred_shot_rpm. Keeps those
+       * solutions off the boundary where the flat and lofted trajectory branches merge; larger
+       * values give a steeper, more forgiving entry angle at the cost of a hotter shot. Minimum:
+       * 0.0 Maximum: 1.0
+       */
+      public double v0_margin_fraction;
+
+      /**
+       * Minimum change in solved RPM (ticks/s) before the flywheel setpoint is re-commanded. Every
+       * setpoint write discards the flywheel's accumulated anti-windup integral, so without a
+       * deadband a continuously drifting target would keep the integrator reset and the flywheel
+       * permanently short of speed. Minimum: 0.0
+       */
+      public double rpm_update_deadband;
+
+      /**
+       * Ring time of flight per inch of range, used only to lead a moving shot. A flat estimate on
+       * purpose: the measured shot table records hood and RPM but not flight time, and lead only
+       * shifts the aim azimuth slightly, so a rough value is adequate here where a wrong hood
+       * position would not be. Minimum: 0.0 Maximum: 0.1
+       */
+      public double flight_time_sec_per_inch;
+
+      /**
+       * Robot speed below which moving-shot lead is skipped entirely. A robot holding position
+       * still reports a small noisy velocity, and lead turns that noise into aim-azimuth jitter
+       * larger than the turret's settle tolerance, so the turret hunts instead of settling. Leading
+       * a nearly-stationary robot gains nothing. Minimum: 0.0 Maximum: 100.0
+       */
+      public double lead_min_speed_ips;
+    }
+
+    public Ballistics ballistics;
+
+    public static final class ShotTable {
+      /**
+       * Measured shot table as flat distance_in, hood_servo, flywheel_rpm triples, recorded by the
+       * Ballistics Calibration OpMode. Distances must strictly increase. Looked up by linear
+       * interpolation between rows and clamped outside them; a distance outside the calibrated
+       * range is reported as an invalid solution rather than extrapolated.
+       */
+      public double[] points;
+    }
+
+    public ShotTable shot_table;
   }
 
   public static final class Auto {
@@ -712,7 +907,6 @@ public final class config {
      */
     public int shoot_wait_ms;
 
-    /** Flywheel power ratio (0.0 to 1.0) used for close-range shots. Minimum: 0.0 Maximum: 1.0 */
     public double launch_power;
 
     /**
@@ -751,6 +945,20 @@ public final class config {
      * Maximum: 1.0
      */
     public double max_speed;
+
+    /**
+     * When true, driver translation sticks are interpreted in the field frame (stick direction is a
+     * fixed field direction regardless of robot heading). When false, sticks are robot-relative.
+     */
+    public boolean field_centric;
+
+    /**
+     * Field heading (degrees) that a fully-forward driver stick should drive toward when
+     * field_centric is true. 90 means stick-forward drives along field +Y, i.e. away from the
+     * driver wall at y=0. Set this to whatever direction is 'away' from where the drivers
+     * physically stand. Minimum: -360.0 Maximum: 360.0
+     */
+    public double field_centric_offset_deg;
 
     /** Target motor power (0.0 to 1.0) for intake rollers in TeleOp. Minimum: 0.0 Maximum: 1.0 */
     public double intake_power;
@@ -845,7 +1053,6 @@ public final class config {
     /** Wait time (milliseconds) allowed to fire a shot before ending the shoot command. */
     public int shootWaitMs;
 
-    /** Flywheel power ratio (0.0 to 1.0) used for close-range shots. */
     public double launchPower;
 
     /** Target power coefficient (0.0 to 1.0) for autonomous transfer motor. */
@@ -905,7 +1112,6 @@ public final class config {
     /** Wait time (milliseconds) allowed to fire a shot before ending the shoot command. */
     public int shootWaitMs;
 
-    /** Flywheel power ratio (0.0 to 1.0) used for close-range shots. */
     public double launchPower;
 
     /** Target power coefficient (0.0 to 1.0) for autonomous transfer motor. */

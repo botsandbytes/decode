@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.config;
 
 import com.pedropathing.geometry.Pose;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
@@ -700,6 +701,26 @@ public final class ConfigLoader {
     }
     if (type == String.class) {
       return value.toString();
+    }
+    // Arrays, for any YAML sequence the generator did not type as a Pose (i.e. any length but 3).
+    // Without this a double[] field silently received the raw List, the assignment threw, and the
+    // enclosing nested-object bind fell through to returning its map — surfacing far away as
+    // "cannot set <NestedType> field to LinkedHashMap" rather than pointing at the real key.
+    if (type.isArray() && value instanceof List) {
+      List<?> list = (List<?>) value;
+      Class<?> component = type.getComponentType();
+      Object array = Array.newInstance(component, list.size());
+      for (int i = 0; i < list.size(); i++) {
+        Object element = list.get(i);
+        if (component == double.class) {
+          Array.setDouble(array, i, element instanceof Number ? ((Number) element).doubleValue() : 0.0);
+        } else if (component == int.class) {
+          Array.setInt(array, i, element instanceof Number ? ((Number) element).intValue() : 0);
+        } else {
+          Array.set(array, i, coerce(element, component, currentPath));
+        }
+      }
+      return array;
     }
     // Recursively handle nested configuration objects (e.g. Turret$Orientation, Shooter$Hood)
     if (value instanceof Map && !type.isPrimitive()) {

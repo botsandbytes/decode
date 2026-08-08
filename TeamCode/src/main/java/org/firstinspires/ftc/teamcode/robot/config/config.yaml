@@ -1,36 +1,41 @@
 # yaml-language-server: $schema=generated/config-schema.json
 turret:
+  enabled: true
   max_power_output: 0.5
-  ks: 0.044
-  servo_direction_inverted: true
+  servo_direction_inverted: false
+  ks_positive: 0.0009
+  ks_negative: 0.0663
   orientation:
     logo: "LEFT"
     usb: "UP"
   travel:
-    min_angle: -32.3
-    max_angle: 32.3
-  aim_hysteresis: 2.0
+    min_angle: -30.7
+    max_angle: 30.7
   stall:
-    timeout_sec: 0.25
-    kick_power: 0.10
-    progress_deg: 0.3
+    enabled: true
+    power_threshold: 0.12
+    min_progress_deg: 0.75
+    timeout_sec: 0.35
+  runaway:
+    enabled: false
+    divergence_deg: 8.0
   pidf:
-    p: 0.01424
-    i: 0
-    d: 0
-    f: 0
+    p: 0.02
+    i: 0.008
+    d: 0.0
+    f: 0.0
   tolerance:
-    max_drift: 3
+    max_drift: 5
     near_cutoff: 1
     near_val: 1.5
     min_deg: 0.5
     max_deg: 2
   analog_encoder:
     enabled: true
-    zero_voltage: 2.5420
+    zero_voltage: 2.0215
     degrees_per_volt: 42.15
-    min_voltage: 0.079
-    max_voltage: 1.705
+    min_voltage: 1.223
+    max_voltage: 2.820
     full_scale_voltage: 3.3
     inverted: true
 
@@ -86,30 +91,78 @@ casablanca:
 
 
 shooter:
+  ks: 0.1811
+  nominal_voltage: 12.0
+  max_voltage_compensation: 1.4
+  voltage_refresh_sec: 0.25
   max_rpm: 1500
-  min_transfer_threshold: 0.93
-  max_velocity_threshold: 1.05
+  constant_rpm: 1000
+  min_transfer_threshold: 0.97
+  max_velocity_threshold: 1.03
+  feed_release_threshold: 0.80
   feed_intake_power: 1.0
   feed_transfer_power: 1.0
   long_hood_power_threshold: 0.7
-  hood:
-    low_position: 0.156
-    high_position: k+0.7
   pidf:
-    p: 150
-    i: 0
+    p: 0.0001472
+    i: 0.0008
     d: 0
-    f: 22.8
-  launch_params:
-    threshold_distance: 33
-    near:
-      launch_power: 0.4
-      wait_time: 2000
-    far:
-      blue_base_power: 0.58
-      red_base_power: 0.6
-      power_scale: 300
-      wait_time_scale: 68
+    f: 16.0744
+  integral:
+    band_ticks: 150.0
+    max_contribution: 0.15
+  ballistics:
+    v0: 250.0
+    k: 0.0012
+    magnus_l: 0.015
+    launch_height_inches: 15.0
+    goal_height_inches: 45.0
+    g_inches_per_sec2: 386.088
+    min_hood_angle_deg: 15.0
+    max_hood_angle_deg: 65.0
+    min_hood_servo_pos: 0.85
+    max_hood_servo_pos: 0.0
+    max_moving_speed_ips: 60.0
+    min_valid_distance: 30.0
+    max_valid_distance: 150.0
+    lead_bias_gain: 1.0
+    v0_reference_rpm: 1000.0
+    preferred_shot_rpm: 1000.0
+    max_shot_rpm: 1450.0
+    v0_margin_fraction: 0.12
+    rpm_update_deadband: 25.0
+    flight_time_sec_per_inch: 0.004
+    lead_min_speed_ips: 10.0
+  shot_table:
+    # Measured shots, flat triples: distance_in, hood_servo, flywheel_rpm.
+    # Recorded by the Ballistics Calibration OpMode; distances must strictly increase.
+    # Linear interpolation between rows, clamped outside them.
+    #
+    # From the 2026-08-08 00:31 run. Six rows, every one a shot the driver watched score, no
+    # skips. Two things improved over the 22:37 run this replaces: the close endpoint is no longer
+    # clamped (50.1 sits at servo 0.1009, where 47.9 was hard against 0.0000 with no steeper hood
+    # left to try), and 137.0 was reached instead of skipped. Range is now 50.1 - 137.0 in.
+    #
+    # RPM is clean: 950 -> 989 -> 1101 -> 1179 -> 1282 -> 1382, monotonic with a smoothly rising
+    # slope of 1.7 to 9.4 rpm/in.
+    #
+    # The servo column still reverses at 97.9 -> 113.7 (0.6488 -> 0.5196), the same dip the 22:37
+    # run showed at 96.7 -> 114.7 (0.6615 -> 0.5139). Landing twice within ~0.015 is NOT
+    # independent confirmation: each endpoint is seeded from this table, so the driver was
+    # accepting a number that came from the previous run. What the reversal costs is real though —
+    # interpolating that segment sweeps the hood steeper while sweeping the flywheel faster, a
+    # pairing never tested anywhere in between. At a fixed distance a whole family of
+    # (servo, rpm) pairs scores, and each endpoint picked a different member of it. Pinning RPM
+    # across every endpoint and moving only the hood collapses that family to a single curve, and
+    # is the run that would actually settle whether this dip is real.
+    points: [
+        50.1, 0.1009, 950.0,
+        72.6, 0.2191, 989.0,
+        97.9, 0.6488, 1101.0,
+        113.7, 0.5196, 1179.0,
+        124.7, 0.6139, 1282.0,
+        137.0, 0.7139, 1382.0
+      ]
 
 auto:
   drink_wait_ms: 1200
@@ -123,6 +176,8 @@ auto:
 
 teleop:
   max_speed: 1
+  field_centric: true
+  field_centric_offset_deg: 90
   intake_power: 1.0
   transfer_power: 0.1
   manual_rev_power: 0.6

@@ -69,7 +69,13 @@ public class TurretPlantCalibrationOpMode extends LinearOpMode {
   private Turret turret;
   private final ElapsedTime timer = new ElapsedTime();
 
-  private record GainSample(double power, double degPerSec) {}
+  /**
+   * @param power magnitude of the commanded power
+   * @param degPerSec magnitude of the resulting speed
+   * @param signAgrees whether the turret moved in the direction that was commanded. A single
+   *     disagreement means the control loop is inverted and will run away from its target.
+   */
+  private record GainSample(double power, double degPerSec, boolean signAgrees) {}
 
   @Override
   public void runOpMode() throws InterruptedException {
@@ -103,8 +109,16 @@ public class TurretPlantCalibrationOpMode extends LinearOpMode {
       for (double power : powers) {
         if (!opModeIsActive()) return;
         direction = chooseDirectionWithRoom(direction);
-        double degPerSec = measureSpeed(power * direction);
-        samples.add(new GainSample(power, Math.abs(degPerSec)));
+        double commanded = power * direction;
+        double degPerSec = measureSpeed(commanded);
+        // Keep the magnitude for the gain fit, but hold on to whether the turret actually moved
+        // the way it was told -- that is the one thing this OpMode can prove that no amount of
+        // closed-loop tuning can, and discarding it hid an inverted loop.
+        samples.add(
+            new GainSample(
+                power,
+                Math.abs(degPerSec),
+                Math.abs(degPerSec) < 1e-6 || Math.signum(degPerSec) == Math.signum(commanded)));
         direction = -direction;
       }
 
@@ -233,7 +247,19 @@ public class TurretPlantCalibrationOpMode extends LinearOpMode {
     double k = den > 1e-9 ? num / den : 0.0;
     double recommendedP = (k > 1e-9) ? 1.0 / (k * desiredTimeConstantSec) : 0.0;
 
+    boolean loopInverted = samples.stream().anyMatch(s -> !s.signAgrees());
+
     telemetry.addLine("=== RESULTS ===");
+    if (loopInverted) {
+      telemetry.addLine("*** CONTROL LOOP IS INVERTED ***");
+      telemetry.addLine("The turret moved OPPOSITE the commanded direction. Closed-loop control");
+      telemetry.addLine("will drive away from the target and into a hard stop. Flip");
+      telemetry.addLine("turret.servo_direction_inverted in config.yaml and re-run BEFORE");
+      telemetry.addLine("using any closed-loop OpMode. The gains below are still valid.");
+      telemetry.addLine("");
+    } else {
+      telemetry.addLine("Loop sign OK: turret moves the way it is commanded.");
+    }
     telemetry.addData("kS positive", String.format("%.4f", ksPositive));
     telemetry.addData("kS negative", String.format("%.4f", ksNegative));
     telemetry.addData("kS (mean)", String.format("%.4f", kS));
@@ -245,7 +271,8 @@ public class TurretPlantCalibrationOpMode extends LinearOpMode {
     telemetry.addLine("");
     telemetry.addLine("--- PASTE INTO config.yaml ---");
     telemetry.addLine("turret:");
-    telemetry.addLine(String.format("  ks: %.3f", kS));
+    telemetry.addLine(String.format("  ks_positive: %.4f", Math.abs(ksPositive)));
+    telemetry.addLine(String.format("  ks_negative: %.4f", Math.abs(ksNegative)));
     telemetry.addLine("  pidf:");
     telemetry.addLine(String.format("    p: %.5f", recommendedP));
     telemetry.addLine("    i: 0");

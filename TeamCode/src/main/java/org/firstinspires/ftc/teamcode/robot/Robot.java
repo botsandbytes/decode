@@ -1,7 +1,9 @@
 package org.firstinspires.ftc.teamcode.robot;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
 import com.pedropathing.ivy.Scheduler;
+import com.pedropathing.math.Vector;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import java.util.List;
@@ -42,7 +44,21 @@ public final class Robot {
 
     sentinel = new Sentinel(profile.alliance());
     casablanca = new Casablanca(sentinel);
-    shotController = new ShotController(shooter, turret, intake, follower::getPose, telemetry);
+    shotController =
+        new ShotController(
+            shooter,
+            turret,
+            intake,
+            follower::getPose,
+            () -> {
+              Vector v = follower.getVelocity();
+              return v != null
+                  ? new Pose(v.getXComponent(), v.getYComponent(), follower.getAngularVelocity())
+                  : new Pose(0, 0, 0);
+            },
+            casablanca,
+            profile.alliance(),
+            telemetry);
 
     vision = new VisionUtil();
   }
@@ -56,9 +72,18 @@ public final class Robot {
 
     intake.periodic();
     shooter.periodic();
-    turret.periodic();
     shotController.periodic();
+    turret.periodic();
 
     Scheduler.execute();
+  }
+
+  /**
+   * Stops background resources owned by this Robot (currently ShotController's async solver
+   * thread). Must be called from the owning OpMode's teardown — a new Robot is constructed on every
+   * OpMode init, so skipping this leaks one solver thread per init.
+   */
+  public void shutdown() {
+    shotController.shutdown();
   }
 }

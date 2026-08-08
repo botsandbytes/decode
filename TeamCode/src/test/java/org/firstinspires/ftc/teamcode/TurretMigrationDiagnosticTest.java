@@ -49,6 +49,10 @@ public class TurretMigrationDiagnosticTest {
     Mockito.when(hardwareMap.get(DcMotorEx.class, "rightFront")).thenReturn(mockMotor);
     Mockito.when(hardwareMap.get(DcMotorEx.class, "rightBack")).thenReturn(mockMotor);
 
+    // config.turret.enabled defaults to false on a freshly-built robot; this suite exercises the
+    // aiming/safety math, not the enabled flag, so force it on regardless of test order.
+    config.turret.enabled = true;
+
     Telemetry mockTelemetry = Mockito.mock(Telemetry.class);
     poseBox = new Pose[] {new Pose(72, 72, 0)};
     turret = new Turret(hardwareMap, mockTelemetry, () -> poseBox[0]);

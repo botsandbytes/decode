@@ -93,7 +93,6 @@ public abstract class AllianceAutoBase<T> extends OpMode {
 
   @Override
   public void loop() {
-    turret.setHoldAngle(Math.toDegrees(follower.getHeading()));
     robot.update();
 
     OpModeUtil.savePose(alliance, follower.getPose());
@@ -102,6 +101,51 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     telemetry.addData("x", follower.getPose().getX());
     telemetry.addData("y", follower.getPose().getY());
     telemetry.addData("heading", follower.getPose().getHeading());
+    addShooterDiagnostics();
     telemetry.update();
+  }
+
+  /**
+   * Flywheel and shot-solver state, every loop.
+   *
+   * <p>ShotController only publishes its gate telemetry while a shot is armed, which in auto is
+   * about a second per scoring cycle — so for most of a run the driver station showed nothing but
+   * the pose, and a flywheel that was failing to reach its setpoint looked identical to one that
+   * was fine. These lines are the difference between "auto did not shoot" and knowing which of
+   * spin-up, aim, or the solver is responsible.
+   */
+  private void addShooterDiagnostics() {
+    double target = shooter.getLastTargetVelocity();
+    double actual = Math.abs(shooter.getShooterVelocity());
+    telemetry.addData(
+        "Flywheel",
+        String.format(
+            "%.0f / %.0f ticks/s (%.2fx)", actual, target, target > 0 ? actual / target : 0.0));
+    telemetry.addData(
+        "Flywheel Cmd",
+        String.format(
+            "%.3f  (pid %.3f + i %.3f + ff %.3f) x%.2f",
+            shooter.getLastCommand(),
+            shooter.getLastPidTerm(),
+            shooter.getLastIntegralTerm(),
+            shooter.getLastFeedforwardTerm(),
+            shooter.getLastVoltageScale()));
+    telemetry.addData("Bus Voltage", String.format("%.2f V", shooter.getLastBusVoltage()));
+    telemetry.addData("Hood", shooter.getTargetHoodPosition());
+
+    var solution = robot.shotController.getLastSolution();
+    telemetry.addData(
+        "Shot Solver",
+        String.format(
+            "%.1f in -> hood %.3f, %.0f rpm [%s]",
+            solution.distanceInches(),
+            solution.targetHoodPosition(),
+            solution.targetRpm(),
+            solution.isValid() ? "valid" : solution.validityReason()));
+  }
+
+  @Override
+  public void stop() {
+    robot.shutdown();
   }
 }

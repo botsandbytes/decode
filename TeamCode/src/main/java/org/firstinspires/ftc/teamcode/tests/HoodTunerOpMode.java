@@ -23,12 +23,12 @@ public class HoodTunerOpMode extends OpMode {
   public void init() {
     config.reload();
     hood = hardwareMap.get(Servo.class, "hood");
-    targetPosition = config.shooter.hood.low_position;
+    targetPosition = config.shooter.ballistics.min_hood_servo_pos;
     hood.setPosition(targetPosition);
 
     telemetry.addData("Status", "Initialized Hood Tuner");
-    telemetry.addData("Config Low Position", config.shooter.hood.low_position);
-    telemetry.addData("Config High Position", config.shooter.hood.high_position);
+    telemetry.addData("Config Min Servo Pos", config.shooter.ballistics.min_hood_servo_pos);
+    telemetry.addData("Config Max Servo Pos", config.shooter.ballistics.max_hood_servo_pos);
     telemetry.update();
   }
 
@@ -56,10 +56,10 @@ public class HoodTunerOpMode extends OpMode {
     dpadLeftPressed = gamepad1.dpad_left;
 
     if (gamepad1.a) {
-      targetPosition = config.shooter.hood.low_position;
+      targetPosition = config.shooter.ballistics.min_hood_servo_pos;
     }
     if (gamepad1.b) {
-      targetPosition = config.shooter.hood.high_position;
+      targetPosition = config.shooter.ballistics.max_hood_servo_pos;
     }
 
     targetPosition = Math.clamp(targetPosition, 0.0, 1.0);
@@ -67,8 +67,8 @@ public class HoodTunerOpMode extends OpMode {
 
     telemetry.addData("Target Servo Position", String.format("%.4f", targetPosition));
     telemetry.addData("Actual Servo Position", String.format("%.4f", hood.getPosition()));
-    telemetry.addData("Configured Low Position", config.shooter.hood.low_position);
-    telemetry.addData("Configured High Position", config.shooter.hood.high_position);
+    telemetry.addData("Configured Min Servo Pos", config.shooter.ballistics.min_hood_servo_pos);
+    telemetry.addData("Configured Max Servo Pos", config.shooter.ballistics.max_hood_servo_pos);
     telemetry.addLine();
     telemetry.addLine("Controls:");
     telemetry.addLine("  DPAD Up/Down   : +/- 0.01");

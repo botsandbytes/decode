@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.robot;
 
-import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.control.PIDFController;
 import com.pedropathing.follower.Follower;
@@ -8,38 +7,32 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
-@Configurable
 public class Turret {
   public static final double OFFSET_CONST = 260.0;
   public static final double LIMIT_CONST = 160.0;
-  public static final double MAX_JUMP_DEG = 30.0;
   public static final double FAULT_MARGIN_DEG = 10.0;
-  public static final double RUNAWAY_DEG = 8.0;
+
+  private double p;
+  private double i;
+  private double d;
+  private double f;
+  private double ksPositive;
+  private double ksNegative;
+  private double maxPower;
 
   private final CRServo turnServo;
   private final AnalogInput turnAnalog;
   private final Telemetry telemetry;
 
+  private final PIDFCoefficients pidfCoefficients;
   private final PIDFController pidfController;
 
   private double targetTurnAngle = 0;
   private boolean isTurnDone = false;
-  private boolean aimedLatch = false;
-  private double lastEncoderAngle = 0.0;
-  private boolean hasLastEncoderAngle = false;
-  private boolean encoderFaultLatched = false;
-  private boolean runawayFaultLatched = false;
-  private double runawayRefAngle = 0.0;
-  private double runawayCommandSign = 0.0;
-  private double lastCommandedPower = 0.0;
-  private final ElapsedTime stallTimer = new ElapsedTime();
-  private double stallReferenceAngle = Double.NaN;
-  private boolean stallKickActive = false;
   private double goalX;
   private double goalY;
   private final java.util.function.Supplier<Pose> poseSupplier;
@@ -73,13 +66,97 @@ public class Turret {
     turnServo = hardwareMap.get(CRServo.class, "turn");
     turnAnalog = hardwareMap.get(AnalogInput.class, "turnanalog");
 
-    var p = config.turret.pidf;
-    PIDFCoefficients pidfCoefficients = new PIDFCoefficients(p.p, p.i, p.d, p.f);
+    if (turnServo != null && config.turret != null) {
+      boolean flip = config.turret.servo_direction_inverted;
+      turnServo.setDirection(flip ? CRServo.Direction.REVERSE : CRServo.Direction.FORWARD);
+    }
+
+    reloadFromConfig();
+
+    pidfCoefficients = new PIDFCoefficients(p, i, d, f);
     pidfController = new PIDFController(pidfCoefficients);
 
     if (config.turret != null && config.turret.analog_encoder != null) {
       this.zeroVoltageOffset = config.turret.analog_encoder.zero_voltage;
     }
+  }
+
+  public final void reloadFromConfig() {
+    if (config.turret != null) {
+      if (config.turret.pidf != null) {
+        this.p = config.turret.pidf.p;
+        this.i = config.turret.pidf.i;
+        this.d = config.turret.pidf.d;
+        this.f = config.turret.pidf.f;
+      }
+      this.ksPositive = config.turret.ks_positive;
+      this.ksNegative = config.turret.ks_negative;
+      this.maxPower = config.turret.max_power_output;
+    }
+    // Null during the constructor's own call, before the coefficients exist.
+    if (pidfCoefficients != null) {
+      applyPIDFCoefficients();
+    }
+  }
+
+  public void setPIDF(double p, double i, double d, double f) {
+    this.p = p;
+    this.i = i;
+    this.d = d;
+    this.f = f;
+    applyPIDFCoefficients();
+  }
+
+  public void setKs(double ksPositive, double ksNegative) {
+    this.ksPositive = ksPositive;
+    this.ksNegative = ksNegative;
+  }
+
+  public double getKsPositive() {
+    return ksPositive;
+  }
+
+  public double getKsNegative() {
+    return ksNegative;
+  }
+
+  public void setMaxPower(double maxPower) {
+    this.maxPower = maxPower;
+  }
+
+  public double getP() {
+    return p;
+  }
+
+  public double getI() {
+    return i;
+  }
+
+  public double getD() {
+    return d;
+  }
+
+  public double getF() {
+    return f;
+  }
+
+  public double getMaxPower() {
+    return maxPower;
+  }
+
+  /**
+   * Pushes the current gains into the coefficients object the controller was constructed with.
+   *
+   * <p>This mutates that object in place rather than handing the controller a new one: {@link
+   * PIDFController#run()} re-reads its gains from the {@code PIDFCoefficientSupplier} it was given
+   * at construction, so a {@code pidfController.setCoefficients(new ...)} call is silently
+   * discarded on the very next {@code run()}. That is what made the live tuner a no-op -- the
+   * turret kept using the gains read from config.yaml at construction time, so dashboard edits
+   * (including setting every gain to 0) changed nothing. {@code Shooter} avoids the same trap; see
+   * {@code Shooter#setShooterPIDFCoefficients()}.
+   */
+  private void applyPIDFCoefficients() {
+    pidfCoefficients.setCoefficients(p, i, d, f);
   }
 
   private double zeroVoltageOffset = 0.0;
@@ -139,68 +216,6 @@ public class Turret {
         && angle <= travel.max_angle + FAULT_MARGIN_DEG;
   }
 
-  public boolean isEncoderFaulted() {
-    return encoderFaultLatched;
-  }
-
-  public boolean isRunawayFaulted() {
-    return runawayFaultLatched;
-  }
-
-  public boolean isStallKickActive() {
-    return stallKickActive;
-  }
-
-  public void clearEncoderFault() {
-    encoderFaultLatched = false;
-    runawayFaultLatched = false;
-    hasLastEncoderAngle = false;
-    runawayCommandSign = 0.0;
-  }
-
-  private void updateRunawayDetection(double angle, double command) {
-    double sign = Math.signum(command);
-    if (sign == 0.0) {
-      runawayCommandSign = 0.0;
-      return;
-    }
-    if (sign != runawayCommandSign) {
-      runawayCommandSign = sign;
-      runawayRefAngle = angle;
-      return;
-    }
-    double progress = (angle - runawayRefAngle) * sign;
-    if (progress < -RUNAWAY_DEG) {
-      runawayFaultLatched = true;
-    } else if (progress > 0) {
-      runawayRefAngle = angle;
-    }
-  }
-
-  private void resetStallDetection() {
-    stallReferenceAngle = Double.NaN;
-    stallKickActive = false;
-  }
-
-  private double applyStallKick(double command, double angle, double error) {
-    var stall = config.turret.stall;
-
-    if (Double.isNaN(stallReferenceAngle)
-        || Math.abs(angle - stallReferenceAngle) >= stall.progress_deg) {
-      stallReferenceAngle = angle;
-      stallTimer.reset();
-      stallKickActive = false;
-      return command;
-    }
-
-    if (!stallKickActive && stallTimer.seconds() < stall.timeout_sec) {
-      return command;
-    }
-
-    stallKickActive = true;
-    return Math.copySign(Math.max(Math.abs(command), stall.kick_power), error);
-  }
-
   public double getCurrentTurnAngle() {
     if (turnAnalog != null && config.turret.analog_encoder.enabled) {
       return angleForVoltage(turnAnalog.getVoltage());
@@ -233,8 +248,24 @@ public class Turret {
 
   public String getEncoderRangeWarning() {
     var travel = config.turret.travel;
+    var enc = config.turret.analog_encoder;
     double[] range = getReachableAngleRange();
     StringBuilder sb = new StringBuilder();
+
+    // A zero_voltage far from the travel's midpoint drags the potentiometer's wrap point in
+    // between the two hard stops. The angle then jumps a full scale mid-travel, so the loop chases
+    // a discontinuity and can run the reading clear outside the fault window. The stops span a
+    // known number of degrees; if the computed span is short, the wrap is sitting between them.
+    double expectedSpan = (enc.max_voltage - enc.min_voltage) * enc.degrees_per_volt;
+    double actualSpan = range[1] - range[0];
+    if (enc.full_scale_voltage > 0 && Math.abs(actualSpan - expectedSpan) > 1.0) {
+      sb.append(
+          String.format(
+              "zero_voltage %.4f puts the encoder wrap inside the turret's travel "
+                  + "(stops span %.1f deg, expected %.1f deg) - angle will jump mid-travel. ",
+              getZeroVoltage(), actualSpan, expectedSpan));
+    }
+
     if (range[1] < travel.max_angle) {
       sb.append(
           String.format(
@@ -250,36 +281,187 @@ public class Turret {
     return sb.length() == 0 ? null : sb.toString().trim();
   }
 
+  private Boolean enabledOverride = null;
+
+  public boolean isEnabled() {
+    if (enabledOverride != null) {
+      return enabledOverride;
+    }
+    return config.turret != null && config.turret.enabled;
+  }
+
+  public void setEnabled(boolean enabled) {
+    this.enabledOverride = enabled;
+  }
+
   public boolean isTurnDone() {
+    if (!isEnabled()) {
+      return true;
+    }
     return isTurnDone;
   }
 
-  private boolean wouldExceedTurnBoundary(boolean increasingAngle) {
+  private boolean wouldExceedTurnBoundary(double power) {
+    if (power == 0) return false;
     var travel = config.turret.travel;
     double angle = getCurrentTurnAngle();
-    return (angle >= travel.max_angle && increasingAngle)
-        || (angle <= travel.min_angle && !increasingAngle);
+    if (power > 0 && angle >= travel.max_angle) {
+      return true;
+    }
+    if (power < 0 && angle <= travel.min_angle) {
+      return true;
+    }
+    return false;
+  }
+
+  /** Why the last power write was zeroed, or null if it was passed through. */
+  public String getPowerBlockedReason() {
+    return powerBlockedReason;
+  }
+
+  private String powerBlockedReason = null;
+
+  /**
+   * Clears a latched safety fault. Deliberate operator action only -- the turret stopped because it
+   * was pushing against something or driving the wrong way, so a human should look before it is
+   * allowed to move again.
+   */
+  public void clearFault() {
+    faultReason = null;
+    stallReferenceAngle = Double.NaN;
+    runawayTarget = Double.NaN;
+  }
+
+  /** True once a watchdog has cut power; stays true until {@link #clearFault()}. */
+  public boolean isFaulted() {
+    return faultReason != null;
+  }
+
+  /** Why the turret latched a safety fault, or null if it has not. */
+  public String getFaultReason() {
+    return faultReason;
+  }
+
+  private String faultReason = null;
+  private double stallReferenceAngle = Double.NaN;
+  private long stallReferenceTimeNano = 0L;
+  private double runawayTarget = Double.NaN;
+  private double runawayBestAbsError = Double.MAX_VALUE;
+
+  /**
+   * Cuts power when the aim error is growing under power instead of shrinking.
+   *
+   * <p>This is what an inverted control loop looks like from the inside: if {@code
+   * servo_direction_inverted} and {@code analog_encoder.inverted} disagree with the hardware, every
+   * correction drives the turret further from its target, so the loop accelerates into a hard stop
+   * and holds there. No position guard catches it -- the readings stay perfectly plausible the
+   * whole way -- but the error only ever grows, which nothing legitimate does.
+   */
+  private void updateRunawayWatchdog(double target, double error, double command) {
+    var runaway = config.turret.runaway;
+    if (!runaway.enabled || Double.isNaN(getRawVoltage()) || isFaulted()) {
+      return;
+    }
+
+    if (Double.isNaN(runawayTarget) || Math.abs(target - runawayTarget) > 1e-6) {
+      runawayTarget = target;
+      runawayBestAbsError = Math.abs(error);
+      return;
+    }
+
+    if (Math.abs(command) < config.turret.stall.power_threshold) {
+      return; // Not actually driving; the error is allowed to sit wherever it is.
+    }
+
+    double absError = Math.abs(error);
+    runawayBestAbsError = Math.min(runawayBestAbsError, absError);
+    if (absError > runawayBestAbsError + runaway.divergence_deg) {
+      faultReason =
+          String.format(
+              "RUNAWAY - error grew %.1f -> %.1f deg under power. The loop is driving away from "
+                  + "its target: check servo_direction_inverted vs analog_encoder.inverted.",
+              runawayBestAbsError, absError);
+    }
+  }
+
+  /**
+   * Cuts power when the turret is being driven but is not moving.
+   *
+   * <p>This is the protection that was missing when a bad {@code zero_voltage} let the loop drive
+   * the turret into its hard stop and hold it there: every position-based guard trusts the encoder,
+   * so none of them fire when the encoder itself is the thing that is wrong. Progress does not care
+   * why the reading is bad -- if we are commanding real power and the angle is not changing, the
+   * turret is pushing against something and must stop.
+   */
+  private void updateStallWatchdog(double commandedPower) {
+    var stall = config.turret.stall;
+    if (!stall.enabled || Double.isNaN(getRawVoltage()) || isFaulted()) {
+      return;
+    }
+
+    long now = System.nanoTime();
+    double angle = getCurrentTurnAngle();
+
+    if (Math.abs(commandedPower) < stall.power_threshold) {
+      stallReferenceAngle = Double.NaN;
+      return;
+    }
+
+    if (Double.isNaN(stallReferenceAngle)) {
+      stallReferenceAngle = angle;
+      stallReferenceTimeNano = now;
+      return;
+    }
+
+    if (Math.abs(angle - stallReferenceAngle) >= stall.min_progress_deg) {
+      stallReferenceAngle = angle;
+      stallReferenceTimeNano = now;
+      return;
+    }
+
+    if ((now - stallReferenceTimeNano) / 1e9 >= stall.timeout_sec) {
+      faultReason =
+          String.format(
+              "STALLED at %.1f deg - power commanded but the turret is not moving.",
+              getCurrentTurnAngle());
+    }
   }
 
   public void setTurretPowerRaw(double power) {
-    if (power > 0 && wouldExceedTurnBoundary(true)) {
+    powerBlockedReason = null;
+
+    if (!isEnabled()) {
+      powerBlockedReason = "TURRET DISABLED";
       power = 0;
-    } else if (power < 0 && wouldExceedTurnBoundary(false)) {
-      power = 0;
+    } else {
+      updateStallWatchdog(power);
+
+      if (isFaulted()) {
+        powerBlockedReason = faultReason;
+        power = 0;
+      } else if (!isReadingWithinTravel()) {
+        // Fail safe, in both directions. Deciding which way is "back toward travel" requires
+        // trusting getCurrentTurnAngle(), and this branch is exactly the case where that reading is
+        // not trustworthy -- an earlier attempt to auto-recover here drove the turret into its hard
+        // stop. Recovery is by hand, via the passive (0-power) TurretCenterCalibrationOpMode.
+        powerBlockedReason =
+            String.format(
+                "ENCODER OUT OF RANGE (%.1f deg) - reading is not trusted, power cut",
+                getCurrentTurnAngle());
+        power = 0;
+      } else if (wouldExceedTurnBoundary(power)) {
+        powerBlockedReason = "AT TRAVEL LIMIT";
+        power = 0;
+      }
     }
 
-    boolean flip = config.turret.servo_direction_inverted;
-    CRServo.Direction increasing = flip ? CRServo.Direction.FORWARD : CRServo.Direction.REVERSE;
-    CRServo.Direction decreasing = flip ? CRServo.Direction.REVERSE : CRServo.Direction.FORWARD;
-
-    if (power > 0) {
-      turnServo.setDirection(increasing);
-      turnServo.setPower(Math.abs(power));
-    } else if (power < 0) {
-      turnServo.setDirection(decreasing);
-      turnServo.setPower(Math.abs(power));
-    } else {
-      turnServo.setPower(0);
+    if (turnServo != null) {
+      boolean flip = config.turret != null && config.turret.servo_direction_inverted;
+      CRServo.Direction targetDir = flip ? CRServo.Direction.REVERSE : CRServo.Direction.FORWARD;
+      if (turnServo.getDirection() != targetDir) {
+        turnServo.setDirection(targetDir);
+      }
+      turnServo.setPower(power);
     }
   }
 
@@ -328,91 +510,60 @@ public class Turret {
     double relativeTurretAngle = getCurrentTurnAngle();
     double relativeTargetAngle = targetTurnAngle;
 
-    var t = config.turret;
-
-    if (!isReadingWithinTravel()) {
-      encoderFaultLatched = true;
-    }
-
-    boolean jumpRejected =
-        hasLastEncoderAngle && Math.abs(relativeTurretAngle - lastEncoderAngle) > MAX_JUMP_DEG;
-    double controlAngle = jumpRejected ? lastEncoderAngle : relativeTurretAngle;
-    lastEncoderAngle = relativeTurretAngle;
-    hasLastEncoderAngle = true;
-    relativeTurretAngle = controlAngle;
-
-    updateRunawayDetection(relativeTurretAngle, lastCommandedPower);
-
-    boolean encoderFault = encoderFaultLatched || runawayFaultLatched || jumpRejected;
-
     double error = AngleUnit.normalizeDegrees(relativeTargetAngle - relativeTurretAngle);
     boolean turnLeft = error > 0;
-
     double tolerance = calculateDynamicTolerance(distanceToGoal(currentPose));
     double absError = Math.abs(error);
-    if (aimedLatch) {
-      if (absError > tolerance * t.aim_hysteresis) aimedLatch = false;
-    } else {
-      if (absError < tolerance) aimedLatch = true;
+
+    double feedforward = 0.0;
+    if (ksPositive != 0.0 || ksNegative != 0.0) {
+      if (error > 0) {
+        feedforward = Math.abs(ksPositive);
+      } else if (error < 0) {
+        feedforward = -Math.abs(ksNegative);
+      }
     }
 
-    boolean isBoundaryViolated = wouldExceedTurnBoundary(turnLeft);
+    applyPIDFCoefficients();
+    pidfController.setTargetPosition(relativeTargetAngle);
+    pidfController.updatePosition(relativeTurretAngle);
+    // Always a normalized direction, never the kS magnitude. run() computes feedForwardInput * F,
+    // so passing kS here made the F term "kS * f" -- kS scaled by an unrelated gain, on top of the
+    // kS already added to the output below. f is an independent symmetric stiction gain.
+    pidfController.updateFeedForwardInput(Math.signum(error));
+    double pidOutput = pidfController.run();
+    double command = Math.clamp(pidOutput + feedforward, -maxPower, maxPower);
 
-    if (encoderFault || aimedLatch || isBoundaryViolated) {
-      turnServo.setPower(0);
-      lastCommandedPower = 0.0;
-      isTurnDone = aimedLatch;
+    updateRunawayWatchdog(relativeTargetAngle, error, command);
+
+    boolean isBoundaryViolated = wouldExceedTurnBoundary(command);
+
+    if (absError <= tolerance || isBoundaryViolated) {
+      setTurretPowerRaw(0);
+      isTurnDone = absError <= tolerance;
       pidfController.reset();
-      resetStallDetection();
     } else {
       isTurnDone = false;
-
-      pidfController.setTargetPosition(relativeTargetAngle);
-      pidfController.updatePosition(relativeTurretAngle);
-      pidfController.updateFeedForwardInput(Math.signum(error));
-      double pidOutput = pidfController.run();
-
-      double command = pidOutput + Math.copySign(t.ks, error);
-      command = Math.clamp(command, -t.max_power_output, t.max_power_output);
-
-      command = applyStallKick(command, relativeTurretAngle, error);
-      command = Math.clamp(command, -t.max_power_output, t.max_power_output);
-
       setTurretPowerRaw(command);
-      lastCommandedPower = command;
     }
 
-    String rangeWarning = getEncoderRangeWarning();
-    telemetry.addData("Robot Heading", Math.toDegrees(currentPose.getHeading()));
-    telemetry.addData("Target Relative", relativeTargetAngle);
-    telemetry.addData("Turret Relative", relativeTurretAngle);
-    telemetry.addData("Turret Power", turnServo.getPower());
-    telemetry.addData("Turret Error", error);
-    telemetry.addData("Turret Tolerance", tolerance);
-    telemetry.addData("Turret Done", isTurnDone);
-    telemetry.addData("Turret Direction", turnLeft ? "LEFT" : "RIGHT");
-    telemetry.addData("Turret At Limit", isBoundaryViolated);
-    telemetry.addData("Turret Stall Kick", stallKickActive);
-    telemetry.addData("Encoder Raw Voltage", getRawVoltage());
-    telemetry.addData("Encoder Live Angle", getCurrentTurnAngle());
-    telemetry.addData("Encoder Jump Rejected", jumpRejected);
-    if (runawayFaultLatched) {
-      telemetry.addLine(
-          "RUNAWAY FAULT: turret moved opposite to command -- turret disabled."
-              + " Flip turret.servo_direction_inverted (NOT analog_encoder.inverted).");
-    }
-    if (encoderFaultLatched) {
+    if (telemetry != null) {
+      telemetry.addData("Robot Heading", Math.toDegrees(currentPose.getHeading()));
+      telemetry.addData("Target Relative", relativeTargetAngle);
+      telemetry.addData("Turret Relative", relativeTurretAngle);
+      telemetry.addData("Turret Power", turnServo != null ? turnServo.getPower() : 0.0);
+      telemetry.addData("Turret Error", error);
+      telemetry.addData("Turret Tolerance", tolerance);
+      telemetry.addData("Turret Done", isTurnDone);
+      telemetry.addData("Turret Direction", turnLeft ? "LEFT" : "RIGHT");
+      telemetry.addData("Turret At Limit", isBoundaryViolated);
+      // "At Limit" only covers the travel limits, so an out-of-range encoder reading zeroed the
+      // power while this line still read false. Report what actually blocked the write.
+      telemetry.addData("Turret Encoder Fault", !isReadingWithinTravel());
       telemetry.addData(
-          "ENCODER FAULT",
-          String.format(
-              "voltage %.4f outside calibrated [%.4f, %.4f] -- turret disabled, re-home and"
-                  + " re-calibrate",
-              getRawVoltage(),
-              config.turret.analog_encoder.min_voltage,
-              config.turret.analog_encoder.max_voltage));
-    }
-    if (rangeWarning != null) {
-      telemetry.addData("ENCODER RANGE WARNING", rangeWarning);
+          "Turret Power Blocked", powerBlockedReason == null ? "no" : powerBlockedReason);
+      telemetry.addData("Encoder Raw Voltage", getRawVoltage());
+      telemetry.addData("Encoder Live Angle", getCurrentTurnAngle());
     }
   }
 
@@ -421,7 +572,7 @@ public class Turret {
   }
 
   public void driveTurretRaw(double power) {
-    turnServo.setPower(power);
+    setTurretPowerRaw(power);
   }
 
   public double getGoalX() {
@@ -444,6 +595,9 @@ public class Turret {
   }
 
   public boolean isAimed(Pose currentPose) {
+    if (!isEnabled()) {
+      return true;
+    }
     double error = getAimError(currentPose);
     double dynamicTolerance = calculateDynamicTolerance(distanceToGoal(currentPose));
     return Math.abs(error) < dynamicTolerance;
@@ -457,15 +611,28 @@ public class Turret {
     return mode;
   }
 
+  private double targetAzimuthRad = Double.NaN;
+
+  public void setTargetAzimuth(double azimuthRad) {
+    this.targetAzimuthRad = azimuthRad;
+  }
+
+  public double getTargetAzimuth() {
+    return targetAzimuthRad;
+  }
+
   public void setManualPower(double power) {
     this.manualPower = power;
   }
 
   public void periodic() {
+    if (!isEnabled()) {
+      setTurretPowerRaw(0);
+      return;
+    }
     switch (mode) {
       case IDLE:
         setTurretPowerRaw(0);
-        resetStallDetection();
         break;
       case HOLD:
         this.targetTurnAngle = holdAngle;
@@ -474,9 +641,14 @@ public class Turret {
       case AIM_AT_GOAL:
         Pose pose = poseSupplier.get();
         if (pose != null) {
-          double deltaX = goalX - pose.getX();
-          double deltaY = goalY - pose.getY();
-          double worldBearingDegrees = Math.toDegrees(Math.atan2(deltaY, deltaX));
+          double worldBearingDegrees;
+          if (!Double.isNaN(targetAzimuthRad)) {
+            worldBearingDegrees = Math.toDegrees(targetAzimuthRad);
+          } else {
+            double deltaX = goalX - pose.getX();
+            double deltaY = goalY - pose.getY();
+            worldBearingDegrees = Math.toDegrees(Math.atan2(deltaY, deltaX));
+          }
           double robotWorldHeadingDegrees = Math.toDegrees(pose.getHeading());
           setTargetTurnAngle(
               AngleUnit.normalizeDegrees(worldBearingDegrees - robotWorldHeadingDegrees));
@@ -485,7 +657,6 @@ public class Turret {
         break;
       case MANUAL:
         setTurretPowerRaw(manualPower);
-        resetStallDetection();
         break;
     }
   }

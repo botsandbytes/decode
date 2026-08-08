@@ -29,39 +29,41 @@ public abstract class AllianceOppositeNew extends AllianceAutoBase<config.Opposi
 
   @Override
   protected CommandBuilder buildAuto() {
-    double basePower = config.launchPower;
+    double constantPower =
+        org.firstinspires.ftc.teamcode.robot.config.generated.config.shooter.constant_rpm
+            / org.firstinspires.ftc.teamcode.robot.config.generated.config.shooter.max_rpm;
     var shots = robot.shotController;
 
     return sequential(
         // Preload
-        instant(() -> shooter.setTargetPower(basePower + 0.02)),
+        instant(() -> shooter.setTargetPower(constantPower)),
         follow(follower, scorePreload),
-        shots.shootCommand(basePower, config.shootWaitMs),
+        shots.shootCommand(constantPower, config.shootWaitMs),
 
         // Grab pickup 2 → score
         intakeAndFollow(grabPickup2),
-        instant(() -> shooter.setTargetPower(basePower + 0.02)),
+        instant(() -> shooter.setTargetPower(constantPower)),
         follow(follower, scorePickup2),
-        shots.shootCommand(basePower, config.shootWaitMs),
+        shots.shootCommand(constantPower, config.shootWaitMs),
 
         // Drink gate
         intakeAndFollow(drinkPickupStart),
         waitMs(config.drinkWaitMs),
-        instant(() -> shooter.setTargetPower(basePower + 0.02)),
+        instant(() -> shooter.setTargetPower(constantPower)),
         follow(follower, drinkPickupScore),
-        shots.shootCommand(basePower, config.shootWaitMs),
+        shots.shootCommand(constantPower, config.shootWaitMs),
 
         // Grab pickup 3 → score
         intakeAndFollow(grabPickup3),
-        instant(() -> shooter.setTargetPower(basePower)),
+        instant(() -> shooter.setTargetPower(constantPower)),
         follow(follower, scorePickup3),
-        shots.shootCommand(basePower, config.shootWaitMs),
+        shots.shootCommand(constantPower, config.shootWaitMs),
 
         // Grab pickup 4 → score
         intakeAndFollow(grabPickup4),
-        instant(() -> shooter.setTargetPower(basePower + 0.02)),
+        instant(() -> shooter.setTargetPower(constantPower)),
         follow(follower, scorePickup4),
-        shots.shootCommand(basePower, config.shootWaitMs),
+        shots.shootCommand(constantPower, config.shootWaitMs),
 
         // Park
         follow(follower, gatePark),
@@ -73,10 +75,13 @@ public abstract class AllianceOppositeNew extends AllianceAutoBase<config.Opposi
   }
 
   protected CommandBuilder intakeAndFollow(PathChain path) {
+    double constantPower =
+        org.firstinspires.ftc.teamcode.robot.config.generated.config.shooter.constant_rpm
+            / org.firstinspires.ftc.teamcode.robot.config.generated.config.shooter.max_rpm;
     return sequential(
         instant(
             () -> {
-              shooter.setTargetPower(config.launchPower / 2);
+              shooter.setTargetPower(constantPower);
               intake.run(1, config.transferPower);
             }),
         follow(follower, path));

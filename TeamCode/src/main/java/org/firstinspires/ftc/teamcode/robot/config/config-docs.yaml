@@ -3,13 +3,18 @@ max_power_output:
   min: 0.0
   max: 1.0
 
-ks:
-  desc: "Static friction compensation power (0.0 to 1.0) added to turret rotation to overcome gear backlash and stiction. Applied in the direction of movement."
+servo_direction_inverted:
+  desc: "Flips which CRServo direction counts as increasing turret angle. Set this (not the analog encoder's 'inverted' flag) when the turret drives away from its target."
+
+ks_positive:
+  desc: "Static friction feedforward (kS) magnitude applied when turning turret in positive direction (error > 0)."
   min: 0.0
   max: 1.0
 
-servo_direction_inverted:
-  desc: "Flips which CRServo direction counts as increasing turret angle. Set this (not the analog encoder's 'inverted' flag) when the turret drives away from its target."
+ks_negative:
+  desc: "Static friction feedforward (kS) magnitude applied when turning turret in negative direction (error < 0)."
+  min: 0.0
+  max: 1.0
 
 min_angle:
   desc: "Most negative turret angle (degrees, relative to the chassis) the turret is allowed to reach."
@@ -25,20 +30,21 @@ full_scale_voltage:
   desc: "Full electrical span (volts) of the turret potentiometer, i.e. the voltage at which it wraps back to zero."
   min: 0.0
 
-aim_hysteresis:
-  desc: "Multiplier applied to the aim tolerance to decide when the turret leaves the 'aimed' state. 1.0 disables hysteresis and makes the turret chatter on the tolerance boundary; 2.0 means it must drift to twice the tolerance before driving again."
-  min: 1.0
+power_threshold:
+  desc: "Commanded turret power above which the stall watchdog starts checking for motion. Below this the servo may legitimately not move, so no stall is inferred."
+  min: 0.0
+  max: 1.0
+
+min_progress_deg:
+  desc: "Turret motion (degrees) that counts as progress and resets the stall watchdog. Set above the analog encoder's noise floor."
+  min: 0.0
 
 timeout_sec:
-  desc: "Seconds the turret may be actively commanded to move without measurable progress before a stiction kick is applied."
+  desc: "Seconds of commanded power with no turret motion before the stall watchdog latches a fault and cuts power. Protects the turret from being driven into a hard stop when the encoder reading is wrong."
   min: 0.0
 
-kick_power:
-  desc: "Power applied once a stall is detected, in place of the normal PIDF command, to break static friction."
-  min: 0.0
-
-progress_deg:
-  desc: "Angular movement that counts as 'making progress' and resets the stall timer."
+divergence_deg:
+  desc: "How far (degrees) the turret's aim error may grow beyond its best-so-far value before the runaway watchdog cuts power. Catches an inverted control loop, where positive power moves the turret away from its target, before it reaches a hard stop."
   min: 0.0
 
 max_drift:
@@ -161,7 +167,7 @@ back_lift_multiplier:
   min: 0.0
 
 enabled:
-  desc: "Enable/disable automatic heading lock when the driver releases the turn joystick in TeleOp."
+  desc: "Enable/disable this subsystem, controller, watchdog, or feature."
 
 intent_threshold:
   desc: "Raw joystick turn threshold (0.0 to 1.0) above which driver active steering takes control and disengages heading lock."
@@ -194,58 +200,136 @@ max_rpm:
   desc: "Maximum rotational speed (RPM) of the motor. Used to scale power percentage to velocity."
   min: 0.0
 
+nominal_voltage:
+  desc: "Bus voltage the flywheel feedforward (ks and pidf.f) was characterized at. Shooter.periodic() scales its motor command by nominal_voltage divided by the measured bus voltage, so a sagging pack still reaches the commanded wheel speed instead of quietly landing short and failing the feed gate. Set this to the voltage shown while the Shooter Characterization OpMode is running, not to a fresh-off-the-charger reading."
+  min: 1.0
+  max: 20.0
+
+max_voltage_compensation:
+  desc: "Largest factor the flywheel voltage compensation may scale its command by. Bounds the correction so a brownout or a bad voltage reading cannot rail the flywheel; 1.4 covers a 12.0 V feedforward down to about 8.6 V."
+  min: 1.0
+  max: 3.0
+
+voltage_refresh_sec:
+  desc: "How often the flywheel re-reads bus voltage. The hub's voltage is a separate ADC round trip rather than part of the bulk read, so polling it every loop costs milliseconds per tick; a pack does not sag meaningfully inside this interval."
+  min: 0.0
+  max: 5.0
+
 min_transfer_threshold:
   desc: "Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed."
   min: 0.0
   max: 1.0
 
-low_position:
-  desc: "Hood servo low/retracted position coefficient (0.0 to 1.0) for short-range shots."
+constant_rpm:
+  desc: "Continuous fixed flywheel target speed (RPM). Flywheel holds this RPM constantly so time-to-shoot collapses to alignment time."
+  min: 0.0
+  max: 3000.0
+
+band_ticks:
+  desc: "Flywheel velocity error (ticks/s) within which the integral term accumulates. Outside this band the integrator holds its value, so spin-up and ball-feed transients never charge it."
+  min: 0.0
+  max: 2000.0
+
+max_contribution:
+  desc: "Maximum absolute motor power the flywheel integral term may contribute. Bounds windup independently of the integral gain."
   min: 0.0
   max: 1.0
 
-high_position:
-  desc: "Hood servo high/extended position coefficient (0.0 to 1.0) for long-range shots."
+v0:
+  desc: "Fitted initial ring exit velocity (in/s) at constant RPM."
+  min: 0.0
+
+k:
+  desc: "Fitted lumped quadratic drag coefficient (1/in) for 2D trajectory integration."
+  min: 0.0
+
+magnus_l:
+  desc: "Fitted lumped Magnus lift coefficient (1/s) for 2D backspin trajectory integration."
+  min: 0.0
+
+launch_height_inches:
+  desc: "Physical ring release height (inches) above field carpet floor."
+  min: 0.0
+
+goal_height_inches:
+  desc: "Center height (inches) of target scoring goal basket above field carpet floor."
+  min: 0.0
+
+g_inches_per_sec2:
+  desc: "Gravitational acceleration constant (in/s²)."
+  min: 0.0
+
+min_hood_angle_deg:
+  desc: "Minimum physical hood elevation angle (degrees)."
+  min: 0.0
+  max: 90.0
+
+max_hood_angle_deg:
+  desc: "Maximum physical hood elevation angle (degrees)."
+  min: 0.0
+  max: 90.0
+
+min_hood_servo_pos:
+  desc: "Continuous servo position (0.0 to 1.0) corresponding to min_hood_angle_deg, the flattest arc. The hood linkage is reversed, so this is numerically GREATER than max_hood_servo_pos; that is expected and the angle mapping handles it. Do not 'fix' the ordering."
   min: 0.0
   max: 1.0
 
-p:
-  desc: "Proportional gain."
-
-i:
-  desc: "Integral gain."
-
-d:
-  desc: "Derivative gain."
-
-f:
-  desc: "Feedforward gain."
-
-threshold_distance:
-  desc: "Distance boundary (inches) separating close-range shots from long-range shots."
-  min: 0.0
-
-launch_power:
-  desc: "Flywheel power ratio (0.0 to 1.0) used for close-range shots."
+max_hood_servo_pos:
+  desc: "Continuous servo position (0.0 to 1.0) corresponding to max_hood_angle_deg, the steepest arc. Servo 0.0 is as tall as the arc gets, so this is normally the smaller number of the pair."
   min: 0.0
   max: 1.0
 
-wait_time:
-  desc: "Delay (milliseconds) to keep the flywheel running after firing a near shot."
+max_moving_speed_ips:
+  desc: "Maximum allowed robot translation speed (in/s) for valid moving shots."
   min: 0.0
 
-blue_base_power:
-  desc: "Base flywheel power ratio (0.0 to 1.0) for Blue alliance shots beyond the threshold distance."
+min_valid_distance:
+  desc: "Minimum calibrated shot distance (inches) for valid solution."
+  min: 0.0
+
+max_valid_distance:
+  desc: "Maximum calibrated shot distance (inches) for valid solution."
+  min: 0.0
+
+lead_bias_gain:
+  desc: "Empirical calibration multiplier for virtual lead target calculation."
+  min: 0.0
+
+v0_reference_rpm:
+  desc: "Flywheel setpoint the fitted v0 exit velocity was measured at. Exit speed and flywheel setpoint convert through v0 / v0_reference_rpm, which is how the solver turns a required exit speed into an RPM. Must match the RPM the ballistics calibration actually ran at (constant_rpm), or every solved RPM is scaled wrong."
+  min: 1.0
+  max: 3000.0
+
+preferred_shot_rpm:
+  desc: "Flywheel setpoint the hood aims around. The solver holds this speed and lets the hood alone cover every distance it can, so the flywheel stays parked at one well-calibrated, already-spun-up speed. It only rises above this when no hood angle can reach the goal, and never falls below it. This is the main shot-strength knob: raise it if shots land weak across the board."
+  min: 0.0
+  max: 3000.0
+
+max_shot_rpm:
+  desc: "Highest flywheel setpoint the RPM solver may command, for distances past the hood's authority at preferred_shot_rpm. A target that cannot reach goal height even at this speed is reported as an invalid solution instead of being silently under-shot."
+  min: 0.0
+  max: 3000.0
+
+flight_time_sec_per_inch:
+  desc: "Ring time of flight per inch of range, used only to lead a moving shot. A flat estimate on purpose: the measured shot table records hood and RPM but not flight time, and lead only shifts the aim azimuth slightly, so a rough value is adequate here where a wrong hood position would not be."
+  min: 0.0
+  max: 0.1
+
+lead_min_speed_ips:
+  desc: "Robot speed below which moving-shot lead is skipped entirely. A robot holding position still reports a small noisy velocity, and lead turns that noise into aim-azimuth jitter larger than the turret's settle tolerance, so the turret hunts instead of settling. Leading a nearly-stationary robot gains nothing."
+  min: 0.0
+  max: 100.0
+
+points:
+  desc: "Measured shot table as flat distance_in, hood_servo, flywheel_rpm triples, recorded by the Ballistics Calibration OpMode. Distances must strictly increase. Looked up by linear interpolation between rows and clamped outside them; a distance outside the calibrated range is reported as an invalid solution rather than extrapolated."
+
+v0_margin_fraction:
+  desc: "Headroom above the slowest exit speed that still reaches the goal (0.12 = 12% faster), applied only to long shots that had to raise RPM past preferred_shot_rpm. Keeps those solutions off the boundary where the flat and lofted trajectory branches merge; larger values give a steeper, more forgiving entry angle at the cost of a hotter shot."
   min: 0.0
   max: 1.0
 
-red_base_power:
-  desc: "Base flywheel power ratio (0.0 to 1.0) for Red alliance shots beyond the threshold distance. Red shoots from farther away so this value is intentionally higher."
-  min: 0.0
-  max: 1.0
-
-power_scale:
-  desc: "Distance divisor (inches) to scale up flywheel power as distance increases (power = base_power + extra_distance / power_scale)."
+rpm_update_deadband:
+  desc: "Minimum change in solved RPM (ticks/s) before the flywheel setpoint is re-commanded. Every setpoint write discards the flywheel's accumulated anti-windup integral, so without a deadband a continuously drifting target would keep the integrator reset and the flywheel permanently short of speed."
   min: 0.0
 
 wait_time_scale:
@@ -333,6 +417,14 @@ max_speed:
   min: 0.0
   max: 1.0
 
+field_centric:
+  desc: "When true, driver translation sticks are interpreted in the field frame (stick direction is a fixed field direction regardless of robot heading). When false, sticks are robot-relative."
+
+field_centric_offset_deg:
+  desc: "Field heading (degrees) that a fully-forward driver stick should drive toward when field_centric is true. 90 means stick-forward drives along field +Y, i.e. away from the driver wall at y=0. Set this to whatever direction is 'away' from where the drivers physically stand."
+  min: -360.0
+  max: 360.0
+
 zero_voltage:
   desc: "Analog voltage (V) corresponding to 0 degree turret angle position."
   min: 0.0
@@ -355,9 +447,14 @@ inverted:
   desc: "True if increasing turret angle produces decreasing analog voltage."
 
 max_velocity_threshold:
-  desc: "Flywheel velocity upper bound scale factor (e.g. 1.05) to prevent overshooting before feeding rings."
+  desc: "Flywheel velocity upper bound scale factor (e.g. 1.05) to prevent overshooting before feeding rings. Applies only when arming a feed, not while one is already running, since a ring can only ever slow the flywheel down."
   min: 1.0
   max: 2.0
+
+feed_release_threshold:
+  desc: "Fraction of target flywheel speed a feed already in progress may sag to before the intake cuts out. Must be below min_transfer_threshold: it is the lower half of a hysteresis band, so each ring entering the flywheel does not drop the speed under the arming floor and stutter the intake off and back on. Raise it toward min_transfer_threshold for stricter shot energy, lower it if the intake still hitches while feeding."
+  min: 0.0
+  max: 1.0
 
 feed_intake_power:
   desc: "Front intake power (0.0 to 1.0) when feeding rings to the shooter."

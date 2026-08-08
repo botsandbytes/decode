@@ -38,6 +38,9 @@ public class Casablanca {
   public static double laneBlendDistance;
   public static double rotationLookaheadTimeSeconds;
 
+  public static boolean fieldCentric;
+  public static double fieldCentricOffsetRad;
+
   public static boolean enableHeadingLock;
   public static double headingLockIntentThreshold;
   public static double headingLockKsMoving;
@@ -67,8 +70,17 @@ public class Casablanca {
   private double lastSideScale = 1.0;
   private boolean lastDepthRepulsion = false;
   private boolean lastSideRepulsion = false;
+  private boolean lastPoseUntrusted = false;
   private Envelope lastRobotBounds;
   private Envelope lastProtectedZone;
+
+  /**
+   * True if the last call saw a non-finite pose and refused to drive rather than steer off an
+   * untrusted localizer reading. Surfaced in TeleOp telemetry so a dead drivetrain is diagnosable.
+   */
+  public boolean wasPoseUntrusted() {
+    return lastPoseUntrusted;
+  }
 
   public double getLastLaneFadeX() {
     return lastLaneFadeX;
@@ -139,6 +151,9 @@ public class Casablanca {
     laneBlendDistance = c.lane_blend_distance;
     rotationLookaheadTimeSeconds = config.sentinel.rotation_lookahead_time;
 
+    fieldCentric = config.teleop.field_centric;
+    fieldCentricOffsetRad = Math.toRadians(config.teleop.field_centric_offset_deg);
+
     var hl = c.heading_lock;
     enableHeadingLock = hl.enabled;
     headingLockIntentThreshold = hl.intent_threshold;
@@ -182,9 +197,18 @@ public class Casablanca {
     currentStrafe = 0;
     currentTurn = 0;
     headingLockInitialized = false;
+    armedAimActive = false;
     if (headingPidf != null) {
       headingPidf.reset();
     }
+  }
+
+  private double armedAimHeadingTarget = 0.0;
+  private boolean armedAimActive = false;
+
+  public void setArmedAimTarget(double targetHeadingRad, boolean armed) {
+    this.armedAimHeadingTarget = targetHeadingRad;
+    this.armedAimActive = armed;
   }
 
   public double[] adjustDriveInput(
@@ -224,6 +248,41 @@ public class Casablanca {
             && Double.isFinite(pose.getY())
             && Double.isFinite(pose.getHeading());
 
+    // A non-finite pose means the localizer has failed, and every stage below would quietly
+    // propagate that: Vector.rotateVector(NaN) yields NaN components even for a zero-magnitude
+    // vector, the JTS Envelope comparisons all evaluate false so the zone protections silently
+    // disengage, and NaN reaches the drivetrain. Steering off an untrusted heading is worse than
+    // not moving, so refuse outright. Turn was already gated this way — isRotationSafe() requires
+    // a finite pose — this extends the same rule to translation.
+    lastPoseUntrusted = !poseFinite;
+    if (!poseFinite) {
+      // Drop the slew accumulators so recovery ramps up from rest rather than from whatever was
+      // commanded before the localizer dropped out. Deliberately not reset(), which would also
+      // clear the armed-aim latch that ShotController owns.
+      currentForward = 0;
+      currentStrafe = 0;
+      currentTurn = 0;
+      headingLockInitialized = false;
+      return new double[] {0.0, 0.0, 0.0};
+    }
+
+    // Field-centric mapping happens first, so everything downstream still sees a robot-frame
+    // (forward, strafe) pair. That matters: frictionX/frictionY and the back-lift slew asymmetry
+    // are mechanical properties of the drivetrain's forward and strafe axes, and applying them to
+    // field-frame components would smear the strafe friction constant across both axes as the
+    // robot turns.
+    //
+    // This rotation is the inverse of the robot->field rotation applied further down, offset by
+    // fieldCentricOffsetRad, so the net field-frame output is the driver's stick vector rotated by
+    // the offset alone — independent of robot heading.
+    if (fieldCentric) {
+      Vector stick = new Vector();
+      stick.setOrthogonalComponents(forward, strafe);
+      stick.rotateVector(fieldCentricOffsetRad - pose.getHeading());
+      forward = stick.getXComponent();
+      strafe = stick.getYComponent();
+    }
+
     if (enableFrictionComp) {
       forward = applyFriction(forward, frictionX);
       strafe = applyFriction(strafe, frictionY);
@@ -232,7 +291,12 @@ public class Casablanca {
 
     boolean stickReleased = Math.abs(rawTurnIntent) < headingLockIntentThreshold;
 
-    if (enableHeadingLock && poseFinite && stickReleased) {
+    if (armedAimActive && poseFinite && Double.isFinite(armedAimHeadingTarget)) {
+      targetHeading = armedAimHeadingTarget;
+      headingLockInitialized = true;
+    }
+
+    if ((armedAimActive || (enableHeadingLock && stickReleased)) && poseFinite) {
       if (!headingLockInitialized) {
         // Capture the heading to hold only once the robot has actually stopped turning. Latching
         // the instant the stick is released picks a heading the robot is still coasting away from,
@@ -259,7 +323,7 @@ public class Casablanca {
           double speedRatio = Math.clamp(speedMag / headingLockMovingSpeedThreshold, 0.0, 1.0);
           double ks = frictionRot + speedRatio * (headingLockKsMoving - frictionRot);
 
-          double correction = headingPidf.run() + Math.signum(headingError) * ks;
+          double correction = headingPidf.run() + Math.copySign(ks, headingError);
           turn = Math.clamp(correction, -headingLockMaxPower, headingLockMaxPower);
         }
       }
