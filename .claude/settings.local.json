@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew :TeamCode:compileDebugJavaWithJavac -q)",
+      "Bash(./gradlew :TeamCode:testDebugUnitTest -q)"
+    ]
+  }
+}

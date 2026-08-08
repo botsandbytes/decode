@@ -1,3 +1,11 @@
+import net.ltgt.gradle.errorprone.CheckSeverity
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
 //
 // build.gradle in TeamCode
 //
@@ -14,6 +22,9 @@
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
+apply plugin: 'jacoco'
+apply plugin: 'net.ltgt.errorprone'
+apply plugin: 'com.diffplug.spotless'
 
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
@@ -22,12 +33,102 @@ android {
         minSdk 24
     }
 
+    testOptions {
+        unitTests {
+            includeAndroidResources = false
+            returnDefaultValues = true
+        }
+    }
+
+
     packagingOptions {
         jniLibs {
             pickFirsts += ['**/*.so']
         }
-        jniLibs.useLegacyPackaging true
+        jniLibs.useLegacyPackaging = true
     }
+
+    sourceSets {
+        main {
+            resources.srcDirs += ['src/main/java']
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.incremental = true
+        options.fork = true
+        options.compilerArgs << "-Xlint:all" << "-Xlint:-options" << "-Xlint:-path"
+
+        
+        if (plugins.hasPlugin("net.ltgt.errorprone")) {
+            options.errorprone {
+                check("NullAway", CheckSeverity.ERROR)
+                option("NullAway:AnnotatedPackages", "org.firstinspires.ftc.teamcode")
+                
+                check("FloatDoubleComparison", CheckSeverity.ERROR)
+                check("FloatingPointLiteralPrecision", CheckSeverity.ERROR)
+                check("MathAbsoluteRandom", CheckSeverity.ERROR)
+                check("DeadException", CheckSeverity.ERROR)
+            }
+        }
+    }
+}
+
+// Spotless formatting rules
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        googleJavaFormat('1.27.0')
+        removeUnusedImports()
+    }
+}
+
+// Keep the generated config facade in sync with config.yaml before every build.
+preBuild.dependsOn 'generateConfig'
+
+
+// Hook tests and Spotless verification into all assemble, install, and deploy tasks (runs on clicking Build / Run)
+tasks.configureEach { task ->
+    if (task.name.startsWith('assemble') || task.name.startsWith('install')) {
+        task.dependsOn 'testDebugUnitTest'
+        task.dependsOn 'spotlessApply'
+    }
+}
+
+// Force ASM version to 9.9 to fully support Java 26 bytecode inside local JVM tests
+configurations.configureEach {
+    resolutionStrategy {
+        force 'org.ow2.asm:asm:9.9'
+        force 'org.ow2.asm:asm-commons:9.9'
+        force 'org.ow2.asm:asm-tree:9.9'
+        force 'org.ow2.asm:asm-util:9.9'
+    }
+}
+
+// Optimize local JVM tests to run in a single warm JVM worker without multi-fork process overhead
+tasks.withType(Test).configureEach {
+    maxParallelForks = 1
+    forkEvery = 0
+}
+
+// JaCoCo Report Task
+tasks.register('jacocoTestReport', JacocoReport) {
+    dependsOn 'testDebugUnitTest'
+    reports {
+        xml.required = true
+        html.required = true
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files([mainSrc]))
+    classDirectories.setFrom(files([debugTree]))
+    executionData.setFrom(fileTree(dir: layout.buildDirectory.get().asFile, includes: [
+            'jacoco/testDebugUnitTest.exec',
+            'outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec'
+    ]))
 }
 
 repositories {
@@ -39,4 +140,152 @@ repositories {
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.bylazar:fullpanels:1.0.12'
+    implementation project(':config-compiler')
+
+    // Error Prone & NullAway compiler dependencies
+    errorprone "com.google.errorprone:error_prone_core:2.50.0"
+    errorprone "com.uber.nullaway:nullaway:0.13.8"
+
+    // Nullability annotations for compile-time
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+
+    // Test dependencies
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'com.networknt:json-schema-validator:3.0.6'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.22.1'
+    testImplementation 'org.mockito:mockito-core:5.23.0'
+}
+
+
+// Compile-time config generator and alliance-symmetry checker (Pure Java, zero external dependencies)
+tasks.register('generateConfig', JavaExec) {
+    group = 'build'
+    description = 'Regenerates config.java and config-schema.json from config.yaml.'
+    dependsOn ':config-compiler:compileDebugJavaWithJavac'
+    classpath = project(':config-compiler').configurations.debugCompileClasspath +
+                files("${project(':config-compiler').layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+    mainClass = 'org.firstinspires.ftc.teamcode.config.ConfigGeneratorMain'
+    args rootProject.projectDir.absolutePath, "generate"
+    inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.yaml")
+    inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config-docs.yaml")
+    outputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/generated/config.java")
+    outputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/generated/config-schema.json")
+}
+
+def checkConfigMarker = layout.buildDirectory.file("reports/checkConfigKeys.marker")
+
+tasks.register('checkConfigKeys', JavaExec) {
+    group = 'verification'
+    description = 'Checks config.yaml for suspicious key asymmetries and near-duplicates.'
+    dependsOn ':config-compiler:compileDebugJavaWithJavac', 'generateConfig'
+    classpath = project(':config-compiler').configurations.debugCompileClasspath +
+                files("${project(':config-compiler').layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+    mainClass = 'org.firstinspires.ftc.teamcode.config.ConfigGeneratorMain'
+
+    args rootProject.projectDir.absolutePath, "check"
+    inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config.yaml")
+    inputs.file("${rootProject.projectDir}/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/robot/config/config-docs.yaml")
+    outputs.file(checkConfigMarker)
+    doLast {
+        def target = checkConfigMarker.get().asFile
+        target.parentFile.mkdirs()
+        target.text = "OK"
+    }
+}
+
+
+
+
+tasks.named('preBuild') {
+    dependsOn 'generateConfig'
+}
+
+tasks.matching { it.name.startsWith('spotless') }.configureEach {
+    mustRunAfter 'generateConfig'
+}
+
+// ADB YAML hot-deploy tasks (no APK rebuild required, pure Java, no Python dependency)
+tasks.register('pushConfig', JavaExec) {
+    group = 'deploy'
+    description = 'Pushes config.yaml to the robot via ADB. Re-init your OpMode to apply.'
+    dependsOn ':config-compiler:compileDebugJavaWithJavac', 'generateConfig'
+    classpath = project(':config-compiler').configurations.debugCompileClasspath +
+                files("${project(':config-compiler').layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+    mainClass = 'org.firstinspires.ftc.teamcode.config.ConfigPusherMain'
+    args rootProject.projectDir.absolutePath
+}
+
+tasks.register('resetConfig', JavaExec) {
+    group = 'deploy'
+    description = 'Removes the ADB-pushed config override; robot reverts to bundled config.'
+    dependsOn ':config-compiler:compileDebugJavaWithJavac'
+    classpath = project(':config-compiler').configurations.debugCompileClasspath +
+                files("${project(':config-compiler').layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+    mainClass = 'org.firstinspires.ftc.teamcode.config.ConfigPusherMain'
+    args rootProject.projectDir.absolutePath, '--reset'
+}
+
+tasks.register('connectAdb') {
+    group = 'deploy'
+    description = 'Connects to robot via ADB over Wi-Fi (defaults to 192.168.43.1:5555), auto-reconnecting if already connected.'
+    
+    def targetParam = project.hasProperty('adbAddress') ? project.property('adbAddress').toString() : '192.168.43.1:5555'
+
+    doLast {
+        def target = targetParam
+        if (!target.contains(':')) {
+            target = "${target}:5555"
+        }
+
+        def adbBin = 'adb'
+        def getSdkAdb = {
+            def sdkDir = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT') ?: "${System.getProperty('user.home')}/Library/Android/sdk"
+            def file = new File(sdkDir, "platform-tools/adb")
+            return file.exists() ? file.absolutePath : 'adb'
+        }
+
+        def runCmd = { String... cmd ->
+            try {
+                def pb = new ProcessBuilder(cmd)
+                def proc = pb.start()
+                def stdout = proc.inputStream.text.trim()
+                def stderr = proc.errorStream.text.trim()
+                proc.waitFor()
+                return [exitCode: proc.exitValue(), out: stdout, err: stderr]
+            } catch (Exception e) {
+                return [exitCode: 1, out: "", err: e.message]
+            }
+        }
+
+        def testAdb = runCmd(adbBin, 'version')
+        if (testAdb.exitCode != 0) {
+            adbBin = getSdkAdb()
+        }
+
+        println "Connecting to ADB device at ${target}..."
+        def connectResult = runCmd(adbBin, 'connect', target)
+        if (connectResult.out) println connectResult.out
+        if (connectResult.err) println connectResult.err
+
+        def outputLower = (connectResult.out + " " + connectResult.err).toLowerCase()
+        if (outputLower.contains('already connected') || outputLower.contains('failed') || connectResult.exitCode != 0) {
+            println "Re-establishing ADB connection to ${target}..."
+            def disconnectResult = runCmd(adbBin, 'disconnect', target)
+            if (disconnectResult.out) println disconnectResult.out
+            connectResult = runCmd(adbBin, 'connect', target)
+            if (connectResult.out) println connectResult.out
+            if (connectResult.err) println connectResult.err
+        }
+
+        println "\nConnected ADB devices:"
+        def devicesResult = runCmd(adbBin, 'devices')
+        if (devicesResult.out) println devicesResult.out
+    }
+}
+
+// Custom verification task that mirrors compile/test/formatting checks without deployment
+tasks.register('verifyBuild') {
+    group = 'verification'
+    description = 'Runs all formatting, compiler, unit test, and config checks without deploying.'
+    dependsOn 'generateConfig', 'spotlessApply', 'testDebugUnitTest', 'checkConfigKeys'
 }

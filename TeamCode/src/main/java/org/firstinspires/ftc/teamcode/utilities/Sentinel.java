@@ -1,134 +1,155 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
+import org.firstinspires.ftc.teamcode.records.Alliance;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
 
+@Configurable
 public class Sentinel {
-    // ... (Constants same as before) ...
-    public static final double ROBOT_WIDTH = 18.0;
-    public static final double ROBOT_WIDTH2 = 17.0;
+  private final double robotWidth;
+  private final Envelope redGoalZone;
+  private final Envelope blueGoalZone;
+  private final Coordinate[] leftBigLaunchZone;
+  private final Coordinate[] rightSmallLaunchZone;
+  private final Alliance alliance;
 
-    // RED GOAL ZONE - Block Blue Alliance from entering
-    public static final RectangularZone RED_GOAL_ZONE = new RectangularZone(138.0, 144.0, 69.0, 75.0);
-    public static final RectangularZone BLUE_GOAL_ZONE = new RectangularZone(0.0, 6.0, 69.0, 75.0);
+  public Sentinel(Alliance alliance) {
+    this.alliance = alliance;
+    var s = config.sentinel;
+    this.robotWidth = s.robot_width;
+    double goalSize = s.goals.size;
+    double goalMinY = s.goals.min_y;
 
-    // ... (Launch Zones same as before) ...
-    private static final PolygonZone LEFT_BIG_LAUNCH_ZONE = new PolygonZone(
-        new Point(144, 144), new Point(0, 144), new Point(72, 72)
-    );
-    private static final PolygonZone RIGHT_SMALL_LAUNCH_ZONE = new PolygonZone(
-        new Point(96, 0), new Point(48, 0), new Point(72, 24)
-    );
-
-    // ... (Public Methods wrapper) ...
-    public static boolean isLaunchAllowed(Pose currentPose) {
-        Point[] robotFootprint = calculateSmallRobotFootprint(currentPose);
-        return isIntersectingPolygon(robotFootprint, LEFT_BIG_LAUNCH_ZONE.vertices()) ||
-               isIntersectingPolygon(robotFootprint, RIGHT_SMALL_LAUNCH_ZONE.vertices());
-    }
-
-    // ... (Other wrappers) ...
-
-    public static boolean doesViolateBlueGoal(Point[] robotFootprint) {
-        return isIntersectingRectangle(robotFootprint, BLUE_GOAL_ZONE);
-    }
-
-    public static boolean doesViolateRedGoal(Point[] robotFootprint) {
-        return isIntersectingRectangle(robotFootprint, RED_GOAL_ZONE);
-    }
-
-    // ... (Footprint calc same as before) ...
-
-    /**
-     * UPDATED: Checks for overlap by testing if points are inside each other.
-     * Handles "Donut" case where zone is fully inside robot.
-     */
-    private static boolean isIntersectingRectangle(Point[] robot, RectangularZone zone) {
-        // 1. Is any part of the robot inside the zone?
-        for (Point p : robot) {
-            if (p.x() >= zone.minX() && p.x() <= zone.maxX() &&
-                p.y() >= zone.minY() && p.y() <= zone.maxY()) return true;
-        }
-
-        // 2. Is the zone inside the robot? (The Donut Fix)
-        // We check the zone corners against the robot polygon
-        Point[] zoneCorners = {
-            new Point(zone.minX(), zone.minY()),
-            new Point(zone.maxX(), zone.minY()),
-            new Point(zone.maxX(), zone.maxY()),
-            new Point(zone.minX(), zone.maxY())
+    this.redGoalZone = new Envelope(144.0 - goalSize, 144.0, goalMinY, goalMinY + goalSize);
+    this.blueGoalZone = new Envelope(0.0, goalSize, goalMinY, goalMinY + goalSize);
+    this.leftBigLaunchZone =
+        new Coordinate[] {
+          new Coordinate(144.0, 144.0), new Coordinate(0.0, 144.0), new Coordinate(72.0, 72.0)
         };
+    this.rightSmallLaunchZone =
+        new Coordinate[] {
+          new Coordinate(96.0, 0.0), new Coordinate(48.0, 0.0), new Coordinate(72.0, 24.0)
+        };
+  }
 
-        return isIntersectingPolygon(robot, zoneCorners);
+  public Envelope getRedGoalZone() {
+    return redGoalZone;
+  }
+
+  public Envelope getBlueGoalZone() {
+    return blueGoalZone;
+  }
+
+  public Coordinate[] getLeftBigLaunchZone() {
+    return leftBigLaunchZone;
+  }
+
+  public Coordinate[] getRightSmallLaunchZone() {
+    return rightSmallLaunchZone;
+  }
+
+  public Alliance getAlliance() {
+    return alliance;
+  }
+
+  public boolean isLaunchAllowed(Pose currentPose) {
+    Coordinate[] robot = calculateSmallRobotFootprint(currentPose);
+    return intersects(robot, leftBigLaunchZone) || intersects(robot, rightSmallLaunchZone);
+  }
+
+  public boolean violatesActiveGoal(Coordinate[] footprint) {
+    return intersects(footprint, getRectVertices(getProtectedZone()));
+  }
+
+  public Envelope getProtectedZone() {
+    return alliance == Alliance.RED ? blueGoalZone : redGoalZone;
+  }
+
+  public boolean isRotationSafe(Pose currentPose, double turnInput, double lookaheadRad) {
+    double predictedDelta = Math.signum(turnInput) * lookaheadRad;
+    Pose futurePose =
+        new Pose(currentPose.getX(), currentPose.getY(), currentPose.getHeading() + predictedDelta);
+
+    Coordinate[] futureFootprint = calculateRobotFootprint(futurePose);
+    Coordinate[] currentFootprint = calculateRobotFootprint(currentPose);
+
+    return !violatesActiveGoal(futureFootprint) || violatesActiveGoal(currentFootprint);
+  }
+
+  public Envelope getRobotBounds(Pose pose) {
+    return getProjectedBounds(calculateRobotFootprint(pose));
+  }
+
+  public Coordinate[] calculateRobotFootprint(Pose pose) {
+    return calculateFootprint(pose, robotWidth);
+  }
+
+  public Coordinate[] calculateSmallRobotFootprint(Pose pose) {
+    return calculateFootprint(pose, robotWidth - 1.0);
+  }
+
+  private Coordinate[] calculateFootprint(Pose pose, double width) {
+    double heading = pose.getHeading();
+    double centerX = pose.getX();
+    double centerY = pose.getY();
+    double cos = Math.cos(heading);
+    double sin = Math.sin(heading);
+    double radius = width / 2.0;
+
+    double[] xOffsets = {-radius, radius, radius, -radius};
+    double[] yOffsets = {-radius, -radius, radius, radius};
+    Coordinate[] corners = new Coordinate[4];
+    for (int i = 0; i < 4; i++) {
+      double rotatedX = (xOffsets[i] * cos) - (yOffsets[i] * sin);
+      double rotatedY = (xOffsets[i] * sin) + (yOffsets[i] * cos);
+      corners[i] = new Coordinate(centerX + rotatedX, centerY + rotatedY);
     }
+    return corners;
+  }
 
-    private static boolean isIntersectingPolygon(Point[] shapeA, Point[] shapeB) {
-        return isntSeparated(shapeA, shapeB) && isntSeparated(shapeB, shapeA);
+  private Envelope getProjectedBounds(Coordinate[] footprint) {
+    double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
+    double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+    for (Coordinate p : footprint) {
+      minX = Math.min(minX, p.x);
+      maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y);
+      maxY = Math.max(maxY, p.y);
     }
+    return new Envelope(minX, maxX, minY, maxY);
+  }
 
-    private static boolean isntSeparated(Point[] shapeA, Point[] shapeB) {
-        for (int i = 0; i < shapeA.length; i++) {
-            Point p1 = shapeA[i];
-            Point p2 = shapeA[(i + 1) % shapeA.length];
-            Point normal = new Point(-(p2.y() - p1.y()), p2.x() - p1.x());
+  private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
 
-            Projection projA = projectShapeOnAxis(shapeA, normal);
-            Projection projB = projectShapeOnAxis(shapeB, normal);
-
-            if (projA.max() < projB.min() || projB.max() < projA.min()) return false;
-        }
-        return true;
+  private Polygon createJTSPolygon(Coordinate[] points) {
+    if (points == null || points.length == 0) {
+      return GEOMETRY_FACTORY.createPolygon();
     }
-
-    private static Projection projectShapeOnAxis(Point[] shape, Point axis) {
-        double min = Double.MAX_VALUE;
-        double max = -Double.MAX_VALUE;
-        for (Point p : shape) {
-            double dotProduct = (p.x() * axis.x()) + (p.y() * axis.y());
-            min = Math.min(min, dotProduct);
-            max = Math.max(max, dotProduct);
-        }
-        return new Projection(min, max);
+    Coordinate[] coords = new Coordinate[points.length + 1];
+    for (int i = 0; i < points.length; i++) {
+      coords[i] = new Coordinate(points[i].x, points[i].y);
     }
+    coords[points.length] = new Coordinate(points[0].x, points[0].y);
+    return GEOMETRY_FACTORY.createPolygon(coords);
+  }
 
-    public record Point(double x, double y) {}
-    public record RectangularZone(double minX, double maxX, double minY, double maxY) {}
-    private record PolygonZone(Point... vertices) {}
-    private record Projection(double min, double max) {}
+  private Coordinate[] getRectVertices(Envelope rect) {
+    return new Coordinate[] {
+      new Coordinate(rect.getMinX(), rect.getMinY()),
+      new Coordinate(rect.getMaxX(), rect.getMinY()),
+      new Coordinate(rect.getMaxX(), rect.getMaxY()),
+      new Coordinate(rect.getMinX(), rect.getMaxY())
+    };
+  }
 
-    // Helper to keep the rest of your code working
-    public static Point[] calculateRobotFootprint(Pose pose) {
-        double heading = pose.getHeading();
-        double centerX = pose.getX();
-        double centerY = pose.getY();
-        double cos = Math.cos(heading);
-        double sin = Math.sin(heading);
-        double ROBOT_RADIUS = ROBOT_WIDTH / 2;
-        double[] xOffsets = {-ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS, -ROBOT_RADIUS};
-        double[] yOffsets = {-ROBOT_RADIUS, -ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS};
-        Point[] corners = new Point[4];
-        for (int i = 0; i < 4; i++) {
-            double rotatedX = (xOffsets[i] * cos) - (yOffsets[i] * sin);
-            double rotatedY = (xOffsets[i] * sin) + (yOffsets[i] * cos);
-            corners[i] = new Point(centerX + rotatedX, centerY + rotatedY);
-        }
-        return corners;
-    }
-
-    public static Point[] calculateSmallRobotFootprint(Pose pose) {
-        double heading = pose.getHeading();
-        double centerX = pose.getX();
-        double centerY = pose.getY();
-        double cos = Math.cos(heading);
-        double sin = Math.sin(heading);
-        double ROBOT_RADIUS = ROBOT_WIDTH2 / 2;
-        double[] xOffsets = {-ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS, -ROBOT_RADIUS};
-        double[] yOffsets = {-ROBOT_RADIUS, -ROBOT_RADIUS, ROBOT_RADIUS, ROBOT_RADIUS};
-        Point[] corners = new Point[4];
-        for (int i = 0; i < 4; i++) {
-            double rotatedX = (xOffsets[i] * cos) - (yOffsets[i] * sin);
-            double rotatedY = (xOffsets[i] * sin) + (yOffsets[i] * cos);
-            corners[i] = new Point(centerX + rotatedX, centerY + rotatedY);
-        }
-        return corners;
-    }
+  private boolean intersects(Coordinate[] polyA, Coordinate[] polyB) {
+    Polygon pA = createJTSPolygon(polyA);
+    Polygon pB = createJTSPolygon(polyB);
+    return pA.intersects(pB);
+  }
 }

@@ -1,0 +1,29 @@
+{
+  "fitted": {"v0": 1060.6432, "k": 0.018415, "magnus_l": 0.432657, "rms_error": 7.8906},
+  "recommended_preferred_shot_rpm": 900,
+  "trials": [
+    {"distance": 48.07, "hood_pos": 0.2310, "hood_deg": 42.18, "rpm": 950, "width": 0.4621, "verdict": "SHORT", "timestamp": 1786086767929},
+    {"distance": 48.09, "hood_pos": 0.1155, "hood_deg": 28.59, "rpm": 900, "width": 0.2310, "verdict": "SHORT", "timestamp": 1786086774487},
+    {"distance": 48.07, "hood_pos": 0.0578, "hood_deg": 21.79, "rpm": 900, "width": 0.1155, "verdict": "SHORT", "timestamp": 1786086780364},
+    {"distance": 48.08, "hood_pos": 0.0289, "hood_deg": 18.40, "rpm": 900, "width": 0.0578, "verdict": "SHORT", "timestamp": 1786086791834},
+    {"distance": 48.08, "hood_pos": 0.0144, "hood_deg": 16.70, "rpm": 900, "width": 0.0289, "verdict": "SHORT", "timestamp": 1786086793309},
+    {"distance": 48.08, "hood_pos": 0.0144, "hood_deg": 15.85, "rpm": 900, "width": 0.0289, "verdict": "ACCEPTED", "timestamp": 1786086800882},
+    {"distance": 73.18, "hood_pos": 0.2033, "hood_deg": 38.92, "rpm": 950, "width": 0.4066, "verdict": "SHORT", "timestamp": 1786086866762},
+    {"distance": 73.17, "hood_pos": 0.1017, "hood_deg": 26.96, "rpm": 950, "width": 0.2033, "verdict": "SHORT", "timestamp": 1786086873311},
+    {"distance": 73.15, "hood_pos": 0.0508, "hood_deg": 20.98, "rpm": 950, "width": 0.1017, "verdict": "SHORT", "timestamp": 1786086878519},
+    {"distance": 73.15, "hood_pos": 0.0908, "hood_deg": 20.34, "rpm": 1000, "width": 0.1108, "verdict": "ACCEPTED", "timestamp": 1786086907757},
+    {"distance": 96.78, "hood_pos": 0.1907, "hood_deg": 37.43, "rpm": 1062, "width": 0.3814, "verdict": "SHORT", "timestamp": 1786086931199},
+    {"distance": 96.80, "hood_pos": 0.0953, "hood_deg": 26.22, "rpm": 1062, "width": 0.1907, "verdict": "SHORT", "timestamp": 1786086933519},
+    {"distance": 96.79, "hood_pos": 0.0477, "hood_deg": 20.61, "rpm": 1062, "width": 0.0953, "verdict": "SHORT", "timestamp": 1786086943956},
+    {"distance": 96.79, "hood_pos": 0.0677, "hood_deg": 18.98, "rpm": 1112, "width": 0.0953, "verdict": "ACCEPTED", "timestamp": 1786086973881},
+    {"distance": 114.31, "hood_pos": 0.1757, "hood_deg": 35.67, "rpm": 1138, "width": 0.3514, "verdict": "SHORT", "timestamp": 1786087004921},
+    {"distance": 114.30, "hood_pos": 0.0878, "hood_deg": 25.33, "rpm": 1138, "width": 0.1757, "verdict": "SHORT", "timestamp": 1786087005884},
+    {"distance": 114.32, "hood_pos": 0.0878, "hood_deg": 20.17, "rpm": 1238, "width": 0.1757, "verdict": "ACCEPTED", "timestamp": 1786087044518},
+    {"distance": 125.20, "hood_pos": 0.1677, "hood_deg": 34.72, "rpm": 1188, "width": 0.3353, "verdict": "SHORT", "timestamp": 1786087129194},
+    {"distance": 125.27, "hood_pos": 0.2515, "hood_deg": 24.86, "rpm": 1188, "width": 0.1677, "verdict": "LONG", "timestamp": 1786087135962},
+    {"distance": 125.27, "hood_pos": 0.2934, "hood_deg": 29.79, "rpm": 1188, "width": 0.0838, "verdict": "LONG", "timestamp": 1786087136657},
+    {"distance": 125.44, "hood_pos": 0.5534, "hood_deg": 47.55, "rpm": 1238, "width": 0.0000, "verdict": "LONG", "timestamp": 1786087196361},
+    {"distance": 125.44, "hood_pos": 0.5534, "hood_deg": 47.55, "rpm": 1238, "width": 0.0000, "verdict": "ACCEPTED_CONVERGED", "timestamp": 1786087196361},
+    {"distance": 137.91, "hood_pos": 0.7812, "hood_deg": 60.95, "rpm": 1388, "width": 0.8500, "verdict": "SKIPPED", "timestamp": 1786087509287}
+  ]
+}

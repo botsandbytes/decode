@@ -1,0 +1,6 @@
+[submodule "pedro-docs"]
+	path = pedro-docs
+	url = https://github.com/Pedro-Pathing/Docs.git
+[submodule "pedro-repo"]
+	path = pedro-repo
+	url = https://github.com/Pedro-Pathing/PedroPathing.git

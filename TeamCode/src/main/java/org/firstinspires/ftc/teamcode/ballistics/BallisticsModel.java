@@ -1,0 +1,466 @@
+package org.firstinspires.ftc.teamcode.ballistics;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.commons.math3.analysis.UnivariateFunction;
+import org.apache.commons.math3.analysis.solvers.BrentSolver;
+import org.apache.commons.math3.fitting.leastsquares.LeastSquaresFactory;
+import org.apache.commons.math3.fitting.leastsquares.LeastSquaresOptimizer;
+import org.apache.commons.math3.fitting.leastsquares.LeastSquaresProblem;
+import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer;
+import org.apache.commons.math3.fitting.leastsquares.MultivariateJacobianFunction;
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
+import org.apache.commons.math3.ode.events.EventHandler;
+import org.apache.commons.math3.ode.nonstiff.ClassicalRungeKuttaIntegrator;
+import org.apache.commons.math3.util.Pair;
+import org.firstinspires.ftc.teamcode.records.BallisticsParameters;
+
+/**
+ * 2D point-mass trajectory integrator in the vertical plane using Apache Commons Math 3. Includes
+ * quadratic air drag and signed backspin Magnus lift.
+ */
+public class BallisticsModel {
+
+  public record TrajectoryResult(
+      double flightTimeSec,
+      double heightAtTargetInches,
+      double entryAngleRad,
+      boolean reachedDistance) {}
+
+  public record SolvedElevation(
+      double elevationAngleDeg,
+      double hoodServoPosition,
+      double flightTimeSec,
+      double entryAngleRad) {}
+
+  public record FittedBallistics(double v0, double k, double magnusL, double residualRmsInches) {}
+
+  /** A full shot: the exit speed to launch at and the hood elevation to launch it at. */
+  public record SolvedShot(
+      double exitVelocityIps,
+      double elevationAngleDeg,
+      double hoodServoPosition,
+      double flightTimeSec,
+      double entryAngleRad,
+      boolean feasible,
+      String infeasibleReason) {}
+
+  /** Angle step (deg) for the reachability scan inside the exit-speed search. */
+  private static final double FEASIBILITY_SCAN_STEP_DEG = 5.0;
+
+  /** Bisection steps for the minimum-exit-speed search. 12 resolves a 250 in/s span to ~0.06. */
+  private static final int V0_SEARCH_ITERATIONS = 12;
+
+  private static final double MAX_FLIGHT_TIME_SEC = 3.0;
+  private static final double GROUND_HEIGHT_INCHES = -20.0;
+
+  /**
+   * Integrates the 2D trajectory of a ball launched at elevation angle theta (degrees) until
+   * horizontal distance reaches targetDistanceInches.
+   *
+   * <p>Runs as a single {@code integrate()} call with G-stop event handlers locating the distance
+   * crossing (and the ground-fall bailout) directly on the RK4 step interpolant, instead of
+   * re-invoking {@code integrate()} once per fixed 2ms step. Re-invoking per step was redoing the
+   * integrator's internal array/interpolator setup on every step, which dominated the real cost of
+   * a solve; this produces the identical physics (same ODE, same fixed step size) for a fraction of
+   * the wall-clock cost, with a more precise event-crossing time than the old linear interpolation
+   * between two samples.
+   */
+  public static TrajectoryResult integrateTrajectory(
+      double elevationAngleDeg, double targetDistanceInches, BallisticsParameters params) {
+    double thetaRad = Math.toRadians(elevationAngleDeg);
+    double vx0 = params.v0() * Math.cos(thetaRad);
+    double vz0 = params.v0() * Math.sin(thetaRad);
+
+    double[] y0 = new double[] {0.0, params.launchHeightInches(), vx0, vz0};
+    double[] yFinal = new double[4];
+
+    WiffleTrajectoryODE ode =
+        new WiffleTrajectoryODE(params.k(), params.L(), params.gInchesPerSec2());
+    ClassicalRungeKuttaIntegrator integrator = new ClassicalRungeKuttaIntegrator(0.002);
+
+    CrossingEventHandler distanceHandler = new CrossingEventHandler(targetDistanceInches, 0);
+    CrossingEventHandler groundHandler = new CrossingEventHandler(GROUND_HEIGHT_INCHES, 1);
+    integrator.addEventHandler(distanceHandler, Double.POSITIVE_INFINITY, 1e-6, 100);
+    integrator.addEventHandler(groundHandler, Double.POSITIVE_INFINITY, 1e-6, 100);
+
+    integrator.integrate(ode, 0.0, y0, MAX_FLIGHT_TIME_SEC, yFinal);
+
+    double entryAngle = Math.atan2(yFinal[3], yFinal[2]);
+    if (distanceHandler.fired) {
+      return new TrajectoryResult(distanceHandler.eventTime, yFinal[1], entryAngle, true);
+    }
+
+    double finalTime = groundHandler.fired ? groundHandler.eventTime : MAX_FLIGHT_TIME_SEC;
+    return new TrajectoryResult(finalTime, yFinal[1], entryAngle, false);
+  }
+
+  /** G-stops integration the first time state component {@code component} crosses {@code level}. */
+  private static class CrossingEventHandler implements EventHandler {
+    private final double level;
+    private final int component;
+    boolean fired = false;
+    double eventTime = Double.NaN;
+
+    CrossingEventHandler(double level, int component) {
+      this.level = level;
+      this.component = component;
+    }
+
+    @Override
+    public void init(double t0, double[] y0, double t) {
+      fired = false;
+      eventTime = Double.NaN;
+    }
+
+    @Override
+    public double g(double t, double[] y) {
+      return y[component] - level;
+    }
+
+    @Override
+    public Action eventOccurred(double t, double[] y, boolean increasing) {
+      fired = true;
+      eventTime = t;
+      return Action.STOP;
+    }
+
+    @Override
+    public void resetState(double t, double[] y) {}
+  }
+
+  /**
+   * Finds the lofted (high-arc) elevation angle that hits goalHeightInches at targetDistanceInches.
+   */
+  public static SolvedElevation solveLoftedElevation(
+      double targetDistanceInches, BallisticsParameters params) {
+    double minAngle = params.minHoodAngleDeg();
+    double maxAngle = params.maxHoodAngleDeg();
+
+    UnivariateFunction heightErrorFunc =
+        angleDeg -> {
+          TrajectoryResult res = integrateTrajectory(angleDeg, targetDistanceInches, params);
+          if (!res.reachedDistance()) {
+            return -1000.0 - (targetDistanceInches - res.heightAtTargetInches());
+          }
+          return res.heightAtTargetInches() - params.goalHeightInches();
+        };
+
+    double step = 1.0;
+    double solvedAngle = Double.NaN;
+    BrentSolver solver = new BrentSolver(1e-4);
+
+    // Search from maxAngle down to minAngle to find the highest (lofted) solution branch.
+    // f2 of one step is f1 of the next, so each angle is evaluated exactly once here; the min-|err|
+    // candidate is tracked inline so an unreachable target (no bracket found, e.g. distance beyond
+    // what v0 can loft to goal height) doesn't require a second full-range rescan to fall back on.
+    double bestAngle = maxAngle;
+    double minAbsErr = Double.MAX_VALUE;
+
+    double prevAngle = maxAngle;
+    double f1 = heightErrorFunc.value(prevAngle);
+    if (Math.abs(f1) < minAbsErr) {
+      minAbsErr = Math.abs(f1);
+      bestAngle = prevAngle;
+    }
+
+    for (double a = maxAngle - step; a >= minAngle; a -= step) {
+      double f2 = heightErrorFunc.value(a);
+      if (Math.abs(f2) < minAbsErr) {
+        minAbsErr = Math.abs(f2);
+        bestAngle = a;
+      }
+      if (f1 * f2 <= 0) {
+        try {
+          solvedAngle = solver.solve(100, heightErrorFunc, a, prevAngle);
+          break;
+        } catch (Exception ignored) {
+        }
+      }
+      prevAngle = a;
+      f1 = f2;
+    }
+
+    if (Double.isNaN(solvedAngle)) {
+      solvedAngle = bestAngle;
+    }
+
+    TrajectoryResult result = integrateTrajectory(solvedAngle, targetDistanceInches, params);
+    double servoPos = angleToServoPos(solvedAngle, params);
+
+    double validFlightTime = result.reachedDistance() ? result.flightTimeSec() : -1.0;
+
+    return new SolvedElevation(solvedAngle, servoPos, validFlightTime, result.entryAngleRad());
+  }
+
+  /**
+   * True if some hood elevation reaches goal height at this distance with the given parameters.
+   *
+   * <p>Exits on the first angle that clears the goal, so reachable shots — the common case — cost
+   * only a handful of integrations. Only genuinely unreachable ones pay for the whole scan.
+   */
+  private static boolean canReachGoal(double targetDistanceInches, BallisticsParameters params) {
+    for (double a = params.maxHoodAngleDeg();
+        a >= params.minHoodAngleDeg();
+        a -= FEASIBILITY_SCAN_STEP_DEG) {
+      TrajectoryResult res = integrateTrajectory(a, targetDistanceInches, params);
+      if (res.reachedDistance() && res.heightAtTargetInches() >= params.goalHeightInches()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Solves both shot degrees of freedom: the flywheel exit speed and the hood elevation.
+   *
+   * <p>Hitting a goal at a given distance is one equation in two unknowns, so it has a whole family
+   * of solutions and needs a policy to pick one. This one is hood-first: the flywheel is held at
+   * {@code preferredShotRpm} and the hood alone aims the shot, for every distance that speed covers
+   * comfortably. Only where it runs out does the flywheel rise, and only as far as it has to.
+   * Formally the exit speed is {@code max(preferred, minimumReachingSpeed * (1 + margin))}.
+   *
+   * <p>Keeping the flywheel parked at one speed is deliberate. It is the slow variable: it has to
+   * spin up, its readiness gate has to re-converge, and its exit velocity is least repeatable away
+   * from the speed the model was calibrated at. Testing an earlier minimum-energy policy — which
+   * drove the flywheel as slow as each shot allowed — produced shots that were far too weak at
+   * close range. The hood is the fast, cheap, precise degree of freedom, so it absorbs the range
+   * variation.
+   *
+   * <p>The margin is why the test is "comfortably" rather than merely "at all". Right at the edge
+   * of a speed's range the only surviving solution is a near-vertical lob: at 1000 RPM a 96 in
+   * target solves to a 63° hood with 0.94 s of hang time, nominally a hit and useless in practice.
+   * Requiring the speed to beat the minimum reaching speed by {@code v0MarginFraction} keeps the
+   * solution off that boundary, so the flywheel steps up just before the arc degenerates instead of
+   * long after.
+   *
+   * <p>A target that cannot be reached even at {@code maxShotRpm} comes back {@code feasible ==
+   * false} with the best-effort maximum-speed shot attached, rather than a silently bogus angle.
+   */
+  public static SolvedShot solveShot(double targetDistanceInches, BallisticsParameters params) {
+    double preferredV0 = params.rpmToV0(params.preferredShotRpm());
+    double maxV0 = params.rpmToV0(params.maxShotRpm());
+    double margin = 1.0 + params.v0MarginFraction();
+
+    // The preferred speed carries the full margin iff the goal is still reachable after dividing
+    // the margin back out — canReachGoal is monotonic in speed, so reaching at preferredV0/margin
+    // is exactly the statement preferredV0 >= minimumReachingSpeed * margin. One check and no
+    // search, which is the common close- and mid-range case.
+    if (canReachGoal(targetDistanceInches, params.withV0(preferredV0 / margin))) {
+      return shotAt(preferredV0, targetDistanceInches, params, true, "Valid");
+    }
+
+    if (!canReachGoal(targetDistanceInches, params.withV0(maxV0))) {
+      return shotAt(
+          maxV0,
+          targetDistanceInches,
+          params,
+          false,
+          String.format(
+              "Distance %.1f in unreachable at max %.0f RPM",
+              targetDistanceInches, params.maxShotRpm()));
+    }
+
+    double lo = preferredV0 / margin; // known not to reach
+    double hi = maxV0; // known to reach
+    for (int i = 0; i < V0_SEARCH_ITERATIONS; i++) {
+      double mid = 0.5 * (lo + hi);
+      if (canReachGoal(targetDistanceInches, params.withV0(mid))) {
+        hi = mid;
+      } else {
+        lo = mid;
+      }
+    }
+
+    double targetV0 = Math.clamp(hi * margin, preferredV0, maxV0);
+    return shotAt(targetV0, targetDistanceInches, params, true, "Valid");
+  }
+
+  /** Solves the lofted hood elevation at a fixed exit speed and packages the result. */
+  private static SolvedShot shotAt(
+      double exitVelocityIps,
+      double targetDistanceInches,
+      BallisticsParameters params,
+      boolean feasible,
+      String reason) {
+    SolvedElevation elevation =
+        solveLoftedElevation(targetDistanceInches, params.withV0(exitVelocityIps));
+    return new SolvedShot(
+        exitVelocityIps,
+        elevation.elevationAngleDeg(),
+        elevation.hoodServoPosition(),
+        elevation.flightTimeSec(),
+        elevation.entryAngleRad(),
+        feasible,
+        reason);
+  }
+
+  /** Converts elevation angle (degrees) to continuous hood servo position (0.0 to 1.0). */
+  public static double angleToServoPos(double elevationAngleDeg, BallisticsParameters params) {
+    double minA = params.minHoodAngleDeg();
+    double maxA = params.maxHoodAngleDeg();
+    double minP = params.minHoodServoPos();
+    double maxP = params.maxHoodServoPos();
+
+    double norm = (elevationAngleDeg - minA) / Math.max(1e-6, maxA - minA);
+    double clampedNorm = Math.clamp(norm, 0.0, 1.0);
+    return minP + clampedNorm * (maxP - minP);
+  }
+
+  /**
+   * Converts continuous hood servo position (0.0 to 1.0) to elevation angle (degrees).
+   *
+   * <p>Handles a reversed linkage, where the servo position for the minimum angle is numerically
+   * greater than the one for the maximum angle. The span is used signed for exactly that reason: an
+   * unsigned {@code Math.max(1e-6, maxP - minP)} guard silently turned a negative span into a
+   * divide-by-1e-6 and reported every steep hood angle as its shallow mirror image.
+   */
+  public static double servoPosToAngle(double servoPos, BallisticsParameters params) {
+    double minA = params.minHoodAngleDeg();
+    double maxA = params.maxHoodAngleDeg();
+    double span = params.maxHoodServoPos() - params.minHoodServoPos();
+
+    double norm = Math.abs(span) < 1e-9 ? 0.0 : (servoPos - params.minHoodServoPos()) / span;
+    double clampedNorm = Math.clamp(norm, 0.0, 1.0);
+    return minA + clampedNorm * (maxA - minA);
+  }
+
+  /**
+   * Fits (v0, k, L) parameters to a set of accepted distance and elevation angle trial points using
+   * Apache Commons Math 3 LevenbergMarquardtOptimizer.
+   *
+   * <p>Assumes every point was shot at {@code initialParams.v0ReferenceRpm()}. Use {@link
+   * #fitParametersWithRpm} for calibration runs where the RPM solver had to raise the flywheel
+   * above the reference speed to reach some of the distances.
+   */
+  public static FittedBallistics fitParameters(
+      List<double[]> distanceAndElevationPoints, BallisticsParameters initialParams) {
+    if (distanceAndElevationPoints == null) {
+      return fitParametersWithRpm(null, initialParams);
+    }
+    List<double[]> atReferenceRpm = new ArrayList<>(distanceAndElevationPoints.size());
+    for (double[] p : distanceAndElevationPoints) {
+      atReferenceRpm.add(new double[] {p[0], p[1], initialParams.v0ReferenceRpm()});
+    }
+    return fitParametersWithRpm(atReferenceRpm, initialParams);
+  }
+
+  /**
+   * As {@link #fitParameters}, but each point also carries the flywheel RPM it was actually shot
+   * at: {@code {distanceInches, elevationDeg, rpm}}. A calibration point taken with the flywheel
+   * raised above {@code v0ReferenceRpm} (the RPM solver's response to a distance the reference
+   * speed alone could not loft to goal height) has a correspondingly higher true exit speed; fixing
+   * every point to one exit speed regardless of what RPM it was actually shot at would corrupt the
+   * fit for exactly the long-range points that needed the RPM solver in the first place. The fitted
+   * free parameter {@code v0} remains the exit speed at {@code v0ReferenceRpm} — each point's
+   * effective exit speed is {@code v0 * (pointRpm / v0ReferenceRpm)}.
+   */
+  public static FittedBallistics fitParametersWithRpm(
+      List<double[]> distanceAngleRpmPoints, BallisticsParameters initialParams) {
+    if (distanceAngleRpmPoints == null || distanceAngleRpmPoints.size() < 3) {
+      return new FittedBallistics(initialParams.v0(), initialParams.k(), initialParams.L(), 0.0);
+    }
+
+    int n = distanceAngleRpmPoints.size();
+    double[] targetHeights = new double[n];
+    Arrays.fill(targetHeights, initialParams.goalHeightInches());
+    double refRpm = initialParams.v0ReferenceRpm();
+
+    MultivariateJacobianFunction modelJacobian =
+        point -> {
+          double v0 = Math.max(10.0, point.getEntry(0));
+          double k = Math.max(1e-6, point.getEntry(1));
+          double L = Math.max(0.0, point.getEntry(2));
+
+          BallisticsParameters testParams = initialParams.withV0(v0).withDragAndLift(k, L);
+
+          RealVector value = new ArrayRealVector(n);
+          RealMatrix jacobian = new Array2DRowRealMatrix(n, 3);
+
+          double h = 1e-4;
+          for (int i = 0; i < n; i++) {
+            double dist = distanceAngleRpmPoints.get(i)[0];
+            double angle = distanceAngleRpmPoints.get(i)[1];
+            double rpmScale = distanceAngleRpmPoints.get(i)[2] / refRpm;
+
+            TrajectoryResult res =
+                integrateTrajectory(angle, dist, testParams.withV0(v0 * rpmScale));
+            value.setEntry(i, res.heightAtTargetInches());
+
+            BallisticsParameters pV = testParams.withV0(Math.max(10.0, v0 + h) * rpmScale);
+            BallisticsParameters pK =
+                testParams.withDragAndLift(Math.max(1e-6, k + h), L).withV0(v0 * rpmScale);
+            BallisticsParameters pL =
+                testParams.withDragAndLift(k, Math.max(0.0, L + h)).withV0(v0 * rpmScale);
+
+            double resV = integrateTrajectory(angle, dist, pV).heightAtTargetInches();
+            double resK = integrateTrajectory(angle, dist, pK).heightAtTargetInches();
+            double resL = integrateTrajectory(angle, dist, pL).heightAtTargetInches();
+
+            jacobian.setEntry(i, 0, (resV - res.heightAtTargetInches()) / h);
+            jacobian.setEntry(i, 1, (resK - res.heightAtTargetInches()) / h);
+            jacobian.setEntry(i, 2, (resL - res.heightAtTargetInches()) / h);
+          }
+          return new Pair<>(value, jacobian);
+        };
+
+    LeastSquaresProblem problem =
+        LeastSquaresFactory.create(
+            modelJacobian,
+            new ArrayRealVector(targetHeights),
+            new ArrayRealVector(
+                new double[] {initialParams.v0(), initialParams.k(), initialParams.L()}),
+            null,
+            100,
+            100);
+
+    LevenbergMarquardtOptimizer optimizer = new LevenbergMarquardtOptimizer();
+    LeastSquaresOptimizer.Optimum optimum = optimizer.optimize(problem);
+
+    RealVector fit = optimum.getPoint();
+    double rms = optimum.getRMS();
+
+    return new FittedBallistics(
+        Math.max(100.0, fit.getEntry(0)),
+        Math.max(0.0001, fit.getEntry(1)),
+        Math.max(0.001, fit.getEntry(2)),
+        rms);
+  }
+
+  /**
+   * ODE implementation for 2D wiffle ball trajectory with quadratic drag and backspin Magnus lift.
+   */
+  private static class WiffleTrajectoryODE implements FirstOrderDifferentialEquations {
+    private final double k;
+    private final double L;
+    private final double g;
+
+    public WiffleTrajectoryODE(double k, double L, double g) {
+      this.k = k;
+      this.L = L;
+      this.g = g;
+    }
+
+    @Override
+    public int getDimension() {
+      return 4;
+    }
+
+    @Override
+    public void computeDerivatives(double t, double[] y, double[] yDot) {
+      double vx = y[2];
+      double vz = y[3];
+      double speed = Math.hypot(vx, vz);
+
+      yDot[0] = vx;
+      yDot[1] = vz;
+      yDot[2] = -k * speed * vx - L * vz;
+      yDot[3] = -g - k * speed * vz + L * vx;
+    }
+  }
+}

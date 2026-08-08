@@ -1,0 +1,2301 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Robot Configuration Unified Schema",
+  "type": "object",
+  "properties": {
+    "turret": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Enable/disable this subsystem, controller, watchdog, or feature.",
+          "type": "boolean"
+        },
+        "max_power_output": {
+          "description": "Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret rotation speed.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "servo_direction_inverted": {
+          "description": "Flips which CRServo direction counts as increasing turret angle. Set this (not the analog encoder's 'inverted' flag) when the turret drives away from its target.",
+          "type": "boolean"
+        },
+        "ks_positive": {
+          "description": "Static friction feedforward (kS) magnitude applied when turning turret in positive direction (error > 0).",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "ks_negative": {
+          "description": "Static friction feedforward (kS) magnitude applied when turning turret in negative direction (error < 0).",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "orientation": {
+          "type": "object",
+          "properties": {
+            "logo": {
+              "description": "Mounting orientation direction of the hub's logo panel (e.g. RIGHT, LEFT, UP, DOWN, FORWARD, BACKWARD).",
+              "type": "string"
+            },
+            "usb": {
+              "description": "Mounting direction of the hub's USB ports.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "logo",
+            "usb"
+          ]
+        },
+        "travel": {
+          "type": "object",
+          "properties": {
+            "min_angle": {
+              "description": "Most negative turret angle (degrees, relative to the chassis) the turret is allowed to reach.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": -180.0,
+                  "maximum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_angle": {
+              "description": "Most positive turret angle (degrees, relative to the chassis) the turret is allowed to reach.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 180.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "min_angle",
+            "max_angle"
+          ]
+        },
+        "stall": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "description": "Enable/disable this subsystem, controller, watchdog, or feature.",
+              "type": "boolean"
+            },
+            "power_threshold": {
+              "description": "Commanded turret power above which the stall watchdog starts checking for motion. Below this the servo may legitimately not move, so no stall is inferred.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "min_progress_deg": {
+              "description": "Turret motion (degrees) that counts as progress and resets the stall watchdog. Set above the analog encoder's noise floor.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "timeout_sec": {
+              "description": "Seconds of commanded power with no turret motion before the stall watchdog latches a fault and cuts power. Protects the turret from being driven into a hard stop when the encoder reading is wrong.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "enabled",
+            "power_threshold",
+            "min_progress_deg",
+            "timeout_sec"
+          ]
+        },
+        "runaway": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "description": "Enable/disable this subsystem, controller, watchdog, or feature.",
+              "type": "boolean"
+            },
+            "divergence_deg": {
+              "description": "How far (degrees) the turret's aim error may grow beyond its best-so-far value before the runaway watchdog cuts power. Catches an inverted control loop, where positive power moves the turret away from its target, before it reaches a hard stop.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "enabled",
+            "divergence_deg"
+          ]
+        },
+        "pidf": {
+          "type": "object",
+          "properties": {
+            "p": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "i": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "d": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "f": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "p",
+            "i",
+            "d",
+            "f"
+          ]
+        },
+        "tolerance": {
+          "type": "object",
+          "properties": {
+            "max_drift": {
+              "description": "Maximum allowed chassis drift (inches) from target pose before auto-corrective drive motions engage.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "near_cutoff": {
+              "description": "Distance boundary (inches) below which the target is considered close, switching to static tolerance.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "near_val": {
+              "description": "Target alignment tolerance (degrees) when within the near cutoff range.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "min_deg": {
+              "description": "Minimum dynamic alignment tolerance (degrees) allowed. Prevents the turret from hunting indefinitely when very close.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_deg": {
+              "description": "Maximum dynamic alignment tolerance (degrees) allowed. Prevents launching if the turret orientation error exceeds this.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "max_drift",
+            "near_cutoff",
+            "near_val",
+            "min_deg",
+            "max_deg"
+          ]
+        },
+        "analog_encoder": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "description": "Enable/disable this subsystem, controller, watchdog, or feature.",
+              "type": "boolean"
+            },
+            "zero_voltage": {
+              "description": "Analog voltage (V) corresponding to 0 degree turret angle position.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 3.3
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "degrees_per_volt": {
+              "description": "Scale factor (degrees/volt) converting analog input voltage delta to turret angle in degrees.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "min_voltage": {
+              "description": "Minimum safe voltage limit for the analog encoder.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 3.3
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_voltage": {
+              "description": "Maximum safe voltage limit for the analog encoder.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 3.3
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "full_scale_voltage": {
+              "description": "Full electrical span (volts) of the turret potentiometer, i.e. the voltage at which it wraps back to zero.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "inverted": {
+              "description": "True if increasing turret angle produces decreasing analog voltage.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "enabled",
+            "zero_voltage",
+            "degrees_per_volt",
+            "min_voltage",
+            "max_voltage",
+            "full_scale_voltage",
+            "inverted"
+          ]
+        }
+      },
+      "required": [
+        "enabled",
+        "max_power_output",
+        "servo_direction_inverted",
+        "ks_positive",
+        "ks_negative",
+        "orientation",
+        "travel",
+        "stall",
+        "runaway",
+        "pidf",
+        "tolerance",
+        "analog_encoder"
+      ]
+    },
+    "vision": {
+      "type": "object",
+      "properties": {
+        "camera_position": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "description": "X value coordinate.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "y": {
+              "description": "Y value coordinate.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "z": {
+              "description": "Z value coordinate.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z"
+          ]
+        },
+        "camera_orientation": {
+          "type": "object",
+          "properties": {
+            "yaw": {
+              "description": "Yaw rotation (degrees).",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "pitch": {
+              "description": "Pitch rotation (degrees).",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "roll": {
+              "description": "Roll rotation (degrees).",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "yaw",
+            "pitch",
+            "roll"
+          ]
+        }
+      },
+      "required": [
+        "camera_position",
+        "camera_orientation"
+      ]
+    },
+    "sentinel": {
+      "type": "object",
+      "properties": {
+        "robot_width": {
+          "description": "Total physical width of the robot (inches) used to build the collision footprint. Determines how close the robot can get to walls or goals.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "rotation_lookahead_time": {
+          "description": "Time horizon (seconds) used to project future rotation based on live angular velocity (|omega| * time). Seeded at 0.075s (derived from 0.45rad / assumed 6.0rad/s max omega); calibrate on robot using Friction Calibration TeleOp.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "goals": {
+          "type": "object",
+          "properties": {
+            "size": {
+              "description": "Length (inches) of one side of the square scoring goal zones on the field.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "min_y": {
+              "description": "The Y-coordinate boundary (inches) on the field where the scoring zones begin. Used to calculate red/blue alliance goal boxes.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "red_goal_x": {
+              "description": "Goal center X coordinate for RED alliance.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "red_goal_y": {
+              "description": "Goal center Y coordinate for RED alliance.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "blue_goal_x": {
+              "description": "Goal center X coordinate for BLUE alliance.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "blue_goal_y": {
+              "description": "Goal center Y coordinate for BLUE alliance.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "size",
+            "min_y",
+            "red_goal_x",
+            "red_goal_y",
+            "blue_goal_x",
+            "blue_goal_y"
+          ]
+        }
+      },
+      "required": [
+        "robot_width",
+        "rotation_lookahead_time",
+        "goals"
+      ]
+    },
+    "casablanca": {
+      "type": "object",
+      "properties": {
+        "enable_depth_protection": {
+          "description": "Enable/disable depth (X-axis) goal zone proximity protection. Safety policy parameter; leave true outside of debugging.",
+          "type": "boolean"
+        },
+        "enable_side_protection": {
+          "description": "Enable/disable side (Y-axis) goal zone proximity protection. Safety policy parameter; leave true outside of debugging.",
+          "type": "boolean"
+        },
+        "repulsion": {
+          "type": "object",
+          "properties": {
+            "power": {
+              "description": "Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone boundary. Driver/safety policy parameter.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "decel_safety_factor": {
+              "description": "Safety margin factor (0.0 to 1.0) for predictive braking (e.g. 0.7 = 30% safety margin over physics model prediction). Risk tolerance/policy parameter.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "power",
+            "decel_safety_factor"
+          ]
+        },
+        "depth": {
+          "type": "object",
+          "properties": {
+            "slow_down": {
+              "description": "Distance (inches) from goal zone at which proximity speed reduction starts. Driver comfort / early-warning feel parameter.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "hard_stop": {
+              "description": "Distance (inches) from goal zone where drive power towards zone is cut to zero. Safety policy parameter.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "slow_down",
+            "hard_stop"
+          ]
+        },
+        "side": {
+          "type": "object",
+          "properties": {
+            "slow_down": {
+              "description": "Distance (inches) from goal zone at which proximity speed reduction starts. Driver comfort / early-warning feel parameter.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "hard_stop": {
+              "description": "Distance (inches) from goal zone where drive power towards zone is cut to zero. Safety policy parameter.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "slow_down",
+            "hard_stop"
+          ]
+        },
+        "lane_blend_distance": {
+          "description": "Distance (inches) over which safety slows downs are interpolated from 0% to 100% strength to prevent jerky speed changes.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "friction": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "description": "X value coordinate.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "y": {
+              "description": "Y value coordinate.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "rot": {
+              "description": "Minimum turn/yaw drive power (0.0 to 1.0) needed to overcome static wheel stiction. Calibrated using Friction Calibration OpMode.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "rot"
+          ]
+        },
+        "smoothing": {
+          "type": "object",
+          "properties": {
+            "time": {
+              "description": "Joystick input filter time constant (seconds). Higher values make acceleration and deceleration smoother but increase input lag.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "back_lift_multiplier": {
+              "description": "Divisor scaling factor for deceleration. Divides the deceleration rate when stopping to slow down the deceleration curve, preventing the robot from tipping forward and lifting its back wheels.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "time",
+            "back_lift_multiplier"
+          ]
+        },
+        "heading_lock": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "description": "Enable/disable this subsystem, controller, watchdog, or feature.",
+              "type": "boolean"
+            },
+            "intent_threshold": {
+              "description": "Raw joystick turn threshold (0.0 to 1.0) above which driver active steering takes control and disengages heading lock.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "ks_moving": {
+              "description": "Minimum rotational drive power (0.0 to 1.0) needed to overcome friction while the robot is already translating.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "moving_speed_threshold": {
+              "description": "Chassis translational speed threshold (inches/sec) above which full ks_moving friction feedforward is applied.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_power": {
+              "description": "Maximum motor power (0.0 to 1.0) the loop is allowed to command. Clamped to be completely imperceptible.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "error_deadband_deg": {
+              "description": "Heading error (degrees) below which heading lock applies zero correction, to avoid chattering/jitter from sensor noise while holding a heading at rest.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 15.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "settle_rate_dps": {
+              "description": "Rotation rate (degrees/sec) below which the robot counts as settled. Heading lock waits for this before capturing the heading to hold, so it does not latch mid-coast and fight the robot's own momentum.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "enabled",
+            "intent_threshold",
+            "ks_moving",
+            "moving_speed_threshold",
+            "max_power",
+            "error_deadband_deg",
+            "settle_rate_dps"
+          ]
+        }
+      },
+      "required": [
+        "enable_depth_protection",
+        "enable_side_protection",
+        "repulsion",
+        "depth",
+        "side",
+        "lane_blend_distance",
+        "friction",
+        "smoothing",
+        "heading_lock"
+      ]
+    },
+    "shooter": {
+      "type": "object",
+      "properties": {
+        "ks": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "nominal_voltage": {
+          "description": "Bus voltage the flywheel feedforward (ks and pidf.f) was characterized at. Shooter.periodic() scales its motor command by nominal_voltage divided by the measured bus voltage, so a sagging pack still reaches the commanded wheel speed instead of quietly landing short and failing the feed gate. Set this to the voltage shown while the Shooter Characterization OpMode is running, not to a fresh-off-the-charger reading.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 1.0,
+              "maximum": 20.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "max_voltage_compensation": {
+          "description": "Largest factor the flywheel voltage compensation may scale its command by. Bounds the correction so a brownout or a bad voltage reading cannot rail the flywheel; 1.4 covers a 12.0 V feedforward down to about 8.6 V.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 1.0,
+              "maximum": 3.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "voltage_refresh_sec": {
+          "description": "How often the flywheel re-reads bus voltage. The hub's voltage is a separate ADC round trip rather than part of the bulk read, so polling it every loop costs milliseconds per tick; a pack does not sag meaningfully inside this interval.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 5.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "max_rpm": {
+          "description": "Maximum rotational speed (RPM) of the motor. Used to scale power percentage to velocity.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "constant_rpm": {
+          "description": "Continuous fixed flywheel target speed (RPM). Flywheel holds this RPM constantly so time-to-shoot collapses to alignment time.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 3000.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "min_transfer_threshold": {
+          "description": "Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "max_velocity_threshold": {
+          "description": "Flywheel velocity upper bound scale factor (e.g. 1.05) to prevent overshooting before feeding rings. Applies only when arming a feed, not while one is already running, since a ring can only ever slow the flywheel down.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 1.0,
+              "maximum": 2.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "feed_release_threshold": {
+          "description": "Fraction of target flywheel speed a feed already in progress may sag to before the intake cuts out. Must be below min_transfer_threshold: it is the lower half of a hysteresis band, so each ring entering the flywheel does not drop the speed under the arming floor and stutter the intake off and back on. Raise it toward min_transfer_threshold for stricter shot energy, lower it if the intake still hitches while feeding.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "feed_intake_power": {
+          "description": "Front intake power (0.0 to 1.0) when feeding rings to the shooter.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "feed_transfer_power": {
+          "description": "Transfer motor power (0.0 to 1.0) when feeding rings to the shooter.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "long_hood_power_threshold": {
+          "description": "Launch power ratio threshold above which the high hood position is selected for long-range shots.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "pidf": {
+          "type": "object",
+          "properties": {
+            "p": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "i": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "d": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "f": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "p",
+            "i",
+            "d",
+            "f"
+          ]
+        },
+        "integral": {
+          "type": "object",
+          "properties": {
+            "band_ticks": {
+              "description": "Flywheel velocity error (ticks/s) within which the integral term accumulates. Outside this band the integrator holds its value, so spin-up and ball-feed transients never charge it.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 2000.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_contribution": {
+              "description": "Maximum absolute motor power the flywheel integral term may contribute. Bounds windup independently of the integral gain.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "band_ticks",
+            "max_contribution"
+          ]
+        },
+        "ballistics": {
+          "type": "object",
+          "properties": {
+            "v0": {
+              "description": "Fitted initial ring exit velocity (in/s) at constant RPM.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "k": {
+              "description": "Fitted lumped quadratic drag coefficient (1/in) for 2D trajectory integration.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "magnus_l": {
+              "description": "Fitted lumped Magnus lift coefficient (1/s) for 2D backspin trajectory integration.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "launch_height_inches": {
+              "description": "Physical ring release height (inches) above field carpet floor.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "goal_height_inches": {
+              "description": "Center height (inches) of target scoring goal basket above field carpet floor.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "g_inches_per_sec2": {
+              "description": "Gravitational acceleration constant (in/s²).",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "min_hood_angle_deg": {
+              "description": "Minimum physical hood elevation angle (degrees).",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 90.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_hood_angle_deg": {
+              "description": "Maximum physical hood elevation angle (degrees).",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 90.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "min_hood_servo_pos": {
+              "description": "Continuous servo position (0.0 to 1.0) corresponding to min_hood_angle_deg, the flattest arc. The hood linkage is reversed, so this is numerically GREATER than max_hood_servo_pos; that is expected and the angle mapping handles it. Do not 'fix' the ordering.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_hood_servo_pos": {
+              "description": "Continuous servo position (0.0 to 1.0) corresponding to max_hood_angle_deg, the steepest arc. Servo 0.0 is as tall as the arc gets, so this is normally the smaller number of the pair.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_moving_speed_ips": {
+              "description": "Maximum allowed robot translation speed (in/s) for valid moving shots.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "min_valid_distance": {
+              "description": "Minimum calibrated shot distance (inches) for valid solution.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_valid_distance": {
+              "description": "Maximum calibrated shot distance (inches) for valid solution.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "lead_bias_gain": {
+              "description": "Empirical calibration multiplier for virtual lead target calculation.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "v0_reference_rpm": {
+              "description": "Flywheel setpoint the fitted v0 exit velocity was measured at. Exit speed and flywheel setpoint convert through v0 / v0_reference_rpm, which is how the solver turns a required exit speed into an RPM. Must match the RPM the ballistics calibration actually ran at (constant_rpm), or every solved RPM is scaled wrong.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 1.0,
+                  "maximum": 3000.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "preferred_shot_rpm": {
+              "description": "Flywheel setpoint the hood aims around. The solver holds this speed and lets the hood alone cover every distance it can, so the flywheel stays parked at one well-calibrated, already-spun-up speed. It only rises above this when no hood angle can reach the goal, and never falls below it. This is the main shot-strength knob: raise it if shots land weak across the board.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 3000.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "max_shot_rpm": {
+              "description": "Highest flywheel setpoint the RPM solver may command, for distances past the hood's authority at preferred_shot_rpm. A target that cannot reach goal height even at this speed is reported as an invalid solution instead of being silently under-shot.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 3000.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "v0_margin_fraction": {
+              "description": "Headroom above the slowest exit speed that still reaches the goal (0.12 = 12% faster), applied only to long shots that had to raise RPM past preferred_shot_rpm. Keeps those solutions off the boundary where the flat and lofted trajectory branches merge; larger values give a steeper, more forgiving entry angle at the cost of a hotter shot.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "rpm_update_deadband": {
+              "description": "Minimum change in solved RPM (ticks/s) before the flywheel setpoint is re-commanded. Every setpoint write discards the flywheel's accumulated anti-windup integral, so without a deadband a continuously drifting target would keep the integrator reset and the flywheel permanently short of speed.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "flight_time_sec_per_inch": {
+              "description": "Ring time of flight per inch of range, used only to lead a moving shot. A flat estimate on purpose: the measured shot table records hood and RPM but not flight time, and lead only shifts the aim azimuth slightly, so a rough value is adequate here where a wrong hood position would not be.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 0.1
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            },
+            "lead_min_speed_ips": {
+              "description": "Robot speed below which moving-shot lead is skipped entirely. A robot holding position still reports a small noisy velocity, and lead turns that noise into aim-azimuth jitter larger than the turret's settle tolerance, so the turret hunts instead of settling. Leading a nearly-stationary robot gains nothing.",
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 100.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "v0",
+            "k",
+            "magnus_l",
+            "launch_height_inches",
+            "goal_height_inches",
+            "g_inches_per_sec2",
+            "min_hood_angle_deg",
+            "max_hood_angle_deg",
+            "min_hood_servo_pos",
+            "max_hood_servo_pos",
+            "max_moving_speed_ips",
+            "min_valid_distance",
+            "max_valid_distance",
+            "lead_bias_gain",
+            "v0_reference_rpm",
+            "preferred_shot_rpm",
+            "max_shot_rpm",
+            "v0_margin_fraction",
+            "rpm_update_deadband",
+            "flight_time_sec_per_inch",
+            "lead_min_speed_ips"
+          ]
+        },
+        "shot_table": {
+          "type": "object",
+          "properties": {
+            "points": {
+              "description": "Measured shot table as flat distance_in, hood_servo, flywheel_rpm triples, recorded by the Ballistics Calibration OpMode. Distances must strictly increase. Looked up by linear interpolation between rows and clamped outside them; a distance outside the calibrated range is reported as an invalid solution rather than extrapolated.",
+              "type": "array",
+              "items": {"type": "number"}
+            }
+          },
+          "required": [
+            "points"
+          ]
+        }
+      },
+      "required": [
+        "ks",
+        "nominal_voltage",
+        "max_voltage_compensation",
+        "voltage_refresh_sec",
+        "max_rpm",
+        "constant_rpm",
+        "min_transfer_threshold",
+        "max_velocity_threshold",
+        "feed_release_threshold",
+        "feed_intake_power",
+        "feed_transfer_power",
+        "long_hood_power_threshold",
+        "pidf",
+        "integral",
+        "ballistics",
+        "shot_table"
+      ]
+    },
+    "auto": {
+      "type": "object",
+      "properties": {
+        "drink_wait_ms": {
+          "description": "Wait delay (milliseconds) at the drink gate when intake gathers rings.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "shoot_wait_ms": {
+          "description": "Wait time (milliseconds) allowed to fire a shot before ending the shoot command.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "launch_power": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "transfer_power": {
+          "description": "Target power coefficient (0.0 to 1.0) for autonomous transfer motor.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "opposite_drink_wait_ms": {
+          "description": "Wait delay (milliseconds) at the drink gate for opposite alliance autonomous.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "opposite_shoot_wait_ms": {
+          "description": "Wait time (milliseconds) allowed to fire a shot for opposite alliance autonomous.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "opposite_launch_power": {
+          "description": "Target power coefficient (0.0 to 1.0) for opposite alliance autonomous launcher.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "opposite_transfer_power": {
+          "description": "Target power coefficient (0.0 to 1.0) for opposite alliance autonomous transfer.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        }
+      },
+      "required": [
+        "drink_wait_ms",
+        "shoot_wait_ms",
+        "launch_power",
+        "transfer_power",
+        "opposite_drink_wait_ms",
+        "opposite_shoot_wait_ms",
+        "opposite_launch_power",
+        "opposite_transfer_power"
+      ]
+    },
+    "teleop": {
+      "type": "object",
+      "properties": {
+        "max_speed": {
+          "description": "Maximum speed scaler (0.0 to 1.0) applied to chassis manual TeleOp drive inputs.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "field_centric": {
+          "description": "When true, driver translation sticks are interpreted in the field frame (stick direction is a fixed field direction regardless of robot heading). When false, sticks are robot-relative.",
+          "type": "boolean"
+        },
+        "field_centric_offset_deg": {
+          "description": "Field heading (degrees) that a fully-forward driver stick should drive toward when field_centric is true. 90 means stick-forward drives along field +Y, i.e. away from the driver wall at y=0. Set this to whatever direction is 'away' from where the drivers physically stand.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": -360.0,
+              "maximum": 360.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "intake_power": {
+          "description": "Target motor power (0.0 to 1.0) for intake rollers in TeleOp.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "transfer_power": {
+          "description": "Target power coefficient (0.0 to 1.0) for autonomous transfer motor.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "manual_rev_power": {
+          "description": "Target flywheel power ratio (0.0 to 1.0) for manual rev command in TeleOp.",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"
+            }
+          ]
+        },
+        "poses": {
+          "type": "object",
+          "properties": {
+            "red": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "description": "Starting position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "score": {
+                  "description": "High goal target scoring position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink": {
+                  "description": "Drink gate alignment coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "park": {
+                  "description": "Parking destination coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                }
+              },
+              "required": [
+                "start",
+                "score",
+                "drink",
+                "park"
+              ]
+            },
+            "blue": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "description": "Starting position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "score": {
+                  "description": "High goal target scoring position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink": {
+                  "description": "Drink gate alignment coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "park": {
+                  "description": "Parking destination coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                }
+              },
+              "required": [
+                "start",
+                "score",
+                "drink",
+                "park"
+              ]
+            }
+          },
+          "required": [
+            "red",
+            "blue"
+          ]
+        }
+      },
+      "required": [
+        "max_speed",
+        "field_centric",
+        "field_centric_offset_deg",
+        "intake_power",
+        "transfer_power",
+        "manual_rev_power",
+        "poses"
+      ]
+    },
+    "auto_poses": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "type": "object",
+          "properties": {
+            "blue": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "description": "Starting position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "score": {
+                  "description": "High goal target scoring position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "final_score": {
+                  "description": "Final scoring target position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink_cp": {
+                  "description": "Control point pose on path to drink gate.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink_end": {
+                  "description": "Ending position coordinate pose at the drink gate.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup1_cp": {
+                  "description": "Control point pose on path to first sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup1_end": {
+                  "description": "Ending position coordinate pose for first sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup2_cp": {
+                  "description": "Control point pose on path to second sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup2_end": {
+                  "description": "Ending position coordinate pose for second sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup3_cp": {
+                  "description": "Control point pose on path to third sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup3_end": {
+                  "description": "Ending position coordinate pose for third sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                }
+              },
+              "required": [
+                "start",
+                "score",
+                "final_score",
+                "drink_cp",
+                "drink_end",
+                "pickup1_cp",
+                "pickup1_end",
+                "pickup2_cp",
+                "pickup2_end",
+                "pickup3_cp",
+                "pickup3_end"
+              ]
+            },
+            "red": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "description": "Starting position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "score": {
+                  "description": "High goal target scoring position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "final_score": {
+                  "description": "Final scoring target position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink_cp": {
+                  "description": "Control point pose on path to drink gate.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink_end": {
+                  "description": "Ending position coordinate pose at the drink gate.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup1_cp": {
+                  "description": "Control point pose on path to first sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup1_end": {
+                  "description": "Ending position coordinate pose for first sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup2_cp": {
+                  "description": "Control point pose on path to second sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup2_end": {
+                  "description": "Ending position coordinate pose for second sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup3_cp": {
+                  "description": "Control point pose on path to third sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup3_end": {
+                  "description": "Ending position coordinate pose for third sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                }
+              },
+              "required": [
+                "start",
+                "score",
+                "final_score",
+                "drink_cp",
+                "drink_end",
+                "pickup1_cp",
+                "pickup1_end",
+                "pickup2_cp",
+                "pickup2_end",
+                "pickup3_cp",
+                "pickup3_end"
+              ]
+            }
+          },
+          "required": [
+            "blue",
+            "red"
+          ]
+        },
+        "opposite": {
+          "type": "object",
+          "properties": {
+            "blue": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "description": "Starting position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "score": {
+                  "description": "High goal target scoring position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink_cp": {
+                  "description": "Control point pose on path to drink gate.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink_end": {
+                  "description": "Ending position coordinate pose at the drink gate.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup2_cp": {
+                  "description": "Control point pose on path to second sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup2_end": {
+                  "description": "Ending position coordinate pose for second sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup3_cp": {
+                  "description": "Control point pose on path to third sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup3_end": {
+                  "description": "Ending position coordinate pose for third sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup4_cp": {
+                  "description": "Control point pose on path to fourth sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup4_end": {
+                  "description": "Ending position coordinate pose for fourth sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "park": {
+                  "description": "Parking destination coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                }
+              },
+              "required": [
+                "start",
+                "score",
+                "drink_cp",
+                "drink_end",
+                "pickup2_cp",
+                "pickup2_end",
+                "pickup3_cp",
+                "pickup3_end",
+                "pickup4_cp",
+                "pickup4_end",
+                "park"
+              ]
+            },
+            "red": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "description": "Starting position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "score": {
+                  "description": "High goal target scoring position coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink_cp": {
+                  "description": "Control point pose on path to drink gate.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "drink_end": {
+                  "description": "Ending position coordinate pose at the drink gate.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup2_cp": {
+                  "description": "Control point pose on path to second sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup2_end": {
+                  "description": "Ending position coordinate pose for second sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup3_cp": {
+                  "description": "Control point pose on path to third sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup3_end": {
+                  "description": "Ending position coordinate pose for third sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup4_cp": {
+                  "description": "Control point pose on path to fourth sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "pickup4_end": {
+                  "description": "Ending position coordinate pose for fourth sample pickup.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                },
+                "park": {
+                  "description": "Parking destination coordinate pose.",
+                  "oneOf": [
+                    {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                    {"type": "string", "pattern": "^(?i)(m|k|mirror|key)?\\s*[+\\-*/]?\\s*\\d*(\\.\\d+)?$"}
+                  ]
+                }
+              },
+              "required": [
+                "start",
+                "score",
+                "drink_cp",
+                "drink_end",
+                "pickup2_cp",
+                "pickup2_end",
+                "pickup3_cp",
+                "pickup3_end",
+                "pickup4_cp",
+                "pickup4_end",
+                "park"
+              ]
+            }
+          },
+          "required": [
+            "blue",
+            "red"
+          ]
+        }
+      },
+      "required": [
+        "normal",
+        "opposite"
+      ]
+    }
+  },
+  "required": [
+    "turret",
+    "vision",
+    "sentinel",
+    "casablanca",
+    "shooter",
+    "auto",
+    "teleop",
+    "auto_poses"
+  ]
+}

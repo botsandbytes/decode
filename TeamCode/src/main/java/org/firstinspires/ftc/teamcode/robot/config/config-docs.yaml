@@ -1,0 +1,483 @@
+max_power_output:
+  desc: "Maximum power limit (0.0 to 1.0) commanded to the turret CRServo. Limits maximum turret rotation speed."
+  min: 0.0
+  max: 1.0
+
+servo_direction_inverted:
+  desc: "Flips which CRServo direction counts as increasing turret angle. Set this (not the analog encoder's 'inverted' flag) when the turret drives away from its target."
+
+ks_positive:
+  desc: "Static friction feedforward (kS) magnitude applied when turning turret in positive direction (error > 0)."
+  min: 0.0
+  max: 1.0
+
+ks_negative:
+  desc: "Static friction feedforward (kS) magnitude applied when turning turret in negative direction (error < 0)."
+  min: 0.0
+  max: 1.0
+
+min_angle:
+  desc: "Most negative turret angle (degrees, relative to the chassis) the turret is allowed to reach."
+  min: -180.0
+  max: 0.0
+
+max_angle:
+  desc: "Most positive turret angle (degrees, relative to the chassis) the turret is allowed to reach."
+  min: 0.0
+  max: 180.0
+
+full_scale_voltage:
+  desc: "Full electrical span (volts) of the turret potentiometer, i.e. the voltage at which it wraps back to zero."
+  min: 0.0
+
+power_threshold:
+  desc: "Commanded turret power above which the stall watchdog starts checking for motion. Below this the servo may legitimately not move, so no stall is inferred."
+  min: 0.0
+  max: 1.0
+
+min_progress_deg:
+  desc: "Turret motion (degrees) that counts as progress and resets the stall watchdog. Set above the analog encoder's noise floor."
+  min: 0.0
+
+timeout_sec:
+  desc: "Seconds of commanded power with no turret motion before the stall watchdog latches a fault and cuts power. Protects the turret from being driven into a hard stop when the encoder reading is wrong."
+  min: 0.0
+
+divergence_deg:
+  desc: "How far (degrees) the turret's aim error may grow beyond its best-so-far value before the runaway watchdog cuts power. Catches an inverted control loop, where positive power moves the turret away from its target, before it reaches a hard stop."
+  min: 0.0
+
+max_drift:
+  desc: "Maximum allowed chassis drift (inches) from target pose before auto-corrective drive motions engage."
+  min: 0.0
+
+near_cutoff:
+  desc: "Distance boundary (inches) below which the target is considered close, switching to static tolerance."
+  min: 0.0
+
+near_val:
+  desc: "Target alignment tolerance (degrees) when within the near cutoff range."
+  min: 0.0
+
+min_deg:
+  desc: "Minimum dynamic alignment tolerance (degrees) allowed. Prevents the turret from hunting indefinitely when very close."
+  min: 0.0
+
+max_deg:
+  desc: "Maximum dynamic alignment tolerance (degrees) allowed. Prevents launching if the turret orientation error exceeds this."
+  min: 0.0
+
+logo:
+  desc: "Mounting orientation direction of the hub's logo panel (e.g. RIGHT, LEFT, UP, DOWN, FORWARD, BACKWARD)."
+
+usb:
+  desc: "Mounting direction of the hub's USB ports."
+
+robot_width:
+  desc: "Total physical width of the robot (inches) used to build the collision footprint. Determines how close the robot can get to walls or goals."
+  min: 0.0
+
+rotation_lookahead_time:
+  desc: "Time horizon (seconds) used to project future rotation based on live angular velocity (|omega| * time). Seeded at 0.075s (derived from 0.45rad / assumed 6.0rad/s max omega); calibrate on robot using Friction Calibration TeleOp."
+  min: 0.0
+
+size:
+  desc: "Length (inches) of one side of the square scoring goal zones on the field."
+  min: 0.0
+
+min_y:
+  desc: "The Y-coordinate boundary (inches) on the field where the scoring zones begin. Used to calculate red/blue alliance goal boxes."
+  min: 0.0
+
+red_goal_x:
+  desc: "Goal center X coordinate for RED alliance."
+  min: 0.0
+
+red_goal_y:
+  desc: "Goal center Y coordinate for RED alliance."
+  min: 0.0
+
+blue_goal_x:
+  desc: "Goal center X coordinate for BLUE alliance."
+  min: 0.0
+
+blue_goal_y:
+  desc: "Goal center Y coordinate for BLUE alliance."
+  min: 0.0
+
+power:
+  desc: "Motor power (0.0 to 1.0) commanded to push the robot away when it violates a goal zone boundary. Driver/safety policy parameter."
+  min: 0.0
+  max: 1.0
+
+decel_safety_factor:
+  desc: "Safety margin factor (0.0 to 1.0) for predictive braking (e.g. 0.7 = 30% safety margin over physics model prediction). Risk tolerance/policy parameter."
+  min: 0.0
+  max: 1.0
+
+slow_down:
+  desc: "Distance (inches) from goal zone at which proximity speed reduction starts. Driver comfort / early-warning feel parameter."
+  min: 0.0
+
+hard_stop:
+  desc: "Distance (inches) from goal zone where drive power towards zone is cut to zero. Safety policy parameter."
+  min: 0.0
+
+enable_depth_protection:
+  desc: "Enable/disable depth (X-axis) goal zone proximity protection. Safety policy parameter; leave true outside of debugging."
+
+enable_side_protection:
+  desc: "Enable/disable side (Y-axis) goal zone proximity protection. Safety policy parameter; leave true outside of debugging."
+
+lane_blend_distance:
+  desc: "Distance (inches) over which safety slows downs are interpolated from 0% to 100% strength to prevent jerky speed changes."
+  min: 0.0
+
+x:
+  desc: "X value coordinate."
+
+y:
+  desc: "Y value coordinate."
+
+z:
+  desc: "Z value coordinate."
+
+yaw:
+  desc: "Yaw rotation (degrees)."
+
+pitch:
+  desc: "Pitch rotation (degrees)."
+
+roll:
+  desc: "Roll rotation (degrees)."
+
+rot:
+  desc: "Minimum turn/yaw drive power (0.0 to 1.0) needed to overcome static wheel stiction. Calibrated using Friction Calibration OpMode."
+  min: 0.0
+  max: 1.0
+  suppress_similarity_check: true
+
+time:
+  desc: "Joystick input filter time constant (seconds). Higher values make acceleration and deceleration smoother but increase input lag."
+  min: 0.0
+  suppress_similarity_check: true
+
+back_lift_multiplier:
+  desc: "Divisor scaling factor for deceleration. Divides the deceleration rate when stopping to slow down the deceleration curve, preventing the robot from tipping forward and lifting its back wheels."
+  min: 0.0
+
+enabled:
+  desc: "Enable/disable this subsystem, controller, watchdog, or feature."
+
+intent_threshold:
+  desc: "Raw joystick turn threshold (0.0 to 1.0) above which driver active steering takes control and disengages heading lock."
+  min: 0.0
+  max: 1.0
+
+ks_moving:
+  desc: "Minimum rotational drive power (0.0 to 1.0) needed to overcome friction while the robot is already translating."
+  min: 0.0
+  max: 1.0
+
+moving_speed_threshold:
+  desc: "Chassis translational speed threshold (inches/sec) above which full ks_moving friction feedforward is applied."
+  min: 0.0
+
+max_power:
+  desc: "Maximum motor power (0.0 to 1.0) the loop is allowed to command. Clamped to be completely imperceptible."
+  min: 0.0
+
+error_deadband_deg:
+  desc: "Heading error (degrees) below which heading lock applies zero correction, to avoid chattering/jitter from sensor noise while holding a heading at rest."
+  min: 0.0
+  max: 15.0
+
+settle_rate_dps:
+  desc: "Rotation rate (degrees/sec) below which the robot counts as settled. Heading lock waits for this before capturing the heading to hold, so it does not latch mid-coast and fight the robot's own momentum."
+  min: 0.0
+
+max_rpm:
+  desc: "Maximum rotational speed (RPM) of the motor. Used to scale power percentage to velocity."
+  min: 0.0
+
+nominal_voltage:
+  desc: "Bus voltage the flywheel feedforward (ks and pidf.f) was characterized at. Shooter.periodic() scales its motor command by nominal_voltage divided by the measured bus voltage, so a sagging pack still reaches the commanded wheel speed instead of quietly landing short and failing the feed gate. Set this to the voltage shown while the Shooter Characterization OpMode is running, not to a fresh-off-the-charger reading."
+  min: 1.0
+  max: 20.0
+
+max_voltage_compensation:
+  desc: "Largest factor the flywheel voltage compensation may scale its command by. Bounds the correction so a brownout or a bad voltage reading cannot rail the flywheel; 1.4 covers a 12.0 V feedforward down to about 8.6 V."
+  min: 1.0
+  max: 3.0
+
+voltage_refresh_sec:
+  desc: "How often the flywheel re-reads bus voltage. The hub's voltage is a separate ADC round trip rather than part of the bulk read, so polling it every loop costs milliseconds per tick; a pack does not sag meaningfully inside this interval."
+  min: 0.0
+  max: 5.0
+
+min_transfer_threshold:
+  desc: "Flywheel speed threshold (percentage, 0.0 to 1.0) required to trigger the transfer belt. Prevents launching rings before the shooter is up to speed."
+  min: 0.0
+  max: 1.0
+
+constant_rpm:
+  desc: "Continuous fixed flywheel target speed (RPM). Flywheel holds this RPM constantly so time-to-shoot collapses to alignment time."
+  min: 0.0
+  max: 3000.0
+
+band_ticks:
+  desc: "Flywheel velocity error (ticks/s) within which the integral term accumulates. Outside this band the integrator holds its value, so spin-up and ball-feed transients never charge it."
+  min: 0.0
+  max: 2000.0
+
+max_contribution:
+  desc: "Maximum absolute motor power the flywheel integral term may contribute. Bounds windup independently of the integral gain."
+  min: 0.0
+  max: 1.0
+
+v0:
+  desc: "Fitted initial ring exit velocity (in/s) at constant RPM."
+  min: 0.0
+
+k:
+  desc: "Fitted lumped quadratic drag coefficient (1/in) for 2D trajectory integration."
+  min: 0.0
+
+magnus_l:
+  desc: "Fitted lumped Magnus lift coefficient (1/s) for 2D backspin trajectory integration."
+  min: 0.0
+
+launch_height_inches:
+  desc: "Physical ring release height (inches) above field carpet floor."
+  min: 0.0
+
+goal_height_inches:
+  desc: "Center height (inches) of target scoring goal basket above field carpet floor."
+  min: 0.0
+
+g_inches_per_sec2:
+  desc: "Gravitational acceleration constant (in/s²)."
+  min: 0.0
+
+min_hood_angle_deg:
+  desc: "Minimum physical hood elevation angle (degrees)."
+  min: 0.0
+  max: 90.0
+
+max_hood_angle_deg:
+  desc: "Maximum physical hood elevation angle (degrees)."
+  min: 0.0
+  max: 90.0
+
+min_hood_servo_pos:
+  desc: "Continuous servo position (0.0 to 1.0) corresponding to min_hood_angle_deg, the flattest arc. The hood linkage is reversed, so this is numerically GREATER than max_hood_servo_pos; that is expected and the angle mapping handles it. Do not 'fix' the ordering."
+  min: 0.0
+  max: 1.0
+
+max_hood_servo_pos:
+  desc: "Continuous servo position (0.0 to 1.0) corresponding to max_hood_angle_deg, the steepest arc. Servo 0.0 is as tall as the arc gets, so this is normally the smaller number of the pair."
+  min: 0.0
+  max: 1.0
+
+max_moving_speed_ips:
+  desc: "Maximum allowed robot translation speed (in/s) for valid moving shots."
+  min: 0.0
+
+min_valid_distance:
+  desc: "Minimum calibrated shot distance (inches) for valid solution."
+  min: 0.0
+
+max_valid_distance:
+  desc: "Maximum calibrated shot distance (inches) for valid solution."
+  min: 0.0
+
+lead_bias_gain:
+  desc: "Empirical calibration multiplier for virtual lead target calculation."
+  min: 0.0
+
+v0_reference_rpm:
+  desc: "Flywheel setpoint the fitted v0 exit velocity was measured at. Exit speed and flywheel setpoint convert through v0 / v0_reference_rpm, which is how the solver turns a required exit speed into an RPM. Must match the RPM the ballistics calibration actually ran at (constant_rpm), or every solved RPM is scaled wrong."
+  min: 1.0
+  max: 3000.0
+
+preferred_shot_rpm:
+  desc: "Flywheel setpoint the hood aims around. The solver holds this speed and lets the hood alone cover every distance it can, so the flywheel stays parked at one well-calibrated, already-spun-up speed. It only rises above this when no hood angle can reach the goal, and never falls below it. This is the main shot-strength knob: raise it if shots land weak across the board."
+  min: 0.0
+  max: 3000.0
+
+max_shot_rpm:
+  desc: "Highest flywheel setpoint the RPM solver may command, for distances past the hood's authority at preferred_shot_rpm. A target that cannot reach goal height even at this speed is reported as an invalid solution instead of being silently under-shot."
+  min: 0.0
+  max: 3000.0
+
+flight_time_sec_per_inch:
+  desc: "Ring time of flight per inch of range, used only to lead a moving shot. A flat estimate on purpose: the measured shot table records hood and RPM but not flight time, and lead only shifts the aim azimuth slightly, so a rough value is adequate here where a wrong hood position would not be."
+  min: 0.0
+  max: 0.1
+
+lead_min_speed_ips:
+  desc: "Robot speed below which moving-shot lead is skipped entirely. A robot holding position still reports a small noisy velocity, and lead turns that noise into aim-azimuth jitter larger than the turret's settle tolerance, so the turret hunts instead of settling. Leading a nearly-stationary robot gains nothing."
+  min: 0.0
+  max: 100.0
+
+points:
+  desc: "Measured shot table as flat distance_in, hood_servo, flywheel_rpm triples, recorded by the Ballistics Calibration OpMode. Distances must strictly increase. Looked up by linear interpolation between rows and clamped outside them; a distance outside the calibrated range is reported as an invalid solution rather than extrapolated."
+
+v0_margin_fraction:
+  desc: "Headroom above the slowest exit speed that still reaches the goal (0.12 = 12% faster), applied only to long shots that had to raise RPM past preferred_shot_rpm. Keeps those solutions off the boundary where the flat and lofted trajectory branches merge; larger values give a steeper, more forgiving entry angle at the cost of a hotter shot."
+  min: 0.0
+  max: 1.0
+
+rpm_update_deadband:
+  desc: "Minimum change in solved RPM (ticks/s) before the flywheel setpoint is re-commanded. Every setpoint write discards the flywheel's accumulated anti-windup integral, so without a deadband a continuously drifting target would keep the integrator reset and the flywheel permanently short of speed."
+  min: 0.0
+
+wait_time_scale:
+  desc: "Multiplier converting distance to run-time (wait_time = distance * wait_time_scale) in milliseconds."
+  min: 0.0
+
+drink_wait_ms:
+  desc: "Wait delay (milliseconds) at the drink gate when intake gathers rings."
+  min: 0
+
+shoot_wait_ms:
+  desc: "Wait time (milliseconds) allowed to fire a shot before ending the shoot command."
+  min: 0
+
+transfer_power:
+  desc: "Target power coefficient (0.0 to 1.0) for autonomous transfer motor."
+  min: 0.0
+  max: 1.0
+
+opposite_drink_wait_ms:
+  desc: "Wait delay (milliseconds) at the drink gate for opposite alliance autonomous."
+  min: 0
+
+opposite_shoot_wait_ms:
+  desc: "Wait time (milliseconds) allowed to fire a shot for opposite alliance autonomous."
+  min: 0
+
+opposite_launch_power:
+  desc: "Target power coefficient (0.0 to 1.0) for opposite alliance autonomous launcher."
+  min: 0.0
+  max: 1.0
+
+opposite_transfer_power:
+  desc: "Target power coefficient (0.0 to 1.0) for opposite alliance autonomous transfer."
+  min: 0.0
+  max: 1.0
+
+start:
+  desc: "Starting position coordinate pose."
+
+score:
+  desc: "High goal target scoring position coordinate pose."
+
+final_score:
+  desc: "Final scoring target position coordinate pose."
+
+drink_cp:
+  desc: "Control point pose on path to drink gate."
+
+drink_end:
+  desc: "Ending position coordinate pose at the drink gate."
+
+pickup1_cp:
+  desc: "Control point pose on path to first sample pickup."
+
+pickup1_end:
+  desc: "Ending position coordinate pose for first sample pickup."
+
+pickup2_cp:
+  desc: "Control point pose on path to second sample pickup."
+
+pickup2_end:
+  desc: "Ending position coordinate pose for second sample pickup."
+
+pickup3_cp:
+  desc: "Control point pose on path to third sample pickup."
+
+pickup3_end:
+  desc: "Ending position coordinate pose for third sample pickup."
+
+pickup4_cp:
+  desc: "Control point pose on path to fourth sample pickup."
+
+pickup4_end:
+  desc: "Ending position coordinate pose for fourth sample pickup."
+
+park:
+  desc: "Parking destination coordinate pose."
+
+drink:
+  desc: "Drink gate alignment coordinate pose."
+
+max_speed:
+  desc: "Maximum speed scaler (0.0 to 1.0) applied to chassis manual TeleOp drive inputs."
+  min: 0.0
+  max: 1.0
+
+field_centric:
+  desc: "When true, driver translation sticks are interpreted in the field frame (stick direction is a fixed field direction regardless of robot heading). When false, sticks are robot-relative."
+
+field_centric_offset_deg:
+  desc: "Field heading (degrees) that a fully-forward driver stick should drive toward when field_centric is true. 90 means stick-forward drives along field +Y, i.e. away from the driver wall at y=0. Set this to whatever direction is 'away' from where the drivers physically stand."
+  min: -360.0
+  max: 360.0
+
+zero_voltage:
+  desc: "Analog voltage (V) corresponding to 0 degree turret angle position."
+  min: 0.0
+  max: 3.3
+
+degrees_per_volt:
+  desc: "Scale factor (degrees/volt) converting analog input voltage delta to turret angle in degrees."
+
+min_voltage:
+  desc: "Minimum safe voltage limit for the analog encoder."
+  min: 0.0
+  max: 3.3
+
+max_voltage:
+  desc: "Maximum safe voltage limit for the analog encoder."
+  min: 0.0
+  max: 3.3
+
+inverted:
+  desc: "True if increasing turret angle produces decreasing analog voltage."
+
+max_velocity_threshold:
+  desc: "Flywheel velocity upper bound scale factor (e.g. 1.05) to prevent overshooting before feeding rings. Applies only when arming a feed, not while one is already running, since a ring can only ever slow the flywheel down."
+  min: 1.0
+  max: 2.0
+
+feed_release_threshold:
+  desc: "Fraction of target flywheel speed a feed already in progress may sag to before the intake cuts out. Must be below min_transfer_threshold: it is the lower half of a hysteresis band, so each ring entering the flywheel does not drop the speed under the arming floor and stutter the intake off and back on. Raise it toward min_transfer_threshold for stricter shot energy, lower it if the intake still hitches while feeding."
+  min: 0.0
+  max: 1.0
+
+feed_intake_power:
+  desc: "Front intake power (0.0 to 1.0) when feeding rings to the shooter."
+  min: 0.0
+  max: 1.0
+
+feed_transfer_power:
+  desc: "Transfer motor power (0.0 to 1.0) when feeding rings to the shooter."
+  min: 0.0
+  max: 1.0
+
+long_hood_power_threshold:
+  desc: "Launch power ratio threshold above which the high hood position is selected for long-range shots."
+  min: 0.0
+  max: 1.0
+
+intake_power:
+  desc: "Target motor power (0.0 to 1.0) for intake rollers in TeleOp."
+  min: 0.0
+  max: 1.0
+  suppress_similarity_check: true
+
+manual_rev_power:
+  desc: "Target flywheel power ratio (0.0 to 1.0) for manual rev command in TeleOp."
+  min: 0.0
+  max: 1.0
