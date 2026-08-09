@@ -1,15 +1,20 @@
 package org.firstinspires.ftc.teamcode.auto;
 
 import static com.pedropathing.ivy.Scheduler.schedule;
+import static com.pedropathing.ivy.pedro.PedroCommands.follow;
+import static org.firstinspires.ftc.teamcode.auto.PathUtil.pline;
 
 import com.bylazar.field.FieldManager;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.ivy.Command;
 import com.pedropathing.ivy.CommandBuilder;
 import com.pedropathing.ivy.Scheduler;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.config.ConfigLoader;
 import org.firstinspires.ftc.teamcode.records.Alliance;
+import org.firstinspires.ftc.teamcode.records.EndgameSpot;
 import org.firstinspires.ftc.teamcode.records.Field;
 import org.firstinspires.ftc.teamcode.records.MatchProfile;
 import org.firstinspires.ftc.teamcode.robot.Intake;
@@ -17,6 +22,7 @@ import org.firstinspires.ftc.teamcode.robot.Robot;
 import org.firstinspires.ftc.teamcode.robot.Shooter;
 import org.firstinspires.ftc.teamcode.robot.ShotController;
 import org.firstinspires.ftc.teamcode.robot.Turret;
+import org.firstinspires.ftc.teamcode.robot.config.generated.config.Auto;
 import org.firstinspires.ftc.teamcode.utilities.OpModeUtil;
 import org.firstinspires.ftc.teamcode.utilities.Sentinel;
 
@@ -41,6 +47,13 @@ public abstract class AllianceAutoBase<T> extends OpMode {
   protected Follower follower;
   protected Sentinel sentinel;
   protected FieldManager field;
+
+  private final ElapsedTime autoTimer = new ElapsedTime();
+  private Command autoCommand;
+  private boolean evacuating;
+  private boolean frozen;
+  private boolean shootingOut;
+  private String endgameStatus = "scoring";
 
   protected AllianceAutoBase(Alliance alliance, Class<T> configClass, String posePrefix) {
     this.alliance = alliance;
@@ -71,6 +84,32 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     }
   }
 
+  private Pose extractScorePose(T config) {
+    try {
+      return (Pose) config.getClass().getField("score").get(config);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private void primeShooterForScorePose(T config) {
+    Pose scorePose = extractScorePose(config);
+    if (scorePose == null) {
+      return;
+    }
+
+    org.firstinspires.ftc.teamcode.records.ShotInputs inputs =
+        new org.firstinspires.ftc.teamcode.records.ShotInputs(
+            scorePose, new Pose(0, 0, 0), goalX, goalY);
+    org.firstinspires.ftc.teamcode.records.ShotSolution solution =
+        org.firstinspires.ftc.teamcode.ballistics.ShotSolver.solve(
+            inputs,
+            org.firstinspires.ftc.teamcode.ballistics.ShotTable.fromConfig(),
+            org.firstinspires.ftc.teamcode.records.BallisticsParameters.fromConfig(),
+            0.4);
+    robot.shotController.setInitialSolution(solution);
+  }
+
   @Override
   public void init() {
     org.firstinspires.ftc.teamcode.robot.config.generated.config.reload();
@@ -93,6 +132,7 @@ public abstract class AllianceAutoBase<T> extends OpMode {
 
     Pose startPose = extractStartPose(config);
     OpModeUtil.setupTurretAndShooter(turret, shooter);
+    primeShooterForScorePose(config);
 
     follower.setStartingPose(startPose);
     buildPaths();
@@ -101,11 +141,18 @@ public abstract class AllianceAutoBase<T> extends OpMode {
 
   @Override
   public void start() {
-    schedule(buildAuto());
+    evacuating = false;
+    frozen = false;
+    shootingOut = false;
+    endgameStatus = "scoring";
+    autoCommand = buildAuto();
+    autoTimer.reset();
+    schedule(autoCommand);
   }
 
   @Override
   public void loop() {
+    updateEndgame();
     robot.update();
 
     OpModeUtil.savePose(alliance, follower.getPose());
@@ -114,8 +161,123 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     telemetry.addData("x", follower.getPose().getX());
     telemetry.addData("y", follower.getPose().getY());
     telemetry.addData("heading", follower.getPose().getHeading());
+    telemetry.addData(
+        "Endgame",
+        "%s  (%.1f s left)",
+        endgameStatus,
+        Math.max(0, endgame().period_ms - autoTimer.milliseconds()) / 1000.0);
     addShooterDiagnostics();
     telemetry.update();
+  }
+
+  private static Auto.Endgame endgame() {
+    return org.firstinspires.ftc.teamcode.robot.config.generated.config.auto.endgame;
+  }
+
+  /**
+   * The last seconds of autonomous, which belong to the field rather than to the scoring plan.
+   *
+   * <p>At {@code auto.endgame.evacuate_ms} before the buzzer the whole auto sequence is cancelled
+   * mid-cycle — a scoring cycle that cannot finish in the time left is worth nothing — and the
+   * robot drives the shortest straight line to a spot where it is unambiguously inside a launch
+   * zone or unambiguously outside every one, never resting on a boundary, and never crossing the
+   * midline (see {@link Sentinel#nearestEndgameSpot}).
+   *
+   * <p>Motion then stops on <i>arrival</i>, not on a clock: the moment {@link
+   * Sentinel#zoneStanding} reports a committed state the drive is cut, which is the earliest
+   * possible stop and usually well before the {@code freeze_ms} deadline. That deadline is only the
+   * backstop for a retreat that never got there. After freezing, standing is still evaluated every
+   * loop and reported, but nothing acts on it — a robot that has stopped moving stays stopped.
+   *
+   * <p>Cancelling is not optional politeness towards the sequence: the shot command holds the
+   * chassis in place and the follow commands own the follower, so anything that merely scheduled a
+   * retreat alongside them would be fighting a command that still believes it owns the drivetrain.
+   */
+  private void updateEndgame() {
+    double remainingMs = endgame().period_ms - autoTimer.milliseconds();
+    if (!evacuating && remainingMs <= endgame().evacuate_ms) {
+      beginEvacuation();
+    }
+    if (!evacuating) {
+      return;
+    }
+
+    Sentinel.ZoneStanding standing =
+        sentinel.zoneStanding(follower.getPose(), endgame().exit_clearance);
+
+    if (!frozen
+        && (standing != Sentinel.ZoneStanding.ON_BOUNDARY || remainingMs <= endgame().freeze_ms)) {
+      freeze(standing);
+    }
+    if (frozen) {
+      endgameStatus = (shootingOut ? "frozen, shooting - " : "frozen - ") + standing;
+      if (!shootingOut) {
+        follower.setTeleOpDrive(0, 0, 0);
+      }
+    }
+  }
+
+  private void beginEvacuation() {
+    evacuating = true;
+
+    Scheduler.cancel(autoCommand);
+    Scheduler.reset();
+    robot.shotController.stopShot();
+    intake.stop();
+    turret.setAimMode(Turret.AimMode.IDLE);
+    follower.breakFollowing();
+
+    Pose here = follower.getPose();
+    EndgameSpot spot = sentinel.nearestEndgameSpot(here, endgame().exit_clearance);
+
+    if (spot == null) {
+      // Neither committed state is reachable without crossing the midline, which is the worse
+      // violation of the two. Stay where we are.
+      endgameStatus = "no committed spot on our half";
+      shooter.setTargetPower(0);
+      freeze(sentinel.zoneStanding(here, endgame().exit_clearance));
+      return;
+    }
+
+    // Parking inside a zone means shooting from it in a moment, and a flywheel started on arrival
+    // would spend the seconds it has left spinning up. Keep it lit through the drive instead.
+    shooter.setTargetPower(spot.insideLaunchZone() ? Shooter.constantPower() : 0);
+
+    endgameStatus =
+        String.format(
+            "moving %.1f in to (%.0f, %.0f), %s",
+            here.distanceFrom(spot.pose()),
+            spot.pose().getX(),
+            spot.pose().getY(),
+            spot.insideLaunchZone() ? "inside zone" : "outside zones");
+    schedule(follow(follower, pline(here, spot.pose())));
+  }
+
+  /**
+   * Stop driving for good.
+   *
+   * <p>A robot that stopped inside a launch zone is a robot that can still score, so it hands the
+   * remaining seconds to the same aimed shot everything else uses. That command holds the chassis
+   * on the point it stopped at rather than commanding zero — the drivetrain stays put either way,
+   * and the alternative is a shot whose aim drifts with every nudge it takes.
+   */
+  private void freeze(Sentinel.ZoneStanding standing) {
+    frozen = true;
+    Scheduler.reset();
+    intake.stop();
+    robot.shotController.stopShot();
+    follower.breakFollowing();
+
+    shootingOut = standing == Sentinel.ZoneStanding.INSIDE;
+    if (shootingOut) {
+      schedule(robot.shotController.aimAndShootCommand(follower, sentinel));
+      return;
+    }
+
+    shooter.setTargetPower(0);
+    turret.setAimMode(Turret.AimMode.IDLE);
+    follower.startTeleopDrive();
+    follower.setTeleOpDrive(0, 0, 0);
   }
 
   /**

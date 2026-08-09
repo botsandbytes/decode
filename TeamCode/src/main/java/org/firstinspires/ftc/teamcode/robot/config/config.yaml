@@ -91,6 +91,8 @@ casablanca:
 
 
 shooter:
+  # Firmware velocity PID (motor_pidf below) oscillates on this hardware — observed the flywheel
+  # motors alternating forward/backward during a Max Vel test.
   use_ftc_pid: true
   ks: 0.1811
   nominal_voltage: 12.0
@@ -105,26 +107,16 @@ shooter:
   feed_transfer_power: 1.0
   long_hood_power_threshold: 0.7
   ball_detection:
-    # Same thresholds the Shot Timing Tuner settled on: real balls measured 12.2%-26.4% deep on this
-    # robot's flywheel, the deepest non-ball (post-shot coast-down) reached 5.4%, so 9% sits in the
-    # clear gap between them. See FlywheelDipDetector for the detection algorithm.
     dip_fraction: 0.09
     rebound_fraction: 0.05
     baseline_alpha: 0.03
     refractory_ms: 120
   pidf:
-    p: 0.0001472
-    i: 0.0008
+    p: 0.0001519
+    i: 0
     d: 0
-    f: 16.0744
+    f: 16.5881
   motor_pidf:
-    # REV firmware velocity PIDF for RUN_USING_ENCODER (use_ftc_pid: true), applied to the motor
-    # directly via DcMotorEx.setPIDFCoefficients — distinct from shooter.pidf above, which only
-    # feeds the software PIDFController used when use_ftc_pid is false, and is never sent to the
-    # motor. These are the values from the last known-working competition build (I=0, so no
-    # integral to wind up during a feed and fling the wheel past setpoint once the ball leaves).
-    # f is rescaled from that build's 22.8 @ max_rpm=1450 to this robot's max_rpm=1500
-    # (22.8 * 1450/1500 = 22.04) since firmware F is referenced to max_rpm; retune if it undershoots.
     p: 150
     i: 0
     d: 0
@@ -155,53 +147,24 @@ shooter:
     flight_time_sec_per_inch: 0.004
     lead_min_speed_ips: 10.0
   shot_table:
-    # Measured shots, flat triples: distance_in, hood_servo, flywheel_rpm.
-    # Recorded by the Ballistics Calibration OpMode; distances must strictly increase.
-    # Linear interpolation between rows, clamped outside them.
-    #
-    # From the 2026-08-08 00:31 run. Six rows, every one a shot the driver watched score, no
-    # skips. Two things improved over the 22:37 run this replaces: the close endpoint is no longer
-    # clamped (50.1 sits at servo 0.1009, where 47.9 was hard against 0.0000 with no steeper hood
-    # left to try), and 137.0 was reached instead of skipped. Range is now 50.1 - 137.0 in.
-    #
-    # RPM is clean: 950 -> 989 -> 1101 -> 1179 -> 1282 -> 1382, monotonic with a smoothly rising
-    # slope of 1.7 to 9.4 rpm/in.
-    #
-    # The servo column still reverses at 97.9 -> 113.7 (0.6488 -> 0.5196), the same dip the 22:37
-    # run showed at 96.7 -> 114.7 (0.6615 -> 0.5139). Landing twice within ~0.015 is NOT
-    # independent confirmation: each endpoint is seeded from this table, so the driver was
-    # accepting a number that came from the previous run. What the reversal costs is real though —
-    # interpolating that segment sweeps the hood steeper while sweeping the flywheel faster, a
-    # pairing never tested anywhere in between. At a fixed distance a whole family of
-    # (servo, rpm) pairs scores, and each endpoint picked a different member of it. Pinning RPM
-    # across every endpoint and moving only the hood collapses that family to a single curve, and
-    # is the run that would actually settle whether this dip is real.
+    # Ballistics Callibration - August 8th, 9:28 pm
     points: [
-        50.1, 0.1009, 950.0,
-        72.6, 0.2191, 989.0,
-        97.9, 0.6488, 1101.0,
-        113.7, 0.5196, 1179.0,
-        124.7, 0.6139, 1282.0,
-        137.0, 0.7139, 1382.0
+        49.4, 0.0000, 1000.0,
+        71.0, 0.0000, 1038.0,
+        96.2, 0.8500, 1193.0,
+        113.3, 0.6722, 1232.0,
+        124.1, 0.8245, 1293.0,
+        136.2, 0.7139, 1382.0
       ]
 
 auto:
-  # Flat distance_in, shoot_window_ms pairs, from the Shot Timing Tuner at the 9% dip trigger and
-  # after shooter.motor_pidf killed the post-shot overshoot (see that key's doc). Re-measured
-  # 2026-08-08 against the fixed detector; the previous points here were contaminated by a false
-  # trigger on the wheel's coast-down and were all too short.
-  #
-  # This table is now a SAFETY-NET TIMEOUT, not the primary end condition: ShotController counts
-  # balls itself via shooter.ball_detection and ends the shot at auto.balls_per_shot_count, whichever
-  # comes first. A shot that runs its full window without reaching the count means something
-  # actually jammed, not that the window was mis-measured.
   shot_time_points: [
-      52.0, 1028,
-      68.0, 2056,
-      86.0, 1181,
-      104.0, 1911,
-      122.0, 4209,
-      136.0, 4014
+      953.3, 1028,
+      981.0, 2056,
+      1048.3, 1181,
+      1131.1, 1911,
+      1256.7, 4209,
+      1373.9, 4014
     ]
   balls_per_shot_count: 3
   drink_wait_ms: 1200
@@ -212,11 +175,16 @@ auto:
   opposite_shoot_wait_ms: 2450
   opposite_launch_power: 0.86
   opposite_transfer_power: 0.12
+  endgame:
+    period_ms: 30000
+    evacuate_ms: 3000
+    freeze_ms: 1000
+    exit_clearance: 2.0
 
 teleop:
   max_speed: 1
   field_centric: true
-  field_centric_offset_deg: 90
+  field_centric_offset_deg: 0
   intake_power: 1.0
   transfer_power: 0.1
   manual_rev_power: 0.6
@@ -239,7 +207,7 @@ auto_poses:
       score: [56, 80, 127]
       final_score: [57, 104, 144]
       drink_cp: [45, 72, 140]
-      drink_end: [10.5, 61, 140]
+      drink_end: [10, 60, 144]
       pickup1_cp: [41, 84, 180]
       pickup1_end: [18, 84, 180]
       pickup2_cp: [56, 55, 180]
@@ -247,17 +215,17 @@ auto_poses:
       pickup3_cp: [56, 25, 180]
       pickup3_end: [11, 36, 180]
     red:
-      start: m+1
-      score: m
-      final_score: m
-      drink_cp: m
-      drink_end: m
-      pickup1_cp: m
-      pickup1_end: m
-      pickup2_cp: m
-      pickup2_end: m
-      pickup3_cp: m
-      pickup3_end: m
+      start: [117, 128, 45]
+      score: [88, 80, 50]
+      final_score: [87, 104, 39]
+      drink_cp: [96, 72, 40]
+      drink_end: [130, 60.5, 40]
+      pickup1_cp: [100, 84, 0]
+      pickup1_end: [123, 84, 0]
+      pickup2_cp: [84, 55, 0]
+      pickup2_end: [130, 60, 0]
+      pickup3_cp: [88, 25, 0]
+      pickup3_end: [130, 36, 0]
   opposite:
     blue:
       start: [57, 8, 90]
@@ -272,14 +240,14 @@ auto_poses:
       pickup4_end: [12, 10, 190]
       park: [40, 20, 111]
     red:
-      start: m
-      score: m
-      drink_cp: m
-      drink_end: m
-      pickup2_cp: m
-      pickup2_end: m
-      pickup3_cp: m
-      pickup3_end: m
-      pickup4_cp: m
-      pickup4_end: m
-      park: m
+      start: [87, 8, 90]
+      score: [85, 20, 70]
+      drink_cp: [90, 50, 40]
+      drink_end: [130, 60.5, 40]
+      pickup2_cp: [84, 68, 0]
+      pickup2_end: [130, 60, 0]
+      pickup3_cp: [84, 40, 0]
+      pickup3_end: [130, 36, 0]
+      pickup4_cp: [94, 20, 350]
+      pickup4_end: [131, 13, 350]
+      park: [103, 20, 70]

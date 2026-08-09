@@ -347,7 +347,7 @@ drink_wait_ms:
   min: 0
 
 shot_time_points:
-  desc: "Measured shoot windows as flat distance_in, shoot_window_ms pairs, recorded by the Shot Timing Tuner OpMode. Distances must strictly increase. Looked up by linear interpolation and clamped outside the measured range, since a shot just past the last row does not suddenly get faster. ShotController ends a scoring cycle when it counts auto.balls_per_shot_count balls OR this window expires, whichever comes first — the window is the safety net for a jam, not the primary signal. auto.shoot_wait_ms is only the fallback when this table is empty."
+  desc: "Measured shoot windows as flat target_rpm, shoot_window_ms pairs, recorded by the Shot Timing Tuner OpMode against whatever flywheel RPM the shot table commanded at each measured distance. RPMs must strictly increase. Looked up by linear interpolation on the flywheel's target RPM and clamped outside the measured range, since a shot just past the last row does not suddenly get faster. Keying on RPM rather than distance means the table stays correct after shooter.shot_table is recalibrated — the shot only ever behaved the way it did at the RPM it was actually fired at, not at whatever distance a recalibrated table now maps that RPM to. ShotController ends a scoring cycle when it counts auto.balls_per_shot_count balls OR this window expires, whichever comes first — the window is the safety net for a jam, not the primary signal. auto.shoot_wait_ms is only the fallback when this table is empty."
 
 balls_per_shot_count:
   desc: "Balls loaded before each autonomous scoring cycle. ShotController counts them live via shooter.ball_detection and ends the shot the moment this many are detected, without waiting out the rest of auto.shot_time_points' window."
@@ -379,6 +379,22 @@ opposite_transfer_power:
   desc: "Target power coefficient (0.0 to 1.0) for opposite alliance autonomous transfer."
   min: 0.0
   max: 1.0
+
+period_ms:
+  desc: "Length of the autonomous period (milliseconds), measured from the moment the OpMode starts. The endgame timers below are all counted backwards from it."
+  min: 0
+
+evacuate_ms:
+  desc: "Time left in autonomous (milliseconds) at which the auto sequence is cancelled and the robot drives the shortest straight line to a spot where it is committed — entirely inside a launch zone or entirely outside every one. A robot straddling a zone boundary at the buzzer gets neither the zone's benefit nor out of the next alliance's way."
+  min: 0
+
+freeze_ms:
+  desc: "Backstop deadline (milliseconds left in autonomous) at which the robot stops driving even if it never reached a committed spot. Normally motion stops earlier, on arrival. Must be smaller than auto.endgame.evacuate_ms, which is the window the move gets to finish in."
+  min: 0
+
+exit_clearance:
+  desc: "Inches of commitment required on whichever side of the launch zone boundary the robot parks on: its whole footprint must clear the line by this much, inside or out. Absorbs the follower's settling error so a spot that ends slightly short is still unambiguous. Measured against the footprint's half-diagonal, so it holds at any heading."
+  min: 0.0
 
 start:
   desc: "Starting position coordinate pose."

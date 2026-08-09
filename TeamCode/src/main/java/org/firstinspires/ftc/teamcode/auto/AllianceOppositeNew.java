@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.auto;
 
 import static com.pedropathing.ivy.commands.Commands.instant;
-import static com.pedropathing.ivy.commands.Commands.waitMs;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.pedro.PedroCommands.follow;
 import static org.firstinspires.ftc.teamcode.auto.PathUtil.pcurve;
@@ -19,9 +18,6 @@ public abstract class AllianceOppositeNew extends AllianceAutoBase<config.Opposi
 
   private PathChain scorePreload;
   private PathChain grabPickup4, scorePickup4;
-  private PathChain drinkPickupStart, drinkPickupScore;
-  private PathChain grabPickup2, scorePickup2;
-  private PathChain grabPickup3, scorePickup3;
   private PathChain gatePark;
 
   protected AllianceOppositeNew(Alliance alliance) {
@@ -38,26 +34,25 @@ public abstract class AllianceOppositeNew extends AllianceAutoBase<config.Opposi
         follow(follower, scorePreload),
         shoot(),
 
-        // Grab pickup 2 → score
-        intakeAndFollow(grabPickup2),
+        // Grab pickup 4 → score (Cycle 1)
+        intakeAndFollow(grabPickup4),
         instant(() -> shooter.setTargetPower(constantPower)),
-        follow(follower, scorePickup2),
+        follow(follower, scorePickup4),
         shoot(),
 
-        // Drink gate
-        intakeAndFollow(drinkPickupStart),
-        waitMs(config.drinkWaitMs),
+        // Grab pickup 4 → score (Cycle 2)
+        intakeAndFollow(grabPickup4),
         instant(() -> shooter.setTargetPower(constantPower)),
-        follow(follower, drinkPickupScore),
+        follow(follower, scorePickup4),
         shoot(),
 
-        // Grab pickup 3 → score
-        intakeAndFollow(grabPickup3),
+        // Grab pickup 4 → score (Cycle 3)
+        intakeAndFollow(grabPickup4),
         instant(() -> shooter.setTargetPower(constantPower)),
-        follow(follower, scorePickup3),
+        follow(follower, scorePickup4),
         shoot(),
 
-        // Grab pickup 4 → score
+        // Grab pickup 4 → score (Cycle 4)
         intakeAndFollow(grabPickup4),
         instant(() -> shooter.setTargetPower(constantPower)),
         follow(follower, scorePickup4),
@@ -85,14 +80,8 @@ public abstract class AllianceOppositeNew extends AllianceAutoBase<config.Opposi
   @Override
   protected void buildPaths() {
     scorePreload = pline(config.start, config.score);
-    drinkPickupStart = pcurve(config.score, config.drinkCp, config.drinkEnd);
-    drinkPickupScore = pcurve(config.drinkEnd, config.drinkCp, config.score);
     gatePark = pline(config.score, config.park, 0.1);
     grabPickup4 = pcurve(config.score, config.pickup4Cp, config.pickup4End, 0.1);
     scorePickup4 = pline(config.pickup4End, config.score);
-    grabPickup2 = pcurve(config.score, config.pickup2Cp, config.pickup2End, 0.5);
-    scorePickup2 = pcurve(config.pickup2End, config.pickup2Cp, config.score);
-    grabPickup3 = pcurve(config.score, config.pickup3Cp, config.pickup3End, 0.3);
-    scorePickup3 = pline(config.pickup3End, config.score);
   }
 }

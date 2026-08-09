@@ -265,7 +265,7 @@ public class ShotController {
 
   /**
    * The same shot, ended by whichever comes first: the magazine emptying, or a time budget measured
-   * for the distance it is fired from. Autonomous has no trigger to release, so something has to
+   * for the flywheel RPM it is fired at. Autonomous has no trigger to release, so something has to
    * decide when a scoring cycle is over and the next path may start.
    *
    * <p>Counting balls (see {@link #getBallsFired()}) is the primary signal — a shot that has put
@@ -276,7 +276,7 @@ public class ShotController {
    * miscount. It also covers aiming and spin-up, not just feeding, so a shot that never arms still
    * hands the chassis back instead of hanging the auto.
    *
-   * <p>The distance is read when the command <i>starts</i> rather than when the auto is built: the
+   * <p>The pose is read when the command <i>starts</i> rather than when the auto is built: the
    * whole sequence is constructed during init from a robot sitting on the wall, where every score
    * pose is still in the future. That is what {@code lazy} is for here.
    */
@@ -286,17 +286,26 @@ public class ShotController {
             race(
                 aimAndShootCommand(follower, sentinel),
                 waitUntil(() -> ballsFired >= config.auto.balls_per_shot_count),
-                waitMs(ShotTimeTable.windowMsFor(distanceToGoal(follower.getPose())))));
+                waitMs(ShotTimeTable.windowMsFor(targetRpmAt(follower.getPose())))));
   }
 
   /** Window this shot would be given if it were fired from {@code pose}, for telemetry. */
   public int shotWindowMsAt(Pose pose) {
-    return ShotTimeTable.windowMsFor(distanceToGoal(pose));
+    return ShotTimeTable.windowMsFor(targetRpmAt(pose));
   }
 
   private double distanceToGoal(Pose pose) {
     return Math.hypot(
         Field.getGoalY(alliance) - pose.getY(), Field.getGoalX(alliance) - pose.getX());
+  }
+
+  /**
+   * The flywheel RPM the current {@link ShotTable} would command from {@code pose} — the key {@link
+   * ShotTimeTable} is actually looked up on, since a shot's duration tracks the RPM it was fired
+   * at, not the distance a (possibly since-recalibrated) table happened to map to that RPM.
+   */
+  private double targetRpmAt(Pose pose) {
+    return ShotTable.fromConfig().lookup(distanceToGoal(pose)).rpm();
   }
 
   public boolean isActive() {
@@ -335,6 +344,14 @@ public class ShotController {
 
   public ShotSolution getLastSolution() {
     return lastSolution;
+  }
+
+  /** Primes the initial shot solution and target hood position (e.g. during autonomous init). */
+  public void setInitialSolution(ShotSolution solution) {
+    if (solution != null) {
+      this.lastSolution = solution;
+      shooter.setTargetHoodPosition(solution.targetHoodPosition());
+    }
   }
 
   /** Current measured flywheel velocity magnitude (ticks/s from shooter1). */

@@ -52,8 +52,9 @@ public class MaxVelocityTest extends LinearOpMode {
     while (opModeIsActive()) {
       testMotor = hardwareMap.get(DcMotorEx.class, name);
       //          testMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-      testMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+      testMotor.setDirection(DcMotorSimple.Direction.FORWARD);
       testMotor2 = hardwareMap.get(DcMotorEx.class, name2);
+      testMotor.setDirection(DcMotorSimple.Direction.REVERSE);
       //          testMotor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
       testMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);

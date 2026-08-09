@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -12,9 +13,11 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.ballistics.ShotTable;
 import org.firstinspires.ftc.teamcode.ballistics.ShotTimeTable;
 import org.firstinspires.ftc.teamcode.config.ConfigLoader;
 import org.firstinspires.ftc.teamcode.records.Alliance;
+import org.firstinspires.ftc.teamcode.records.EndgameSpot;
 import org.firstinspires.ftc.teamcode.records.Field;
 import org.firstinspires.ftc.teamcode.robot.Turret;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
@@ -308,6 +311,117 @@ public class MathSafetyTest {
   }
 
   /**
+   * The endgame parking spot: committed to one side of the launch zone boundary, on our own half,
+   * and the nearest such point.
+   *
+   * <p>Auto has about two seconds to execute whatever this returns, so a target that is subtly
+   * wrong is not recoverable at runtime — a spot that still straddles the line leaves the robot in
+   * exactly the state the whole feature exists to avoid, and one across the midline trades a minor
+   * foul for a worse one. All of it is pure geometry, so all of it is checkable here.
+   *
+   * <p>Checked from each alliance's own score pose, which by {@link
+   * #testAutoScorePosesAreInsideLaunchZone} overlaps a launch zone — the exact situation the timer
+   * fires in.
+   */
+  @Test
+  public void testEndgameSpotIsCommittedNearAndOnOurSide() {
+    double margin = config.auto.endgame.exit_clearance;
+    double halfDiagonal = config.sentinel.robot_width * Math.sqrt(2.0) / 2.0;
+
+    for (Alliance alliance : Alliance.values()) {
+      Sentinel sentinel = new Sentinel(alliance);
+      String side = alliance == Alliance.RED ? "red" : "blue";
+      boolean ownSideIsHighX = Field.getGoalX(alliance) > 72.0;
+
+      config.OppositeAuto opposite =
+          ConfigLoader.loadMerged(config.OppositeAuto.class, "auto_poses.opposite." + side, "auto");
+      Pose score = opposite.score;
+      EndgameSpot spot = sentinel.nearestEndgameSpot(score, margin);
+
+      assertNotNull(side + " has no committed endgame spot from its score pose", spot);
+      Pose parked = spot.pose();
+
+      // Committed at every heading, and matching what the spot claims about itself.
+      Sentinel.ZoneStanding expected =
+          spot.insideLaunchZone() ? Sentinel.ZoneStanding.INSIDE : Sentinel.ZoneStanding.OUTSIDE;
+      for (double heading = 0; heading < 2 * Math.PI; heading += Math.PI / 8) {
+        Pose rotated = new Pose(parked.getX(), parked.getY(), heading);
+        assertEquals(
+            side + " endgame spot is not committed at heading " + heading,
+            expected,
+            sentinel.zoneStanding(rotated, margin));
+
+        for (Coordinate corner : sentinel.calculateRobotFootprint(rotated)) {
+          assertTrue(
+              side + " endgame footprint crosses the midline at heading " + heading,
+              ownSideIsHighX ? corner.x >= 72.0 : corner.x <= 72.0);
+          assertTrue(
+              side + " endgame footprint leaves the field", corner.x >= 0 && corner.x <= 144);
+          assertTrue(
+              side + " endgame footprint leaves the field", corner.y >= 0 && corner.y <= 144);
+        }
+      }
+
+      // "Shortest path": nothing meaningfully closer is committed, in either direction — the search
+      // has to consider going deeper into the zone as well as out of it. The slack is what the
+      // heading-blind model deliberately gives away: it plans against the footprint's circumscribed
+      // circle, while the check below samples 16 discrete headings of the real square.
+      double spotDistance = score.distanceFrom(parked);
+      double slack = margin + 0.5;
+      assertTrue(side + " endgame move is implausibly long", spotDistance < 3 * halfDiagonal);
+      for (double angle = 0; angle < 2 * Math.PI; angle += Math.PI / 24) {
+        for (double r = 0.5; r < spotDistance - slack; r += 0.5) {
+          double cx = score.getX() + r * Math.cos(angle);
+          double cy = score.getY() + r * Math.sin(angle);
+          boolean committedAtEveryHeading = true;
+          for (double h = 0; h < 2 * Math.PI && committedAtEveryHeading; h += Math.PI / 8) {
+            committedAtEveryHeading =
+                sentinel.zoneStanding(new Pose(cx, cy, h), margin)
+                    != Sentinel.ZoneStanding.ON_BOUNDARY;
+          }
+          boolean onOurSide =
+              ownSideIsHighX ? cx - halfDiagonal >= 72.0 : cx + halfDiagonal <= 72.0;
+          assertFalse(
+              String.format(
+                  "%s has a committed point closer than the spot: (%.1f, %.1f)", side, cx, cy),
+              committedAtEveryHeading && onOurSide);
+        }
+      }
+
+      // A robot already committed is told to stay where it is.
+      EndgameSpot stay = sentinel.nearestEndgameSpot(parked, margin);
+      assertEquals(parked.getX(), stay.pose().getX(), 1e-9);
+      assertEquals(parked.getY(), stay.pose().getY(), 1e-9);
+    }
+  }
+
+  /**
+   * The small far triangle cannot hold this robot, which is why "get fully inside a zone" is only
+   * ever an option in the big one.
+   *
+   * <p>{@link Sentinel#nearestEndgameSpot} relies on this rather than special-casing it: eroding
+   * the zones by the footprint deletes the small triangle entirely. If the robot ever shrinks (or
+   * the zone grows) enough for it to fit, this test fails and the comment there stops being true —
+   * which is the point of asserting it.
+   */
+  @Test
+  public void testSmallLaunchZoneCannotContainTheRobot() {
+    Sentinel sentinel = new Sentinel(Alliance.RED);
+    double margin = config.auto.endgame.exit_clearance;
+
+    // The small zone spans x in [48, 96], y in [0, 24]. Sweep it densely at several headings.
+    for (double x = 48; x <= 96; x += 1.0) {
+      for (double y = 0; y <= 24; y += 1.0) {
+        for (double h = 0; h < Math.PI / 2; h += Math.PI / 16) {
+          assertFalse(
+              String.format("robot reported fully inside the small zone at (%.0f, %.0f)", x, y),
+              sentinel.zoneStanding(new Pose(x, y, h), margin) == Sentinel.ZoneStanding.INSIDE);
+        }
+      }
+    }
+  }
+
+  /**
    * The ball counter behind the Shot Timing Tuner.
    *
    * <p>Everything that makes this detector correct is a threshold, and every one of them fails in a
@@ -523,21 +637,21 @@ public class MathSafetyTest {
    */
   @Test
   public void testShotTimeTableInterpolatesAndClamps() {
-    ShotTimeTable table = ShotTimeTable.fromPoints(new double[] {50.0, 5000, 100.0, 3000});
+    ShotTimeTable table = ShotTimeTable.fromPoints(new double[] {950.0, 5000, 1100.0, 3000});
     assertEquals(2, table.size());
 
     // Exact rows.
-    assertEquals(5000, table.lookupMs(50.0));
-    assertEquals(3000, table.lookupMs(100.0));
+    assertEquals(5000, table.lookupMs(950.0));
+    assertEquals(3000, table.lookupMs(1100.0));
 
     // Linear between them.
-    assertEquals(4000, table.lookupMs(75.0));
+    assertEquals(4000, table.lookupMs(1025.0));
 
-    // Clamped, not extrapolated: a shot 30 in closer than anything measured does not get faster.
-    assertEquals(5000, table.lookupMs(10.0));
-    assertEquals(3000, table.lookupMs(300.0));
+    // Clamped, not extrapolated: a shot fired slower than anything measured does not get faster.
+    assertEquals(5000, table.lookupMs(800.0));
+    assertEquals(3000, table.lookupMs(2000.0));
 
-    // A non-finite distance must still yield a usable window rather than an exception, since the
+    // A non-finite RPM must still yield a usable window rather than an exception, since the
     // alternative is a scoring cycle with no bound on it at all.
     assertEquals(5000, table.lookupMs(Double.NaN));
   }
@@ -550,42 +664,48 @@ public class MathSafetyTest {
 
     // windowMsFor never throws and never returns zero, whatever it is handed — a zero window feeds
     // nothing, and a missing one never gives the chassis back to the next path.
-    for (double d : new double[] {Double.NaN, -50.0, 0.0, 68.0, 1e9}) {
-      assertTrue("window must be positive at " + d, ShotTimeTable.windowMsFor(d) > 0);
+    for (double rpm : new double[] {Double.NaN, -50.0, 0.0, 1000.0, 1e9}) {
+      assertTrue("window must be positive at " + rpm, ShotTimeTable.windowMsFor(rpm) > 0);
     }
 
     try {
-      ShotTimeTable.fromPoints(new double[] {50.0, 5000, 100.0});
-      org.junit.Assert.fail("an odd number of values is not distance,window pairs");
+      ShotTimeTable.fromPoints(new double[] {950.0, 5000, 1100.0});
+      org.junit.Assert.fail("an odd number of values is not rpm,window pairs");
     } catch (IllegalStateException expected) {
       assertTrue(expected.getMessage().contains("pairs"));
     }
 
     try {
-      ShotTimeTable.fromPoints(new double[] {50.0, 5000, 40.0, 3000});
-      org.junit.Assert.fail("distances going backwards must be rejected, not silently sorted");
+      ShotTimeTable.fromPoints(new double[] {950.0, 5000, 900.0, 3000});
+      org.junit.Assert.fail("rpms going backwards must be rejected, not silently sorted");
     } catch (IllegalStateException expected) {
       assertTrue(expected.getMessage().contains("strictly increase"));
     }
   }
 
   /**
-   * The shipped table has to actually cover where the autos shoot from.
+   * The shipped table has to actually cover the RPM the autos actually shoot at.
    *
    * <p>Outside the measured range {@link ShotTimeTable} clamps, and clamping across a long gap is
-   * how a scoring cycle silently gets the wrong budget. The curve runs backwards — near shots take
-   * longer than far ones — so a far shot clamped onto a near row is handed seconds it does not
-   * need, and a near shot clamped onto a far row is cut off with balls still in the robot. A few
-   * inches of clamp is noise against the ~100 ms/in slope; truncating the table is not.
+   * how a scoring cycle silently gets the wrong budget. The curve runs backwards — low-RPM shots
+   * take longer than high-RPM ones — so a fast shot clamped onto a slow row is handed seconds it
+   * does not need, and a slow shot clamped onto a fast row is cut off with balls still in the
+   * robot.
+   *
+   * <p>The RPM checked here is what {@link org.firstinspires.ftc.teamcode.ballistics.ShotTable}
+   * commands <i>right now</i> for each score pose's distance — not the RPM the shot-time table was
+   * originally measured against — since that current mapping is what autonomous will actually fire
+   * at. If a {@code shooter.shot_table} recalibration moves a score distance onto an RPM the timing
+   * table no longer covers, this is the test that catches it.
    */
   @Test
-  public void testConfiguredShotTimeTableCoversAutoScoreDistances() {
+  public void testConfiguredShotTimeTableCoversAutoScoreRpm() {
     ShotTimeTable table = ShotTimeTable.fromConfig();
     assertTrue(
         "auto.shot_time_points is empty — autos fall back to the flat window", table != null);
+    ShotTable shotTable = ShotTable.fromConfig();
 
-    // The opposite auto scores from 123 in against a table measured out to 122.
-    double allowedClampInches = 5.0;
+    double allowedClampRpm = 40.0;
 
     config.NormalAuto normal =
         ConfigLoader.loadMerged(config.NormalAuto.class, "auto_poses.normal.blue", "auto");
@@ -596,13 +716,13 @@ public class MathSafetyTest {
       Pose score = (Pose) which[1];
       double distance =
           Math.hypot(Field.getBlueGoalX() - score.getX(), Field.getBlueGoalY() - score.getY());
+      double rpm = shotTable.lookup(distance).rpm();
       assertTrue(
           String.format(
-              "%s auto scores at %.0f in, more than %.0f in outside the measured %.0f-%.0f in"
-                  + " table — re-run the Shot Timing Tuner to cover it",
-              which[0], distance, allowedClampInches, table.minDistance(), table.maxDistance()),
-          distance >= table.minDistance() - allowedClampInches
-              && distance <= table.maxDistance() + allowedClampInches);
+              "%s auto scores at %.0f in (%.0f rpm), more than %.0f rpm outside the measured"
+                  + " %.0f-%.0f rpm shot-time table — re-run the Shot Timing Tuner to cover it",
+              which[0], distance, rpm, allowedClampRpm, table.minRpm(), table.maxRpm()),
+          rpm >= table.minRpm() - allowedClampRpm && rpm <= table.maxRpm() + allowedClampRpm);
     }
   }
 
@@ -1135,5 +1255,42 @@ public class MathSafetyTest {
 
     turret.setEnabled(true);
     assertTrue(turret.isEnabled());
+  }
+
+  @Test
+  public void testShotControllerSetInitialSolution() {
+    HardwareMap hardwareMap = Mockito.mock(HardwareMap.class);
+    DcMotorEx mockShooter1 = Mockito.mock(DcMotorEx.class);
+    DcMotorEx mockShooter2 = Mockito.mock(DcMotorEx.class);
+    com.qualcomm.robotcore.hardware.Servo mockHood =
+        Mockito.mock(com.qualcomm.robotcore.hardware.Servo.class);
+    com.qualcomm.robotcore.hardware.VoltageSensor mockVoltage =
+        Mockito.mock(com.qualcomm.robotcore.hardware.VoltageSensor.class);
+    Mockito.when(hardwareMap.get(DcMotorEx.class, "shooter")).thenReturn(mockShooter1);
+    Mockito.when(hardwareMap.get(DcMotorEx.class, "shooter2")).thenReturn(mockShooter2);
+    Mockito.when(hardwareMap.get(com.qualcomm.robotcore.hardware.Servo.class, "hood"))
+        .thenReturn(mockHood);
+    java.util.List<com.qualcomm.robotcore.hardware.VoltageSensor> sensors =
+        java.util.Collections.singletonList(mockVoltage);
+    hardwareMap.voltageSensor =
+        Mockito.mock(com.qualcomm.robotcore.hardware.HardwareMap.DeviceMapping.class);
+    Mockito.when(hardwareMap.voltageSensor.iterator()).thenAnswer(inv -> sensors.iterator());
+
+    org.firstinspires.ftc.teamcode.robot.Shooter shooter =
+        new org.firstinspires.ftc.teamcode.robot.Shooter(hardwareMap);
+    org.firstinspires.ftc.teamcode.robot.ShotController shotController =
+        new org.firstinspires.ftc.teamcode.robot.ShotController(
+            shooter, null, null, null, null, null, Alliance.RED, null);
+
+    org.firstinspires.ftc.teamcode.records.ShotSolution primedSolution =
+        new org.firstinspires.ftc.teamcode.records.ShotSolution(
+            0.65, 1150.0, 220.0, 0.0, 0.4, 0.0, 65.0, true, "Valid");
+
+    shotController.setInitialSolution(primedSolution);
+
+    assertEquals(primedSolution, shotController.getLastSolution());
+    assertEquals(0.65, shooter.getTargetHoodPosition(), 1e-6);
+
+    shotController.shutdown();
   }
 }

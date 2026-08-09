@@ -13,61 +13,78 @@ import org.junit.Test;
 
 /**
  * Covers the ConfigLoader "mirror" system (an {@code m}/{@code mirror} value means "derive this
- * from the opposite alliance's value via {@link Pose#mirror()}"). The entire {@code
- * auto_poses.opposite.red} routine is defined this way, so this is competition-critical geometry
- * that previously had no test coverage.
+ * from the opposite alliance's value via {@link Pose#mirror()}"). {@code auto_poses.opposite.red}
+ * and {@code auto_poses.normal.red} are now explicit, field-tuned poses (pulled from the historical
+ * Red autos) rather than {@code m} placeholders, because they are not exact geometric mirrors of
+ * blue (e.g. opposite start x=87 vs. mirror-of-blue x=84.5) — driving/vision asymmetry meant the
+ * two alliances were tuned separately on the field. The generic mirror-evaluation utility itself
+ * (used elsewhere, and by scalar/non-pose keys) is still covered below.
  */
 public class ConfigLoaderMirrorTest {
 
   private static final double EPS = 1e-4;
 
-  /** Every mirrored opposite-RED pose must equal the mirror of the explicit opposite-BLUE pose. */
+  /**
+   * The explicit opposite-RED poses must be defined and must NOT be exact mirrors of blue — if they
+   * ever collapse onto the mirror of blue, that's a sign the config regressed back to a bare {@code
+   * m} placeholder instead of the hand-tuned values.
+   */
   @Test
-  public void oppositeRed_allPosesAreMirrorOfBlue() throws Exception {
+  public void oppositeRed_posesAreExplicit_notExactMirrorOfBlue() throws Exception {
     config.OppositeAuto blue =
         ConfigLoader.loadMerged(config.OppositeAuto.class, "auto_poses.opposite.blue", "auto");
     config.OppositeAuto red =
         ConfigLoader.loadMerged(config.OppositeAuto.class, "auto_poses.opposite.red", "auto");
 
     int checked = 0;
+    boolean anyDiffersFromMirror = false;
     for (Field f : config.OppositeAuto.class.getFields()) {
       if (f.getType() != Pose.class) continue;
       Pose bp = (Pose) f.get(blue);
       Pose rp = (Pose) f.get(red);
       assertNotNull("blue " + f.getName() + " should be explicitly defined", bp);
-      assertNotNull("red " + f.getName() + " should resolve via mirror", rp);
+      assertNotNull("red " + f.getName() + " should be explicitly defined", rp);
 
-      Pose expected = bp.mirror();
-      assertEquals("mirror x for " + f.getName(), expected.getX(), rp.getX(), EPS);
-      assertEquals("mirror y for " + f.getName(), expected.getY(), rp.getY(), EPS);
-      assertEquals(
-          "mirror heading for " + f.getName(), expected.getHeading(), rp.getHeading(), EPS);
+      Pose mirrored = bp.mirror();
+      if (Math.abs(mirrored.getX() - rp.getX()) > EPS
+          || Math.abs(mirrored.getY() - rp.getY()) > EPS) {
+        anyDiffersFromMirror = true;
+      }
       checked++;
     }
     assertTrue("expected all opposite-auto poses to be checked", checked >= 10);
+    assertTrue(
+        "expected at least one opposite-RED pose to be a hand-tuned value, not an exact mirror"
+            + " of blue",
+        anyDiffersFromMirror);
   }
 
-  /** The direct {@code load(Pose.class, path)} path (not loadMerged) must also resolve mirrors. */
+  /** Direct {@code load(Pose.class, path)} on the explicit red start pose returns real values. */
   @Test
-  public void directLoadPath_resolvesMirror() {
+  public void directLoadPath_resolvesExplicitRedPose() {
     Pose blue = ConfigLoader.load(Pose.class, "auto_poses.opposite.blue.start");
     Pose red = ConfigLoader.load(Pose.class, "auto_poses.opposite.red.start");
     assertNotNull(blue);
     assertNotNull(red);
-    assertEquals(blue.mirror().getX(), red.getX(), EPS);
-    assertEquals(blue.mirror().getY(), red.getY(), EPS);
-    assertEquals(blue.mirror().getHeading(), red.getHeading(), EPS);
+    // Historical Red Opposite start pose (RedOppositeNew.java): (87, 8, 90deg).
+    assertEquals(87.0, red.getX(), EPS);
+    assertEquals(8.0, red.getY(), EPS);
   }
 
   /**
-   * A mirror must actually transform the value (x' = 141.5 - x), not pass it through or null it.
+   * The explicit red start pose is close to, but not exactly, the mirror of blue's start pose —
+   * confirming these were tuned per-alliance rather than derived.
    */
   @Test
-  public void mirror_transformsValue_notPassthrough() {
+  public void explicitRedPose_isNotPassthroughOfMirror() {
     Pose blue = ConfigLoader.load(Pose.class, "auto_poses.opposite.blue.start");
     Pose red = ConfigLoader.load(Pose.class, "auto_poses.opposite.red.start");
-    assertNotEquals("mirror should change x", blue.getX(), red.getX(), 1e-6);
-    assertEquals("Pedro mirror uses field length 141.5", 141.5 - blue.getX(), red.getX(), EPS);
+    assertNotEquals("red x should differ from blue x", blue.getX(), red.getX(), 1e-6);
+    assertNotEquals(
+        "red x should not equal the exact Pedro mirror (field length 141.5) of blue x",
+        141.5 - blue.getX(),
+        red.getX(),
+        EPS);
   }
 
   /** Non-alliance pair math (high/low): verify "k+0.5" adds the offset to the partner's value. */
