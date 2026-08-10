@@ -266,7 +266,7 @@ public class Turret {
               travel.min_angle,
               range[0]));
     }
-    return sb.isEmpty() ? null : sb.toString().trim();
+    return sb.length() == 0 ? null : sb.toString().trim();
   }
 
   private Boolean enabledOverride = null;
