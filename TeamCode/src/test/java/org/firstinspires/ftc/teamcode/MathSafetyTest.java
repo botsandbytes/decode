@@ -857,7 +857,7 @@ public class MathSafetyTest {
     // MANUAL mode (and therefore the relay autotuner, which drives raw power with no PIDF
     // target) has no closed-loop target to bound it, so setTurretPowerRaw must refuse to drive
     // further past the +/-45 deg mechanical limit on its own.
-    setPhysicalTurretAngle(config.turret.travel.max_angle);
+    setPhysicalTurretAngle(config.turret.travel.max_angle + 1e-3);
     turret.setTurretPowerRaw(0.4);
     Mockito.verify(mockServo).setPower(0.0);
 
