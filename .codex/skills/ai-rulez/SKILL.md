@@ -2,7 +2,7 @@
 name: ai-rulez
 description: "Use AI-Rulez correctly in user projects, including CLI, MCP, configuration, and generation workflows"
 # Content-Hash: blake3:63877945f328aa0fad0e1afc85afd6231fe68c7c28c78f053ec3df2485183045
-# Source-Hash: blake3:7c8948ef6cfae2f2fe4f599bbfa345f21ebc8e44b4ca5c3d00f7811d4f6bce32
+# Source-Hash: blake3:6880af0a994763995c0dc6c4df7a6876198ae98c9ab2470b7649183a570bd8d9
 ---
 
 # AI-Rulez
