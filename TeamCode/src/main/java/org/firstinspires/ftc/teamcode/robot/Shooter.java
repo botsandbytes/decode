@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.robot;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.control.PIDFController;
-import com.pedropathing.ivy.Command;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -85,10 +84,6 @@ public class Shooter {
 
   public double getShooterVelocity() {
     return shooter1.getVelocity();
-  }
-
-  public double getShooterPower() {
-    return shooter1.getPower();
   }
 
   public void stop() {
@@ -262,12 +257,5 @@ public class Shooter {
 
   public double getLastCommand() {
     return lastCommand;
-  }
-
-  public Command shootCommand(double power) {
-    return Command.build()
-        .setStart(() -> setTargetPower(power))
-        .setEnd(interrupted -> setTargetPower(0))
-        .requiring(this);
   }
 }

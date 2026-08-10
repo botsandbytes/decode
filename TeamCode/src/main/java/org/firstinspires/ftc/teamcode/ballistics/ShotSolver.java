@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.ballistics;
 
 import com.pedropathing.geometry.Pose;
+import java.util.Locale;
 import org.firstinspires.ftc.teamcode.records.BallisticsParameters;
 import org.firstinspires.ftc.teamcode.records.ShotInputs;
 import org.firstinspires.ftc.teamcode.records.ShotSolution;
@@ -37,8 +38,10 @@ public class ShotSolver {
           Math.hypot(gy - ry, gx - rx),
           false,
           String.format(
+              Locale.ROOT,
               "Robot speed %.1f in/s exceeds max speed gate %.1f in/s",
-              robotSpeed, params.maxMovingSpeedIps()));
+              robotSpeed,
+              params.maxMovingSpeedIps()));
     }
 
     double flightTime = (lastFlightTime > 0.05 && lastFlightTime < 2.0) ? lastFlightTime : 0.4;
@@ -69,8 +72,11 @@ public class ShotSolver {
     if (!distanceValid) {
       reason =
           String.format(
+              Locale.ROOT,
               "Virtual distance %.1f in outside calibrated range [%.1f, %.1f]",
-              virtDist, params.minValidDistanceInches(), params.maxValidDistanceInches());
+              virtDist,
+              params.minValidDistanceInches(),
+              params.maxValidDistanceInches());
     } else if (!shot.withinCalibratedRange()) {
       reason = shot.reason();
     }

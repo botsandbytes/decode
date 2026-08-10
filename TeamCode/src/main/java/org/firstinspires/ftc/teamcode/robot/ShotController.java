@@ -10,6 +10,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.ivy.Command;
 import com.pedropathing.ivy.CommandBuilder;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import java.util.Locale;
 import java.util.function.Supplier;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.ballistics.ShotSolver;
@@ -126,7 +127,7 @@ public class ShotController {
     if (casablanca != null) {
       casablanca.setArmedAimTarget(0.0, false);
     }
-    if (checkAlignment && turret != null && turret.isEnabled()) {
+    if (checkAlignment && turret.isEnabled()) {
       turret.setHoldAngle(0.0);
       turret.setAimMode(Turret.AimMode.HOLD);
     }
@@ -134,14 +135,6 @@ public class ShotController {
     this.useSolvedRpm = false;
     this.commandedSolvedRpm = Double.NaN;
     this.feeding = false;
-  }
-
-  public boolean isSolving() {
-    return solving;
-  }
-
-  public long getLastSolveDurationMs() {
-    return lastSolveDurationMs;
   }
 
   public void shutdown() {
@@ -254,14 +247,6 @@ public class ShotController {
         bd.dip_fraction, bd.rebound_fraction, bd.baseline_alpha, bd.refractory_ms);
   }
 
-  public int getBallsFired() {
-    return ballsFired;
-  }
-
-  public double getElapsedTimeMs() {
-    return timer.milliseconds();
-  }
-
   public ShotSolution getLastSolution() {
     return lastSolution;
   }
@@ -301,12 +286,14 @@ public class ShotController {
     var shooterConfig = config.shooter;
     double ratio = getFlywheelVelocityRatio();
     if (ratio < shooterConfig.min_transfer_threshold) {
-      return String.format("BELOW min (%.2fx < %.2f)", ratio, shooterConfig.min_transfer_threshold);
+      return String.format(
+          Locale.ROOT, "BELOW min (%.2fx < %.2f)", ratio, shooterConfig.min_transfer_threshold);
     }
     if (ratio > shooterConfig.max_velocity_threshold) {
-      return String.format("ABOVE max (%.2fx > %.2f)", ratio, shooterConfig.max_velocity_threshold);
+      return String.format(
+          Locale.ROOT, "ABOVE max (%.2fx > %.2f)", ratio, shooterConfig.max_velocity_threshold);
     }
-    return String.format("PASS (%.2fx)", ratio);
+    return String.format(Locale.ROOT, "PASS (%.2fx)", ratio);
   }
 
   private boolean updateFeedGate() {
@@ -348,10 +335,6 @@ public class ShotController {
     }
     commandedSolvedRpm = rpm;
     shooter.setTargetPower(rpm / config.shooter.max_rpm);
-  }
-
-  public double getCommandedSolvedRpm() {
-    return commandedSolvedRpm;
   }
 
   public void periodic() {
@@ -418,7 +401,9 @@ public class ShotController {
           "Feed Latch",
           feeding
               ? String.format(
-                  "FEEDING (releases below %.2fx)", shooterConfig.feed_release_threshold)
+                  Locale.ROOT,
+                  "FEEDING (releases below %.2fx)",
+                  shooterConfig.feed_release_threshold)
               : "closed");
       telemetry.addData("Gate 2 (Alignment)", isTurretAligned);
       telemetry.addData("Gate 3 (Solver Valid)", isSolutionValid);

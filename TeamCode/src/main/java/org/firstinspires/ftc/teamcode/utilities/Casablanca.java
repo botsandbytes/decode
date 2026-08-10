@@ -279,15 +279,15 @@ public class Casablanca {
 
     boolean stickReleased = Math.abs(rawTurnIntent) < headingLockIntentThreshold;
 
-    if (armedAimActive && poseFinite && Double.isFinite(armedAimHeadingTarget)) {
+    if (armedAimActive && Double.isFinite(armedAimHeadingTarget)) {
       targetHeading = armedAimHeadingTarget;
       headingLockInitialized = true;
-    } else if (goalLockActive && poseFinite && Double.isFinite(goalLockHeadingTarget)) {
+    } else if (goalLockActive && Double.isFinite(goalLockHeadingTarget)) {
       targetHeading = goalLockHeadingTarget;
       headingLockInitialized = true;
     }
 
-    if ((armedAimActive || goalLockActive || (enableHeadingLock && stickReleased)) && poseFinite) {
+    if (armedAimActive || goalLockActive || enableHeadingLock && stickReleased) {
       if (!headingLockInitialized) {
         if (Math.abs(currentAngularVelocity) < headingLockSettleRateRad) {
           targetHeading = pose.getHeading();
@@ -418,10 +418,7 @@ public class Casablanca {
     lastLookaheadRad = lookaheadRad;
     lastAngularVelocityUsed = currentAngularVelocity;
     boolean rotationSafe =
-        poseFinite
-            && Double.isFinite(turn)
-            && Double.isFinite(lookaheadRad)
-            && sentinel.isRotationSafe(pose, turn, lookaheadRad);
+            Double.isFinite(turn) && Double.isFinite(lookaheadRad) && sentinel.isRotationSafe(pose, turn, lookaheadRad);
     lastRotationSafe = rotationSafe;
     if (turn != 0 && !rotationSafe) {
       turn = 0;

@@ -52,7 +52,7 @@ public final class AntiWindupIntegrator {
     }
 
     double limit = maxContribution > 0.0 ? maxContribution / ki : Double.MAX_VALUE;
-    accumulator = Math.max(-limit, Math.min(limit, accumulator));
+    accumulator = Math.clamp(accumulator, -limit, limit);
 
     return ki * accumulator;
   }

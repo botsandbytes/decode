@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.ballistics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.solvers.BrentSolver;
 import org.apache.commons.math3.fitting.leastsquares.LeastSquaresFactory;
@@ -206,8 +207,10 @@ public class BallisticsModel {
           params,
           false,
           String.format(
+              Locale.ROOT,
               "Distance %.1f in unreachable at max %.0f RPM",
-              targetDistanceInches, params.maxShotRpm()));
+              targetDistanceInches,
+              params.maxShotRpm()));
     }
 
     double lo = preferredV0 / margin;

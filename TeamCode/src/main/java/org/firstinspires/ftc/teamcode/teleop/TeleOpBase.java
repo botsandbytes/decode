@@ -9,6 +9,7 @@ import com.pedropathing.ivy.Command;
 import com.pedropathing.ivy.Scheduler;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import java.util.Locale;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.records.MatchProfile;
 import org.firstinspires.ftc.teamcode.robot.Intake;
@@ -223,11 +224,11 @@ public abstract class TeleOpBase extends OpMode {
         follower.setPose(visionPose);
         telemetryM.addLine(
             "Pose updated: X="
-                + String.format("%.2f", visionPose.getX())
+                + String.format(Locale.ROOT, "%.2f", visionPose.getX())
                 + " Y="
-                + String.format("%.2f", visionPose.getY())
+                + String.format(Locale.ROOT, "%.2f", visionPose.getY())
                 + " H="
-                + String.format("%.2f", Math.toDegrees(visionPose.getHeading())));
+                + String.format(Locale.ROOT, "%.2f", Math.toDegrees(visionPose.getHeading())));
         robot.vision.stopStreaming();
       } else {
         telemetryM.addData("Vision [On-Demand]", "Searching for Tag...");

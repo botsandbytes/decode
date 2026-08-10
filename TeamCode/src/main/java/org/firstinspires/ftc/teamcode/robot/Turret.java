@@ -7,6 +7,7 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import java.util.Locale;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
@@ -156,10 +157,6 @@ public class Turret {
     }
   }
 
-  public void setZeroVoltage(double voltage) {
-    this.zeroVoltageOffset = voltage;
-  }
-
   public double getZeroVoltage() {
     return (zeroVoltageOffset != 0.0)
         ? zeroVoltageOffset
@@ -245,24 +242,31 @@ public class Turret {
     if (enc.full_scale_voltage > 0 && Math.abs(actualSpan - expectedSpan) > 1.0) {
       sb.append(
           String.format(
+              Locale.ROOT,
               "zero_voltage %.4f puts the encoder wrap inside the turret's travel "
                   + "(stops span %.1f deg, expected %.1f deg) - angle will jump mid-travel. ",
-              getZeroVoltage(), actualSpan, expectedSpan));
+              getZeroVoltage(),
+              actualSpan,
+              expectedSpan));
     }
 
     if (range[1] < travel.max_angle) {
       sb.append(
           String.format(
+              Locale.ROOT,
               "max_angle %.1f unreachable (encoder tops out at %.1f). ",
-              travel.max_angle, range[1]));
+              travel.max_angle,
+              range[1]));
     }
     if (range[0] > travel.min_angle) {
       sb.append(
           String.format(
+              Locale.ROOT,
               "min_angle %.1f unreachable (encoder bottoms out at %.1f). ",
-              travel.min_angle, range[0]));
+              travel.min_angle,
+              range[0]));
     }
-    return sb.length() == 0 ? null : sb.toString().trim();
+    return sb.isEmpty() ? null : sb.toString().trim();
   }
 
   private Boolean enabledOverride = null;
@@ -289,13 +293,7 @@ public class Turret {
     if (power == 0) return false;
     var travel = config.turret.travel;
     double angle = getCurrentTurnAngle();
-    if (power > 0 && angle >= travel.max_angle) {
-      return true;
-    }
-    if (power < 0 && angle <= travel.min_angle) {
-      return true;
-    }
-    return false;
+    return (power > 0 && angle >= travel.max_angle) || (power < 0 && angle <= travel.min_angle);
   }
 
   public String getPowerBlockedReason() {
@@ -345,9 +343,11 @@ public class Turret {
     if (absError > runawayBestAbsError + runaway.divergence_deg) {
       faultReason =
           String.format(
+              Locale.ROOT,
               "RUNAWAY - error grew %.1f -> %.1f deg under power. The loop is driving away from "
                   + "its target: check servo_direction_inverted vs analog_encoder.inverted.",
-              runawayBestAbsError, absError);
+              runawayBestAbsError,
+              absError);
     }
   }
 
@@ -380,6 +380,7 @@ public class Turret {
     if ((now - stallReferenceTimeNano) / 1e9 >= stall.timeout_sec) {
       faultReason =
           String.format(
+              Locale.ROOT,
               "STALLED at %.1f deg - power commanded but the turret is not moving.",
               getCurrentTurnAngle());
     }
@@ -400,6 +401,7 @@ public class Turret {
       } else if (!isReadingWithinTravel()) {
         powerBlockedReason =
             String.format(
+                Locale.ROOT,
                 "ENCODER OUT OF RANGE (%.1f deg) - reading is not trusted, power cut",
                 getCurrentTurnAngle());
         power = 0;
@@ -520,18 +522,6 @@ public class Turret {
     return Math.hypot(goalX - currentPose.getX(), goalY - currentPose.getY());
   }
 
-  public void driveTurretRaw(double power) {
-    setTurretPowerRaw(power);
-  }
-
-  public double getGoalX() {
-    return goalX;
-  }
-
-  public double getGoalY() {
-    return goalY;
-  }
-
   public double getTargetTurnAngle() {
     return targetTurnAngle;
   }
@@ -564,10 +554,6 @@ public class Turret {
 
   public void setTargetAzimuth(double azimuthRad) {
     this.targetAzimuthRad = azimuthRad;
-  }
-
-  public double getTargetAzimuth() {
-    return targetAzimuthRad;
   }
 
   public void setManualPower(double power) {

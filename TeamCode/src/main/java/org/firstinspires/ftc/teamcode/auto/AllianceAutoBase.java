@@ -12,6 +12,7 @@ import com.pedropathing.ivy.CommandBuilder;
 import com.pedropathing.ivy.Scheduler;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import java.util.Locale;
 import org.firstinspires.ftc.teamcode.config.ConfigLoader;
 import org.firstinspires.ftc.teamcode.records.Alliance;
 import org.firstinspires.ftc.teamcode.records.EndgameSpot;
@@ -222,6 +223,7 @@ public abstract class AllianceAutoBase<T> extends OpMode {
 
     endgameStatus =
         String.format(
+            Locale.ROOT,
             "moving %.1f in to (%.0f, %.0f), %s",
             here.distanceFrom(spot.pose()),
             spot.pose().getX(),
@@ -255,17 +257,23 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     telemetry.addData(
         "Flywheel",
         String.format(
-            "%.0f / %.0f ticks/s (%.2fx)", actual, target, target > 0 ? actual / target : 0.0));
+            Locale.ROOT,
+            "%.0f / %.0f ticks/s (%.2fx)",
+            actual,
+            target,
+            target > 0 ? actual / target : 0.0));
     telemetry.addData(
         "Flywheel Cmd",
         String.format(
+            Locale.ROOT,
             "%.3f  (pid %.3f + i %.3f + ff %.3f) x%.2f",
             shooter.getLastCommand(),
             shooter.getLastPidTerm(),
             shooter.getLastIntegralTerm(),
             shooter.getLastFeedforwardTerm(),
             shooter.getLastVoltageScale()));
-    telemetry.addData("Bus Voltage", String.format("%.2f V", shooter.getLastBusVoltage()));
+    telemetry.addData(
+        "Bus Voltage", String.format(Locale.ROOT, "%.2f V", shooter.getLastBusVoltage()));
     telemetry.addData("Hood", shooter.getTargetHoodPosition());
     telemetry.addData(
         "Launch Legal",
@@ -277,6 +285,7 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     telemetry.addData(
         "Shot Solver",
         String.format(
+            Locale.ROOT,
             "%.1f in -> hood %.3f, %.0f rpm [%s]",
             solution.distanceInches(),
             solution.targetHoodPosition(),

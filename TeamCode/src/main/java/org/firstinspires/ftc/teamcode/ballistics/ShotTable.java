@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.ballistics;
 
+import java.util.Locale;
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
 public final class ShotTable {
@@ -52,9 +53,13 @@ public final class ShotTable {
       if (i > 0 && d[i] <= d[i - 1]) {
         throw new IllegalStateException(
             String.format(
+                Locale.ROOT,
                 "shot table distances must strictly increase, but row %d (%.1f in) does not follow"
                     + " row %d (%.1f in)",
-                i, d[i], i - 1, d[i - 1]));
+                i,
+                d[i],
+                i - 1,
+                d[i - 1]));
       }
     }
     return new ShotTable(d, h, r);
@@ -86,7 +91,10 @@ public final class ShotTable {
           rpm[0],
           distanceInches >= distances[0] - 1e-9,
           String.format(
-              "%.1f in is below the calibrated range (min %.1f in)", distanceInches, distances[0]));
+              Locale.ROOT,
+              "%.1f in is below the calibrated range (min %.1f in)",
+              distanceInches,
+              distances[0]));
     }
     int last = distances.length - 1;
     if (distanceInches >= distances[last]) {
@@ -95,8 +103,10 @@ public final class ShotTable {
           rpm[last],
           distanceInches <= distances[last] + 1e-9,
           String.format(
+              Locale.ROOT,
               "%.1f in is beyond the calibrated range (max %.1f in)",
-              distanceInches, distances[last]));
+              distanceInches,
+              distances[last]));
     }
 
     int hi = 1;
