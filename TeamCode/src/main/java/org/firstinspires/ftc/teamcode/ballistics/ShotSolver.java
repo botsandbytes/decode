@@ -5,20 +5,8 @@ import org.firstinspires.ftc.teamcode.records.BallisticsParameters;
 import org.firstinspires.ftc.teamcode.records.ShotInputs;
 import org.firstinspires.ftc.teamcode.records.ShotSolution;
 
-/**
- * Pure, stateless shot solver. Resolves the moving-shot lead geometry, then reads the hood position
- * and flywheel setpoint straight out of the measured {@link ShotTable}.
- */
 public class ShotSolver {
 
-  /**
-   * Computes the complete ShotSolution for a given loop's robot state.
-   *
-   * @param inputs Live robot pose, velocity, and goal position
-   * @param table Measured distance-to-shot lookup
-   * @param params Gates and lead calibration (speed limit, valid range, lead bias, flight time)
-   * @param lastFlightTime Previous loop's flight time, warm-starting the lead fixed point
-   */
   public static ShotSolution solve(
       ShotInputs inputs, ShotTable table, BallisticsParameters params, double lastFlightTime) {
     if (inputs == null || inputs.robotPose() == null || table == null || params == null) {
@@ -53,16 +41,6 @@ public class ShotSolver {
               robotSpeed, params.maxMovingSpeedIps()));
     }
 
-    // Lead: aim at where the goal will be relative to the robot after the ring's flight. Flight
-    // time comes from a flat seconds-per-inch constant rather than an integrated trajectory —
-    // the table gives no flight time, and lead only shifts the azimuth by a small angle, so a
-    // crude estimate is adequate where a wrong hood position would not be.
-    //
-    // Below leadMinSpeedIps the lead is dropped entirely. A robot that is holding position still
-    // reports a small, noisy velocity, and that noise runs straight into the aim azimuth: the
-    // offset is velocity * flightTime, so ~10 in/s of estimator noise swings the commanded bearing
-    // by more than the turret's 1-2 deg settle tolerance. The turret then never reaches its target
-    // and hunts continuously. Leading a robot that is barely moving buys nothing anyway.
     double flightTime = (lastFlightTime > 0.05 && lastFlightTime < 2.0) ? lastFlightTime : 0.4;
     boolean applyLead = robotSpeed >= params.leadMinSpeedIps();
     double virtX = gx;

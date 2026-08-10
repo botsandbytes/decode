@@ -174,25 +174,6 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     return org.firstinspires.ftc.teamcode.robot.config.generated.config.auto.endgame;
   }
 
-  /**
-   * The last seconds of autonomous, which belong to the field rather than to the scoring plan.
-   *
-   * <p>At {@code auto.endgame.evacuate_ms} before the buzzer the whole auto sequence is cancelled
-   * mid-cycle — a scoring cycle that cannot finish in the time left is worth nothing — and the
-   * robot drives the shortest straight line to a spot where it is unambiguously inside a launch
-   * zone or unambiguously outside every one, never resting on a boundary, and never crossing the
-   * midline (see {@link Sentinel#nearestEndgameSpot}).
-   *
-   * <p>Motion then stops on <i>arrival</i>, not on a clock: the moment {@link
-   * Sentinel#zoneStanding} reports a committed state the drive is cut, which is the earliest
-   * possible stop and usually well before the {@code freeze_ms} deadline. That deadline is only the
-   * backstop for a retreat that never got there. After freezing, standing is still evaluated every
-   * loop and reported, but nothing acts on it — a robot that has stopped moving stays stopped.
-   *
-   * <p>Cancelling is not optional politeness towards the sequence: the shot command holds the
-   * chassis in place and the follow commands own the follower, so anything that merely scheduled a
-   * retreat alongside them would be fighting a command that still believes it owns the drivetrain.
-   */
   private void updateEndgame() {
     double remainingMs = endgame().period_ms - autoTimer.milliseconds();
     if (!evacuating && remainingMs <= endgame().evacuate_ms) {
@@ -231,16 +212,12 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     EndgameSpot spot = sentinel.nearestEndgameSpot(here, endgame().exit_clearance);
 
     if (spot == null) {
-      // Neither committed state is reachable without crossing the midline, which is the worse
-      // violation of the two. Stay where we are.
       endgameStatus = "no committed spot on our half";
       shooter.setTargetPower(0);
       freeze(sentinel.zoneStanding(here, endgame().exit_clearance));
       return;
     }
 
-    // Parking inside a zone means shooting from it in a moment, and a flywheel started on arrival
-    // would spend the seconds it has left spinning up. Keep it lit through the drive instead.
     shooter.setTargetPower(spot.insideLaunchZone() ? Shooter.constantPower() : 0);
 
     endgameStatus =
@@ -253,14 +230,6 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     schedule(follow(follower, pline(here, spot.pose())));
   }
 
-  /**
-   * Stop driving for good.
-   *
-   * <p>A robot that stopped inside a launch zone is a robot that can still score, so it hands the
-   * remaining seconds to the same aimed shot everything else uses. That command holds the chassis
-   * on the point it stopped at rather than commanding zero — the drivetrain stays put either way,
-   * and the alternative is a shot whose aim drifts with every nudge it takes.
-   */
   private void freeze(Sentinel.ZoneStanding standing) {
     frozen = true;
     Scheduler.reset();
@@ -280,20 +249,6 @@ public abstract class AllianceAutoBase<T> extends OpMode {
     follower.setTeleOpDrive(0, 0, 0);
   }
 
-  /**
-   * Flywheel and shot-solver state, every loop.
-   *
-   * <p>ShotController only publishes its gate telemetry while a shot is armed, which in auto is
-   * about a second per scoring cycle — so for most of a run the driver station showed nothing but
-   * the pose, and a flywheel that was failing to reach its setpoint looked identical to one that
-   * was fine. These lines are the difference between "auto did not shoot" and knowing which of
-   * spin-up, aim, or the solver is responsible.
-   *
-   * <p>"Launch Legal" is the fourth way a shot can fail and the only silent one: the shot command
-   * ends itself the instant the robot is outside every launch zone, so a score pose that lands a
-   * few inches short does not shoot badly, it does not shoot at all. Watch this line at each score
-   * pose before blaming the flywheel.
-   */
   private void addShooterDiagnostics() {
     double target = shooter.getLastTargetVelocity();
     double actual = Math.abs(shooter.getShooterVelocity());

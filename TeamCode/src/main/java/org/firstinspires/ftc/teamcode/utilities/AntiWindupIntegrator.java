@@ -1,32 +1,5 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
-/**
- * A bounded integrator for velocity control, supplying the anti-windup that Pedro Pathing's {@code
- * PIDFController} does not have.
- *
- * <p>Both {@code com.pedropathing.control.PIDFController} and {@code FilteredPIDFController}
- * accumulate {@code errorIntegral += error * dt} with no clamp and clear it only in {@code
- * reset()}. On a flywheel that is fatal: a spin-up sits at hundreds of ticks/s of error for about a
- * second, charging the integral far past anything useful, and the stored charge then drives a large
- * overshoot that the flywheel cannot brake off.
- *
- * <p>Pedro still runs the proportional and derivative terms — this class only replaces the
- * integral, so Pedro's own I coefficient must be held at zero to avoid double-counting.
- *
- * <p>Three guards are applied:
- *
- * <ul>
- *   <li><b>Conditional integration</b> — only accumulate within {@code band} of the setpoint, so
- *       spin-up and large disturbances never charge the integrator.
- *   <li><b>Contribution clamp</b> — bound {@code ki * accumulator} to {@code maxContribution}
- *       power, expressed in output units so the limit stays meaningful when {@code ki} is retuned.
- *   <li><b>Saturation freeze</b> — stop accumulating in whichever direction the motor command is
- *       already railed, since further charge cannot produce further output.
- * </ul>
- *
- * <p>Outside the band the accumulator is held rather than zeroed: its stored value is compensating
- * for steady-state feedforward error, which is still valid after a transient passes.
- */
 public final class AntiWindupIntegrator {
 
   /** Largest plausible loop period (seconds); longer gaps are treated as a scheduling stall. */

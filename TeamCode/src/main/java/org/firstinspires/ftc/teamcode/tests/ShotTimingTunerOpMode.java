@@ -19,27 +19,6 @@ import org.firstinspires.ftc.teamcode.utilities.CalibrationRay;
 import org.firstinspires.ftc.teamcode.utilities.FlywheelDipDetector;
 import org.firstinspires.ftc.teamcode.utilities.OpModeUtil;
 
-/**
- * Load balls, shoot them, time them — at each of a set of distances, without moving the robot.
- *
- * <p>The robot never drives. Its believed pose is set to a point the chosen distance from the goal,
- * which is enough to make the solver, hood, flywheel setpoint, and turret behave exactly as they
- * would standing there, because every one of them is a function of the commanded distance. Nothing
- * here reports where the robot physically is: the distance is the one that was asked for.
- *
- * <p>Balls are counted from the speed each one steals out of the flywheel (see {@link
- * FlywheelDipDetector}), so the shot ends when the last one is out and the measurement is simply
- * when that happened. Nothing to dial in.
- *
- * <p>Firing is blocked until the flywheel has reached its arm window at least once. A shot started
- * from a stopped wheel measures the spin-up and nothing else — on this robot that is around five
- * seconds, which swamps everything the run is trying to find out.
- *
- * <p>Every control loop of every shot goes to {@code shot_timing_log.csv}: velocity, setpoint, dip
- * depth, all three readiness gates, hood, and solved RPM. Pull it with {@code adb} when a number
- * looks wrong — it is the only place that says which of spin-up, aim, or the solver was
- * responsible.
- */
 @TeleOp(name = "Shot Timing Tuner", group = "Calibration")
 @Configurable
 public class ShotTimingTunerOpMode extends LinearOpMode {

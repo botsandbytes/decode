@@ -74,10 +74,6 @@ public class Casablanca {
   private Envelope lastRobotBounds;
   private Envelope lastProtectedZone;
 
-  /**
-   * True if the last call saw a non-finite pose and refused to drive rather than steer off an
-   * untrusted localizer reading. Surfaced in TeleOp telemetry so a dead drivetrain is diagnosable.
-   */
   public boolean wasPoseUntrusted() {
     return lastPoseUntrusted;
   }
@@ -215,28 +211,14 @@ public class Casablanca {
     this.armedAimActive = armed;
   }
 
-  /**
-   * Points the chassis at a continuously-updated heading (the driver's face-the-goal button)
-   * instead of latching whatever heading the turn stick was last released at.
-   *
-   * <p>Separate from {@link #setArmedAimTarget} on purpose: ShotController rewrites its armed-aim
-   * channel every loop it solves and clears it on {@code stopShot()}, so sharing one channel would
-   * make an armed shot silently cancel the driver's lock (and vice versa). Armed aim wins where
-   * both are active, since that azimuth is the one the turret and flywheel are solved against.
-   *
-   * @param targetHeadingRad field-frame heading to hold, ignored when {@code active} is false
-   */
   public void setGoalHeadingLock(double targetHeadingRad, boolean active) {
     if (active && !goalLockActive) {
-      // Rising edge: drop any integral accumulated while holding the previous target, so the swing
-      // onto the goal starts from rest rather than from the tail of the last correction.
       headingPidf.reset();
     }
     this.goalLockHeadingTarget = targetHeadingRad;
     this.goalLockActive = active;
   }
 
-  /** True while the driver has the chassis latched onto the goal bearing. */
   public boolean isGoalHeadingLockActive() {
     return goalLockActive;
   }
@@ -252,12 +234,6 @@ public class Casablanca {
         pose, currentVelocity, currentAngularVelocity, strafe, forward, turn, turn);
   }
 
-  /**
-   * @param turn the shaped (e.g. cubic-curved, speed-scaled) turn power to command
-   * @param rawTurnIntent the driver's unshaped stick deflection, used only to decide whether they
-   *     are steering at all. Shaping curves compress small deflections towards zero, so testing
-   *     intent against the shaped value would read light steering as "hands off".
-   */
   public double[] adjustDriveInput(
       Pose pose,
       Vector currentVelocity,
@@ -278,17 +254,8 @@ public class Casablanca {
             && Double.isFinite(pose.getY())
             && Double.isFinite(pose.getHeading());
 
-    // A non-finite pose means the localizer has failed, and every stage below would quietly
-    // propagate that: Vector.rotateVector(NaN) yields NaN components even for a zero-magnitude
-    // vector, the JTS Envelope comparisons all evaluate false so the zone protections silently
-    // disengage, and NaN reaches the drivetrain. Steering off an untrusted heading is worse than
-    // not moving, so refuse outright. Turn was already gated this way — isRotationSafe() requires
-    // a finite pose — this extends the same rule to translation.
     lastPoseUntrusted = !poseFinite;
     if (!poseFinite) {
-      // Drop the slew accumulators so recovery ramps up from rest rather than from whatever was
-      // commanded before the localizer dropped out. Deliberately not reset(), which would also
-      // clear the armed-aim latch that ShotController owns.
       currentForward = 0;
       currentStrafe = 0;
       currentTurn = 0;
@@ -296,15 +263,6 @@ public class Casablanca {
       return new double[] {0.0, 0.0, 0.0};
     }
 
-    // Field-centric mapping happens first, so everything downstream still sees a robot-frame
-    // (forward, strafe) pair. That matters: frictionX/frictionY and the back-lift slew asymmetry
-    // are mechanical properties of the drivetrain's forward and strafe axes, and applying them to
-    // field-frame components would smear the strafe friction constant across both axes as the
-    // robot turns.
-    //
-    // This rotation is the inverse of the robot->field rotation applied further down, offset by
-    // fieldCentricOffsetRad, so the net field-frame output is the driver's stick vector rotated by
-    // the offset alone — independent of robot heading.
     if (fieldCentric) {
       Vector stick = new Vector();
       stick.setOrthogonalComponents(forward, strafe);
@@ -331,9 +289,6 @@ public class Casablanca {
 
     if ((armedAimActive || goalLockActive || (enableHeadingLock && stickReleased)) && poseFinite) {
       if (!headingLockInitialized) {
-        // Capture the heading to hold only once the robot has actually stopped turning. Latching
-        // the instant the stick is released picks a heading the robot is still coasting away from,
-        // so the lock immediately fights its own momentum and rings before settling.
         if (Math.abs(currentAngularVelocity) < headingLockSettleRateRad) {
           targetHeading = pose.getHeading();
           headingLockInitialized = true;
@@ -344,8 +299,6 @@ public class Casablanca {
         double headingError = AngleUnit.normalizeRadians(targetHeading - pose.getHeading());
 
         if (Math.abs(headingError) < headingLockErrorDeadbandRad) {
-          // Within tolerance: hold silently, don't let sensor noise near the zero crossing chatter
-          // the drivetrain via the signum-based feedforward below.
           headingPidf.reset();
           turn = 0.0;
         } else {
@@ -361,8 +314,6 @@ public class Casablanca {
         }
       }
     } else {
-      // Driver is actively steering (or lock disabled): give them full, unfought authority.
-      // Re-latch onto whatever heading they leave the robot at next time the stick is released.
       headingLockInitialized = false;
     }
 

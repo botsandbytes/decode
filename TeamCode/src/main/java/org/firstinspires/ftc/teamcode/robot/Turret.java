@@ -144,17 +144,6 @@ public class Turret {
     return maxPower;
   }
 
-  /**
-   * Pushes the current gains into the coefficients object the controller was constructed with.
-   *
-   * <p>This mutates that object in place rather than handing the controller a new one: {@link
-   * PIDFController#run()} re-reads its gains from the {@code PIDFCoefficientSupplier} it was given
-   * at construction, so a {@code pidfController.setCoefficients(new ...)} call is silently
-   * discarded on the very next {@code run()}. That is what made the live tuner a no-op -- the
-   * turret kept using the gains read from config.yaml at construction time, so dashboard edits
-   * (including setting every gain to 0) changed nothing. {@code Shooter} avoids the same trap; see
-   * {@code Shooter#setShooterPIDFCoefficients()}.
-   */
   private void applyPIDFCoefficients() {
     pidfCoefficients.setCoefficients(p, i, d, f);
   }
@@ -198,7 +187,6 @@ public class Turret {
     return holdAngle;
   }
 
-  /** Raw analog encoder voltage, or NaN when the encoder is absent or disabled. */
   public double getRawVoltage() {
     if (turnAnalog != null && config.turret.analog_encoder.enabled) {
       return turnAnalog.getVoltage();
@@ -252,10 +240,6 @@ public class Turret {
     double[] range = getReachableAngleRange();
     StringBuilder sb = new StringBuilder();
 
-    // A zero_voltage far from the travel's midpoint drags the potentiometer's wrap point in
-    // between the two hard stops. The angle then jumps a full scale mid-travel, so the loop chases
-    // a discontinuity and can run the reading clear outside the fault window. The stops span a
-    // known number of degrees; if the computed span is short, the wrap is sitting between them.
     double expectedSpan = (enc.max_voltage - enc.min_voltage) * enc.degrees_per_volt;
     double actualSpan = range[1] - range[0];
     if (enc.full_scale_voltage > 0 && Math.abs(actualSpan - expectedSpan) > 1.0) {
@@ -314,30 +298,22 @@ public class Turret {
     return false;
   }
 
-  /** Why the last power write was zeroed, or null if it was passed through. */
   public String getPowerBlockedReason() {
     return powerBlockedReason;
   }
 
   private String powerBlockedReason = null;
 
-  /**
-   * Clears a latched safety fault. Deliberate operator action only -- the turret stopped because it
-   * was pushing against something or driving the wrong way, so a human should look before it is
-   * allowed to move again.
-   */
   public void clearFault() {
     faultReason = null;
     stallReferenceAngle = Double.NaN;
     runawayTarget = Double.NaN;
   }
 
-  /** True once a watchdog has cut power; stays true until {@link #clearFault()}. */
   public boolean isFaulted() {
     return faultReason != null;
   }
 
-  /** Why the turret latched a safety fault, or null if it has not. */
   public String getFaultReason() {
     return faultReason;
   }
@@ -348,15 +324,6 @@ public class Turret {
   private double runawayTarget = Double.NaN;
   private double runawayBestAbsError = Double.MAX_VALUE;
 
-  /**
-   * Cuts power when the aim error is growing under power instead of shrinking.
-   *
-   * <p>This is what an inverted control loop looks like from the inside: if {@code
-   * servo_direction_inverted} and {@code analog_encoder.inverted} disagree with the hardware, every
-   * correction drives the turret further from its target, so the loop accelerates into a hard stop
-   * and holds there. No position guard catches it -- the readings stay perfectly plausible the
-   * whole way -- but the error only ever grows, which nothing legitimate does.
-   */
   private void updateRunawayWatchdog(double target, double error, double command) {
     var runaway = config.turret.runaway;
     if (!runaway.enabled || Double.isNaN(getRawVoltage()) || isFaulted()) {
@@ -370,7 +337,7 @@ public class Turret {
     }
 
     if (Math.abs(command) < config.turret.stall.power_threshold) {
-      return; // Not actually driving; the error is allowed to sit wherever it is.
+      return;
     }
 
     double absError = Math.abs(error);
@@ -384,15 +351,6 @@ public class Turret {
     }
   }
 
-  /**
-   * Cuts power when the turret is being driven but is not moving.
-   *
-   * <p>This is the protection that was missing when a bad {@code zero_voltage} let the loop drive
-   * the turret into its hard stop and hold it there: every position-based guard trusts the encoder,
-   * so none of them fire when the encoder itself is the thing that is wrong. Progress does not care
-   * why the reading is bad -- if we are commanding real power and the angle is not changing, the
-   * turret is pushing against something and must stop.
-   */
   private void updateStallWatchdog(double commandedPower) {
     var stall = config.turret.stall;
     if (!stall.enabled || Double.isNaN(getRawVoltage()) || isFaulted()) {
@@ -440,10 +398,6 @@ public class Turret {
         powerBlockedReason = faultReason;
         power = 0;
       } else if (!isReadingWithinTravel()) {
-        // Fail safe, in both directions. Deciding which way is "back toward travel" requires
-        // trusting getCurrentTurnAngle(), and this branch is exactly the case where that reading is
-        // not trustworthy -- an earlier attempt to auto-recover here drove the turret into its hard
-        // stop. Recovery is by hand, via the passive (0-power) TurretCenterCalibrationOpMode.
         powerBlockedReason =
             String.format(
                 "ENCODER OUT OF RANGE (%.1f deg) - reading is not trusted, power cut",
@@ -527,9 +481,6 @@ public class Turret {
     applyPIDFCoefficients();
     pidfController.setTargetPosition(relativeTargetAngle);
     pidfController.updatePosition(relativeTurretAngle);
-    // Always a normalized direction, never the kS magnitude. run() computes feedForwardInput * F,
-    // so passing kS here made the F term "kS * f" -- kS scaled by an unrelated gain, on top of the
-    // kS already added to the output below. f is an independent symmetric stiction gain.
     pidfController.updateFeedForwardInput(Math.signum(error));
     double pidOutput = pidfController.run();
     double command = Math.clamp(pidOutput + feedforward, -maxPower, maxPower);
@@ -557,8 +508,6 @@ public class Turret {
       telemetry.addData("Turret Done", isTurnDone);
       telemetry.addData("Turret Direction", turnLeft ? "LEFT" : "RIGHT");
       telemetry.addData("Turret At Limit", isBoundaryViolated);
-      // "At Limit" only covers the travel limits, so an out-of-range encoder reading zeroed the
-      // power while this line still read false. Report what actually blocked the write.
       telemetry.addData("Turret Encoder Fault", !isReadingWithinTravel());
       telemetry.addData(
           "Turret Power Blocked", powerBlockedReason == null ? "no" : powerBlockedReason);

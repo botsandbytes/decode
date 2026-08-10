@@ -123,12 +123,6 @@ public abstract class TeleOpBase extends OpMode {
     double maxSpeed = config.teleop.max_speed;
     teleOpDriveCommand =
         Command.build()
-            // holdPoint() (park/score/drink/aim-and-shoot) leaves the Follower with
-            // manualDrive=false and holdingPosition=true, and in that state Follower.update()
-            // ignores the vectors written by setTeleOpDrive() entirely. Re-entering manual drive
-            // here — at the moment this command takes ownership of the Follower — is what actually
-            // releases the hold, so every unstick path (dpad right, stick deflection, trigger
-            // release, leaving the launch zone) restores driver control.
             .setStart(() -> follower.startTeleopDrive())
             .setExecute(
                 () -> {
@@ -185,8 +179,6 @@ public abstract class TeleOpBase extends OpMode {
 
     onLoop();
 
-    // Runs after onLoop() so a cancel issued this loop hands the Follower back to manual drive in
-    // the same loop rather than one loop later.
     if (!Scheduler.isScheduled(teleOpDriveCommand) && !hasActiveDriveOverride()) {
       teleOpDriveCommand.schedule();
     }

@@ -59,18 +59,6 @@ public class BallisticsModel {
   private static final double MAX_FLIGHT_TIME_SEC = 3.0;
   private static final double GROUND_HEIGHT_INCHES = -20.0;
 
-  /**
-   * Integrates the 2D trajectory of a ball launched at elevation angle theta (degrees) until
-   * horizontal distance reaches targetDistanceInches.
-   *
-   * <p>Runs as a single {@code integrate()} call with G-stop event handlers locating the distance
-   * crossing (and the ground-fall bailout) directly on the RK4 step interpolant, instead of
-   * re-invoking {@code integrate()} once per fixed 2ms step. Re-invoking per step was redoing the
-   * integrator's internal array/interpolator setup on every step, which dominated the real cost of
-   * a solve; this produces the identical physics (same ODE, same fixed step size) for a fraction of
-   * the wall-clock cost, with a more precise event-crossing time than the old linear interpolation
-   * between two samples.
-   */
   public static TrajectoryResult integrateTrajectory(
       double elevationAngleDeg, double targetDistanceInches, BallisticsParameters params) {
     double thetaRad = Math.toRadians(elevationAngleDeg);
@@ -100,7 +88,6 @@ public class BallisticsModel {
     return new TrajectoryResult(finalTime, yFinal[1], entryAngle, false);
   }
 
-  /** G-stops integration the first time state component {@code component} crosses {@code level}. */
   private static class CrossingEventHandler implements EventHandler {
     private final double level;
     private final int component;
@@ -134,9 +121,6 @@ public class BallisticsModel {
     public void resetState(double t, double[] y) {}
   }
 
-  /**
-   * Finds the lofted (high-arc) elevation angle that hits goalHeightInches at targetDistanceInches.
-   */
   public static SolvedElevation solveLoftedElevation(
       double targetDistanceInches, BallisticsParameters params) {
     double minAngle = params.minHoodAngleDeg();
@@ -155,10 +139,6 @@ public class BallisticsModel {
     double solvedAngle = Double.NaN;
     BrentSolver solver = new BrentSolver(1e-4);
 
-    // Search from maxAngle down to minAngle to find the highest (lofted) solution branch.
-    // f2 of one step is f1 of the next, so each angle is evaluated exactly once here; the min-|err|
-    // candidate is tracked inline so an unreachable target (no bracket found, e.g. distance beyond
-    // what v0 can loft to goal height) doesn't require a second full-range rescan to fall back on.
     double bestAngle = maxAngle;
     double minAbsErr = Double.MAX_VALUE;
 
@@ -198,12 +178,6 @@ public class BallisticsModel {
     return new SolvedElevation(solvedAngle, servoPos, validFlightTime, result.entryAngleRad());
   }
 
-  /**
-   * True if some hood elevation reaches goal height at this distance with the given parameters.
-   *
-   * <p>Exits on the first angle that clears the goal, so reachable shots — the common case — cost
-   * only a handful of integrations. Only genuinely unreachable ones pay for the whole scan.
-   */
   private static boolean canReachGoal(double targetDistanceInches, BallisticsParameters params) {
     for (double a = params.maxHoodAngleDeg();
         a >= params.minHoodAngleDeg();
@@ -216,41 +190,11 @@ public class BallisticsModel {
     return false;
   }
 
-  /**
-   * Solves both shot degrees of freedom: the flywheel exit speed and the hood elevation.
-   *
-   * <p>Hitting a goal at a given distance is one equation in two unknowns, so it has a whole family
-   * of solutions and needs a policy to pick one. This one is hood-first: the flywheel is held at
-   * {@code preferredShotRpm} and the hood alone aims the shot, for every distance that speed covers
-   * comfortably. Only where it runs out does the flywheel rise, and only as far as it has to.
-   * Formally the exit speed is {@code max(preferred, minimumReachingSpeed * (1 + margin))}.
-   *
-   * <p>Keeping the flywheel parked at one speed is deliberate. It is the slow variable: it has to
-   * spin up, its readiness gate has to re-converge, and its exit velocity is least repeatable away
-   * from the speed the model was calibrated at. Testing an earlier minimum-energy policy — which
-   * drove the flywheel as slow as each shot allowed — produced shots that were far too weak at
-   * close range. The hood is the fast, cheap, precise degree of freedom, so it absorbs the range
-   * variation.
-   *
-   * <p>The margin is why the test is "comfortably" rather than merely "at all". Right at the edge
-   * of a speed's range the only surviving solution is a near-vertical lob: at 1000 RPM a 96 in
-   * target solves to a 63° hood with 0.94 s of hang time, nominally a hit and useless in practice.
-   * Requiring the speed to beat the minimum reaching speed by {@code v0MarginFraction} keeps the
-   * solution off that boundary, so the flywheel steps up just before the arc degenerates instead of
-   * long after.
-   *
-   * <p>A target that cannot be reached even at {@code maxShotRpm} comes back {@code feasible ==
-   * false} with the best-effort maximum-speed shot attached, rather than a silently bogus angle.
-   */
   public static SolvedShot solveShot(double targetDistanceInches, BallisticsParameters params) {
     double preferredV0 = params.rpmToV0(params.preferredShotRpm());
     double maxV0 = params.rpmToV0(params.maxShotRpm());
     double margin = 1.0 + params.v0MarginFraction();
 
-    // The preferred speed carries the full margin iff the goal is still reachable after dividing
-    // the margin back out — canReachGoal is monotonic in speed, so reaching at preferredV0/margin
-    // is exactly the statement preferredV0 >= minimumReachingSpeed * margin. One check and no
-    // search, which is the common close- and mid-range case.
     if (canReachGoal(targetDistanceInches, params.withV0(preferredV0 / margin))) {
       return shotAt(preferredV0, targetDistanceInches, params, true, "Valid");
     }
@@ -266,8 +210,8 @@ public class BallisticsModel {
               targetDistanceInches, params.maxShotRpm()));
     }
 
-    double lo = preferredV0 / margin; // known not to reach
-    double hi = maxV0; // known to reach
+    double lo = preferredV0 / margin;
+    double hi = maxV0;
     for (int i = 0; i < V0_SEARCH_ITERATIONS; i++) {
       double mid = 0.5 * (lo + hi);
       if (canReachGoal(targetDistanceInches, params.withV0(mid))) {

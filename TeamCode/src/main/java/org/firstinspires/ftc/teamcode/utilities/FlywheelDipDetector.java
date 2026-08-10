@@ -1,40 +1,5 @@
 package org.firstinspires.ftc.teamcode.utilities;
 
-/**
- * Counts balls leaving the flywheel by the speed each one steals.
- *
- * <p>A ball entering the flywheel takes energy out of it, and the wheel slows for a few tens of
- * milliseconds until the controller puts it back. That dip is a direct mechanical consequence of
- * the event being counted, it arrives in the bulk read the loop already performs, and its size
- * scales with the setpoint — so one threshold works at every distance.
- *
- * <p>Dips are measured against a running reference of recent velocity, <b>not</b> against the
- * commanded target. During a feed the wheel does not recover to its setpoint between balls, so a
- * target-relative threshold sees one enormous dip for the whole burst and reports a single ball.
- *
- * <p>A dip <b>ends when the wheel rebounds off its own trough</b>, not when it climbs back near the
- * reference it started from. This is the difference between counting three balls and counting one.
- * Measured on this robot, a single ball drops the flywheel from 1020 to 740 ticks/s and the
- * controller needs about 1.7 s to bring it back within 2% of where it started — but the next ball
- * arrives at 1.4 s. Requiring a return to the old reference leaves the detector latched inside the
- * first dip for the whole magazine, and every later ball lands invisibly inside it. Rebounding a
- * few percent off the trough happens as soon as the wheel turns the corner, which is the moment the
- * ball is actually gone.
- *
- * <p>On leaving a dip the reference re-seeds to wherever the wheel recovered to, so the next ball
- * is judged against the speed it actually started from rather than against a setpoint the wheel
- * never gets back to.
- *
- * <p>What the trigger must clear, measured across 11 shots on two different flywheel controllers: a
- * real ball costs <b>12.2% to 26.4%</b> of flywheel speed, and the deepest thing that is not a ball
- * — the wheel coasting down from its post-shot overshoot, one encoder quantum per loop — reaches
- * <b>5.4%</b>. Nothing lands in between. A trigger set inside that gap separates them perfectly; a
- * trigger below it reports a phantom ball on every single shot, which is exactly what a 5% default
- * did.
- *
- * <p>Pure and hardware-free: the thresholds are the whole design and they need to be testable
- * without a robot and a hopper full of balls.
- */
 public final class FlywheelDipDetector {
 
   private final double dipFraction;

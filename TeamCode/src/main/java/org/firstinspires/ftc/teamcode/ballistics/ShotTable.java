@@ -2,23 +2,6 @@ package org.firstinspires.ftc.teamcode.ballistics;
 
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
-/**
- * Measured distance-to-shot lookup: the empirical replacement for solving a ballistic model.
- *
- * <p>Every row is a shot a driver watched score, recorded as the three numbers the robot actually
- * commands — distance, hood servo position, flywheel setpoint. Nothing is inferred. The physics
- * model it replaces needed the ring's launch angle, which is not observable on this robot: the exit
- * direction is set by the flywheel/hood tangent at the exit lip, and the angle and the exit speed
- * trade off exactly against each other. Calibration shots all pass through the same goal height, so
- * they constrain only the product of that pair, never each one. Fitting them yielded exit speeds
- * anywhere from 202 to 257 in/s with indistinguishable residuals — a model whose free parameter
- * cannot be measured buys nothing over interpolating what was measured directly.
- *
- * <p>Interpolation is linear between rows and clamped outside them. Linear because a polynomial
- * through this few points oscillates between them, and a spline would add smoothness that no
- * measurement supports; clamped because extrapolating past the calibrated range is exactly the
- * guess this class exists to avoid.
- */
 public final class ShotTable {
 
   /** One interpolated shot: what to command, and whether the distance was actually calibrated. */

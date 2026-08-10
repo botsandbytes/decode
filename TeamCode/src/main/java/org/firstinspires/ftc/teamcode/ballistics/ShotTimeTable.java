@@ -2,31 +2,6 @@ package org.firstinspires.ftc.teamcode.ballistics;
 
 import org.firstinspires.ftc.teamcode.robot.config.generated.config;
 
-/**
- * Measured RPM-to-shoot-window lookup: how long a full magazine actually takes to leave, keyed by
- * the flywheel's target RPM rather than the shot's distance.
- *
- * <p>Every row is a shot the Shot Timing Tuner counted ball by ball, from the moment the shot was
- * armed to 250 ms after the last ball cleared the flywheel. Nothing is modelled — the shot's
- * duration depends on flywheel spin-up, per-ball sag, and how fast the feed gate re-arms, none of
- * which is predictable from first principles on this robot.
- *
- * <p>RPM is the key rather than distance because it is the thing the duration actually depends on —
- * a faster flywheel stores more energy, so each ball costs a smaller fraction of it and the gate
- * re-arms sooner — and because it survives a {@link ShotTable} recalibration. Distance-to-RPM is
- * whatever the current shot table says it is; a row measured at one calibration's RPM stays correct
- * after the table changes, where the same row keyed on distance would silently start describing a
- * different, unmeasured RPM.
- *
- * <p>The curve is not monotonic in the direction anyone expects: a low-RPM (close) shot takes
- * <i>longer</i> than a high-RPM (far) one. That alone is the reason a single flat {@code
- * shoot_wait_ms} cannot be right at both ends of the field.
- *
- * <p>Interpolation is linear between rows and <b>clamped</b> outside them. Clamping is the safe
- * direction here, unlike in {@link ShotTable} where an uncalibrated distance is refused: a shoot
- * window that is too long only costs autonomous time, while one that is too short silently leaves
- * balls in the robot.
- */
 public final class ShotTimeTable {
 
   private final double[] rpms;
