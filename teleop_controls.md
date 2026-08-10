@@ -1,8 +1,4 @@
-# FTC Decode - TeleOp Controls & Keypress Documentation
 
-This document provides a comprehensive mapping, detailed behavioral description, and safety governance audit for every gamepad button and input in the `TeleOp` OpMode (`org.firstinspires.ftc.teamcode.teleop.TeleOp` extending `TeleOpBase`).
-
----
 
 ## 1. Driver Controls (Gamepad 1)
 
@@ -32,50 +28,3 @@ This document provides a comprehensive mapping, detailed behavioral description,
 | **DPad Right** | Digital Button | Press (`onTrue`) | **Co-Pilot Driver Auto-Cancel** | Operator override button to cancel driver automated pose-holding commands (`parkCommand`, `scoreCommand`, `drinkCommand`). |
 | **Left Trigger** | Analog Trigger | Press (`> 0.5`) | **Master Abort / Emergency Stop** | Instantly cancels all active operator commands (`aimAndShootCommand`, `aimCommand`, `shootManualCommand`, `manualRevCommand`, `intakeCommand`), resetting flywheel, intake, and turret states to safe idle. `intakeCommand` was previously omitted, so the abort left the intake rollers running. |
 
----
-
-## 3. Complete Gamepad Input Audit (Unmapped Inputs)
-
-To guarantee complete documentation of every button on standard FTC gamepads (Logitech F310, DualShock 4, Xbox Wireless):
-
-### Driver Gamepad 1
-- **Button A**, **Button B**, **Button X**, **Button Y**: *Unmapped*
-- **DPad Up**, **DPad Down**: *Unmapped*
-- **Left Bumper (LB)**, **Right Bumper (RB)**: *Unmapped*
-- **Left Stick Press (L3)**, **Right Stick Press (R3)**: *Unmapped*
-- **Back / Select**, **Start / Menu**, **Guide / PS Button**: *Reserved for FTC System & Driver Station OpMode control*
-
-### Operator Gamepad 2
-- **DPad Left**: *Unmapped*
-- **Left Bumper (LB)**, **Right Bumper (RB)**: *Unmapped*
-- **Left Stick X / Y**, **Right Stick X / Y**: *Unmapped*
-- **Left Stick Press (L3)**, **Right Stick Press (R3)**: *Unmapped*
-- **Back / Select**, **Start / Menu**, **Guide / PS Button**: *Reserved for FTC System & Driver Station OpMode control*
-
----
-
-## 4. Architectural Deep Dive & Subsystem Logic
-
-### A. Dynamic Chassis Governance (`Casablanca` & `Sentinel`)
-- **Control Response**: Translational and rotational inputs use a cubic mapping curve ($f(x) = x^3$) to provide fine-grained micro-adjustment capability near stick center while preserving 100% max velocity at full stick deflection.
-- **Dynamic Speed Scaling**: Inputs are processed by `Casablanca.adjustDriveInput()`, which applies empirical friction compensation parameters (`frictionX`, `frictionY`, `frictionRot`) from `config.yaml`.
-- **Predictive Braking (`Sentinel`)**: If chassis trajectory threatens to enter protected opponent alliance zones, `Casablanca` dynamically restricts velocity vectors along the target axis.
-
-### B. Alliance Parameterization & Auto Poses
-- TeleOp reads the active match alliance (`RED` or `BLUE`) from the internal blackboard (`blackboard.get("ALLIANCE")`).
-- Coordinates for `parkPose()`, `scorePose()`, and `drinkPose()` are dynamically derived from `config.loadMatchProfile(alliance)`.
-- If an automated trajectory is active, `hasActiveDriveOverride()` returns `true`, suppressing manual drive command scheduling until the trajectory completes or is interrupted by driver stick input or DPad Right.
-
-### C. Triple-Gate Shot Gating (`ShotController`)
-When `aimAndShootCommand` is active, the `ShotController.periodic()` loop enforces three distinct readiness gates before activating the intake feed rollers (`intake.run(feed_intake_power, feed_transfer_power)`):
-1. **Flywheel Velocity Gate**: Measured velocity (`shooter.getShooterVelocity()`) must fall within target bounds ($Target \times min\_transfer\_threshold$ to $Target \times max\_velocity\_threshold$). Features latching hysteresis ($releaseLow = feed\_release\_threshold$) so speed drops during ring feed do not cause gate chatter.
-2. **Turret Alignment Gate**: Turret current heading must align with the `ShotSolver` calculated azimuth within target tolerance (`turret.isAimed()`).
-3. **Solver Validity Gate**: The background thread (`ShotSolver`) must return a valid ballistics solution for the current robot position relative to goal coordinates (`Field.getGoalX(alliance)`, `Field.getGoalY(alliance)`).
-
-### D. Safety Field Boundaries (`Sentinel`)
-- Both `aimAndShootCommand` (Right Trigger) and `aimCommand` (Button X) check `sentinel.isLaunchAllowed(follower.getPose())` before scheduling.
-- If the robot is positioned in a non-launch field sector, aiming and shooting are strictly prohibited.
-- If the robot drifts outside the launch zone during an active shot, `aimAndShootCommand.setDone()` triggers automatic termination.
-
----
-*Generated for FTC Decode Project Governance & Documentation.*
