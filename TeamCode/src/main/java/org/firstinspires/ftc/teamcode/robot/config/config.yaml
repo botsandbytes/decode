@@ -9,8 +9,8 @@ turret:
     logo: "LEFT"
     usb: "UP"
   travel:
-    min_angle: -30.1
-    max_angle: 30.1
+    min_angle: -26.5
+    max_angle: 26.5
   stall:
     enabled: true
     power_threshold: 0.12
@@ -32,10 +32,10 @@ turret:
     max_deg: 2
   analog_encoder:
     enabled: true
-    zero_voltage: 1.079
+    zero_voltage: 1.2650
     degrees_per_volt: 42.15
-    min_voltage: 0.293
-    max_voltage: 1.865
+    min_voltage: 0.556
+    max_voltage: 1.964
     full_scale_voltage: 3.3
     inverted: true
 
@@ -55,7 +55,7 @@ sentinel:
   goals:
     size: 6
     min_y: 69
-    red_goal_x: 128.5
+    red_goal_x: 133
     red_goal_y: 135
     blue_goal_x: 15.5
     blue_goal_y: 135
@@ -183,7 +183,7 @@ auto:
 
 teleop:
   max_speed: 1
-  field_centric: true
+  field_centric: false
   field_centric_offset_deg: 0
   intake_power: 1.0
   transfer_power: 0.1
